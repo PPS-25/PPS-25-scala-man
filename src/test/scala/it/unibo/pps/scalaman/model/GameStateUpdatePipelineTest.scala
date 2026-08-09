@@ -6,7 +6,9 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
 
   private final case class TraceState(events: Vector[String], value: Int)
 
-  test("A new pipeline should leave the state unchanged when all stages are empty") {
+  test(
+    "A new pipeline should leave the state unchanged when all stages are empty"
+  ) {
     val pipeline = GameStateUpdatePipeline[TraceState]()
     val initial = TraceState(Vector.empty, 0)
 
@@ -18,7 +20,8 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
       processInput = state => state.copy(events = state.events :+ "input"),
       updateAi = state => state.copy(events = state.events :+ "ai"),
       updateMovement = state => state.copy(events = state.events :+ "movement"),
-      resolveCollisions = state => state.copy(events = state.events :+ "collisions"),
+      resolveCollisions =
+        state => state.copy(events = state.events :+ "collisions"),
       collectItems = state => state.copy(events = state.events :+ "items"),
       applyBonuses = state => state.copy(events = state.events :+ "bonuses"),
       updateState = state => state.copy(events = state.events :+ "state")
@@ -26,10 +29,22 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
 
     val result = pipeline.tick(TraceState(Vector.empty, 0))
 
-    assert(result.events == Vector("input", "ai", "movement", "collisions", "items", "bonuses", "state"))
+    assert(
+      result.events == Vector(
+        "input",
+        "ai",
+        "movement",
+        "collisions",
+        "items",
+        "bonuses",
+        "state"
+      )
+    )
   }
 
-  test("A pipeline should feed each stage with the result of the previous one") {
+  test(
+    "A pipeline should feed each stage with the result of the previous one"
+  ) {
     val pipeline = GameStateUpdatePipeline[Int](
       processInput = _ + 1,
       updateAi = _ * 2,
