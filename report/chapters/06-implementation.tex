@@ -16,3 +16,9 @@ bonuses, and final state reconciliation.
 
 Keeping the pipeline pure makes it easy to compose, reason about, and test
 before the controller and view layers are connected.
+
+\section{Game state transitions}
+The match state is modeled separately from the loop lifecycle. It supports
+running, paused, victory, and defeat states, with explicit transition methods
+that reject invalid moves. Terminal states are immutable and mark the point
+where gameplay updates must stop.
