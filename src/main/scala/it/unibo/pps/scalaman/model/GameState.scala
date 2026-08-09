@@ -8,6 +8,9 @@ package it.unibo.pps.scalaman.model
 enum GameState:
   case Running, Paused, Victory, Defeat
 
+  private def invalidTransition(to: GameState): IllegalArgumentException =
+    IllegalArgumentException(s"Invalid transition from $this to $to")
+
   /** Returns whether the game is in a terminal state.
     *
     * Terminal states cannot transition to any other state and should stop
@@ -15,7 +18,7 @@ enum GameState:
     */
   def isTerminal: Boolean = this match
     case Victory | Defeat => true
-    case _ => false
+    case _                => false
 
   /** Returns whether gameplay updates are allowed in this state. */
   def canUpdate: Boolean = this == Running
@@ -27,7 +30,7 @@ enum GameState:
     */
   def pause(): GameState = this match
     case Running => Paused
-    case _ => throw new IllegalArgumentException(s"Invalid transition from $this to Paused")
+    case _       => throw invalidTransition(Paused)
 
   /** Resumes a paused game.
     *
@@ -36,7 +39,7 @@ enum GameState:
     */
   def resume(): GameState = this match
     case Paused => Running
-    case _ => throw new IllegalArgumentException(s"Invalid transition from $this to Running")
+    case _      => throw invalidTransition(Running)
 
   /** Marks the game as a victory.
     *
@@ -45,7 +48,7 @@ enum GameState:
     */
   def win(): GameState = this match
     case Running | Paused => Victory
-    case _ => throw new IllegalArgumentException(s"Invalid transition from $this to Victory")
+    case _                => throw invalidTransition(Victory)
 
   /** Marks the game as a defeat.
     *
@@ -54,7 +57,7 @@ enum GameState:
     */
   def lose(): GameState = this match
     case Running | Paused => Defeat
-    case _ => throw new IllegalArgumentException(s"Invalid transition from $this to Defeat")
+    case _                => throw invalidTransition(Defeat)
 
 object GameState:
   val initial: GameState = GameState.Running
