@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.map.generator
 
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.MapGenerationError
 import it.unibo.pps.scalaman.model.map.MapGenerationSpec
 import it.unibo.pps.scalaman.model.map.MapTestSupport
@@ -9,13 +9,13 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class MapGeneratorSpec extends AnyFunSuite, MapTestSupport:
   private def countCells(map: it.unibo.pps.scalaman.model.map.RawMap)(
-      predicate: Cell => Boolean
+      predicate: Tile => Boolean
   ): Int =
     map.rows.flatten.count(predicate)
 
   private def countEnemies(map: it.unibo.pps.scalaman.model.map.RawMap): Int =
     countCells(map) {
-      case Cell.Hunter | Cell.Anticipator => true
+      case Tile.Hunter | Tile.Anticipator => true
       case _                              => false
     }
 
@@ -55,11 +55,11 @@ class MapGeneratorSpec extends AnyFunSuite, MapTestSupport:
 
     assert(map.width == 8)
     assert(map.height == 6)
-    assert(countCells(map)(_ == Cell.Spawn) == 1)
-    assert(countCells(map)(_ == Cell.Collectible) == 2)
+    assert(countCells(map)(_ == Tile.Spawn) == 1)
+    assert(countCells(map)(_ == Tile.Collectible) == 2)
     assert(countEnemies(map) == 2)
     assert(countCells(map) {
-      case Cell.Teleport(code) if code >= 0 && code <= 9 => true
+      case Tile.Teleport(code) if code >= 0 && code <= 9 => true
       case _                                             => false
     } == 4)
     assert(MapValidator.validate(map).isRight)

@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 final case class Position(row: Int, col: Int)
 
-enum Cell:
+enum Tile:
   case Wall, Floor, Spawn, Collectible
   case Hunter, Anticipator
   case InvulnerabilityBonus, SlowdownBonus
@@ -15,7 +15,7 @@ enum EnemyKind:
 
 final case class Enemy(position: Position, kind: EnemyKind)
 
-final case class RawMap(rows: Vector[Vector[Cell]]):
+final case class RawMap(rows: Vector[Vector[Tile]]):
   val height: Int = rows.length
   val width: Int = rows.headOption.fold(0)(_.length)
 

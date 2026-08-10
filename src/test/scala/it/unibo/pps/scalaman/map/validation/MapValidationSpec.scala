@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.map.validation
 
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapValidationError
 import it.unibo.pps.scalaman.model.map.MapTestSupport
@@ -72,9 +72,9 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
     val validated = MapValidator.validate(
       RawMap(
         Vector(
-          Vector(Cell.Wall, Cell.Wall, Cell.Wall),
-          Vector(Cell.Wall, Cell.Teleport(12), Cell.Wall),
-          Vector(Cell.Wall, Cell.Wall, Cell.Wall)
+          Vector(Tile.Wall, Tile.Wall, Tile.Wall),
+          Vector(Tile.Wall, Tile.Teleport(12), Tile.Wall),
+          Vector(Tile.Wall, Tile.Wall, Tile.Wall)
         )
       )
     )

@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.map.parser
 
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.MapParseError
 import it.unibo.pps.scalaman.model.map.MapTestSupport
 import it.unibo.pps.scalaman.model.map.RawMap
@@ -9,7 +9,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class MapParserSpec extends AnyFunSuite, MapTestSupport:
   private val teleportPairs = List(0 -> 5, 1 -> 6, 2 -> 7, 3 -> 8, 4 -> 9)
 
-  private def assertCell(map: RawMap, row: Int, col: Int, expected: Cell): Unit =
+  private def assertCell(map: RawMap, row: Int, col: Int, expected: Tile): Unit =
     assert(map.rows(row)(col) == expected)
 
   test(
@@ -21,15 +21,15 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
     val map = parsed.toOption.get
     assert(map.height == 5)
     assert(map.width == 7)
-    assert(map.rows.flatten.contains(Cell.Spawn))
-    assert(map.rows.flatten.contains(Cell.Collectible))
-    assert(map.rows.flatten.contains(Cell.Hunter))
-    assert(map.rows.flatten.contains(Cell.Anticipator))
-    assert(map.rows.flatten.contains(Cell.InvulnerabilityBonus))
-    assert(map.rows.flatten.contains(Cell.SlowdownBonus))
+    assert(map.rows.flatten.contains(Tile.Spawn))
+    assert(map.rows.flatten.contains(Tile.Collectible))
+    assert(map.rows.flatten.contains(Tile.Hunter))
+    assert(map.rows.flatten.contains(Tile.Anticipator))
+    assert(map.rows.flatten.contains(Tile.InvulnerabilityBonus))
+    assert(map.rows.flatten.contains(Tile.SlowdownBonus))
     assert(map.rows.flatten.exists {
-      case Cell.Teleport(0) => true
-      case Cell.Teleport(5) => true
+      case Tile.Teleport(0) => true
+      case Tile.Teleport(5) => true
       case _                => false
     })
   }
@@ -39,14 +39,14 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
 
     assert(parsed.isRight)
     val map = parsed.toOption.get
-    assertCell(map, 1, 1, Cell.Floor)
-    assertCell(map, 1, 2, Cell.Spawn)
-    assertCell(map, 1, 3, Cell.Collectible)
-    assertCell(map, 1, 4, Cell.Hunter)
-    assertCell(map, 1, 5, Cell.Anticipator)
-    assertCell(map, 1, 6, Cell.InvulnerabilityBonus)
-    assertCell(map, 1, 7, Cell.SlowdownBonus)
-    assertCell(map, 1, 8, Cell.Floor)
+    assertCell(map, 1, 1, Tile.Floor)
+    assertCell(map, 1, 2, Tile.Spawn)
+    assertCell(map, 1, 3, Tile.Collectible)
+    assertCell(map, 1, 4, Tile.Hunter)
+    assertCell(map, 1, 5, Tile.Anticipator)
+    assertCell(map, 1, 6, Tile.InvulnerabilityBonus)
+    assertCell(map, 1, 7, Tile.SlowdownBonus)
+    assertCell(map, 1, 8, Tile.Floor)
   }
 
   test("maps every teleport digit to the matching teleport cell") {
@@ -55,7 +55,7 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
     assert(parsed.isRight)
     val map = parsed.toOption.get
     (0 to 9).foreach { code =>
-      assertCell(map, 1, code + 1, Cell.Teleport(code))
+      assertCell(map, 1, code + 1, Tile.Teleport(code))
     }
   }
 
@@ -65,8 +65,8 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
 
       assert(parsed.isRight)
       val map = parsed.toOption.get
-      assert(map.rows.flatten.exists(_ == Cell.Teleport(start)))
-      assert(map.rows.flatten.exists(_ == Cell.Teleport(paired)))
+      assert(map.rows.flatten.exists(_ == Tile.Teleport(start)))
+      assert(map.rows.flatten.exists(_ == Tile.Teleport(paired)))
     }
   }
 
