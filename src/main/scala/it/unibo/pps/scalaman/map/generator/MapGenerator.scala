@@ -1,11 +1,10 @@
 package it.unibo.pps.scalaman.map.generator
 
+import it.unibo.pps.scalaman.model.Position
 import scala.util.Random
-
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.MapGenerationError
 import it.unibo.pps.scalaman.model.map.MapGenerationSpec
-import it.unibo.pps.scalaman.model.map.Position
 import it.unibo.pps.scalaman.model.map.RawMap
 
 object MapGenerator:
@@ -61,7 +60,7 @@ object MapGenerator:
   private def placeEntities(
       spec: MapGenerationSpec,
       positions: Vector[Position]
-  ): Vector[Vector[Cell]] =
+  ): Vector[Vector[Tile]] =
     val placements = computePlacements(spec, positions)
     val base = buildBaseGrid(spec.width, spec.height)
     overlay(base, placements.cells)
@@ -75,47 +74,47 @@ object MapGenerator:
     val teleportCells = teleportCellsFor(spec.teleports, teleportPositions)
 
     Placements(
-      cells = Vector(spawnPosition -> Cell.Spawn) ++
-        collectiblePositions.map(_ -> Cell.Collectible) ++
+      cells = Vector(spawnPosition -> Tile.Spawn) ++
+        collectiblePositions.map(_ -> Tile.Collectible) ++
         enemyPlacements(enemyPositions) ++
         teleportCells
     )
 
-  private def enemyPlacements(positions: Vector[Position]): Vector[(Position, Cell)] =
+  private def enemyPlacements(positions: Vector[Position]): Vector[(Position, Tile)] =
     positions.zipWithIndex.map { case (position, index) =>
       position -> enemyCell(index)
     }
 
-  private def enemyCell(index: Int): Cell =
-    if index % 2 == 0 then Cell.Hunter else Cell.Anticipator
+  private def enemyCell(index: Int): Tile =
+    if index % 2 == 0 then Tile.Hunter else Tile.Anticipator
 
   private def teleportCellsFor(
       teleports: Int,
       positions: Vector[Position]
-  ): Vector[(Position, Cell)] =
+  ): Vector[(Position, Tile)] =
     val positionPairs = positions.grouped(2).toVector
     val codePairs = teleportCodePairs.take(teleports)
 
     positionPairs.zip(codePairs).flatMap { case (positionsPair, (startCode, pairedCode)) =>
       positionsPair match
         case Vector(first, second) =>
-          Vector(first -> Cell.Teleport(startCode), second -> Cell.Teleport(pairedCode))
+          Vector(first -> Tile.Teleport(startCode), second -> Tile.Teleport(pairedCode))
         case _ =>
           Vector.empty
     }
 
-  private def buildBaseGrid(width: Int, height: Int): Vector[Vector[Cell]] =
+  private def buildBaseGrid(width: Int, height: Int): Vector[Vector[Tile]] =
     Vector.tabulate(height, width) { (row, col) =>
-      if isBorder(row, col, width, height) then Cell.Wall else Cell.Floor
+      if isBorder(row, col, width, height) then Tile.Wall else Tile.Floor
     }
 
   private def isBorder(row: Int, col: Int, width: Int, height: Int): Boolean =
     row == 0 || col == 0 || row == height - 1 || col == width - 1
 
   private def overlay(
-      grid: Vector[Vector[Cell]],
-      cells: Vector[(Position, Cell)]
-  ): Vector[Vector[Cell]] =
+      grid: Vector[Vector[Tile]],
+      cells: Vector[(Position, Tile)]
+  ): Vector[Vector[Tile]] =
     cells.foldLeft(grid) { case (currentGrid, (position, cell)) =>
       currentGrid.updated(position.row, currentGrid(position.row).updated(position.col, cell))
     }
@@ -123,4 +122,4 @@ object MapGenerator:
   private def invalid(reason: String): MapGenerationError =
     MapGenerationError.InvalidSpecification(reason)
 
-  private final case class Placements(cells: Vector[(Position, Cell)])
+  private final case class Placements(cells: Vector[(Position, Tile)])

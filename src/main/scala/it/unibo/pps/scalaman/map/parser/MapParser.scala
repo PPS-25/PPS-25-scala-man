@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.map.parser
 
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.MapParseError
 import it.unibo.pps.scalaman.model.map.RawMap
 
@@ -41,23 +41,23 @@ object MapParser:
         MapParseError.UnsupportedSymbol(char, rowIndex, colIndex)
     }.toList
 
-  private def parseRow(line: String): Vector[Cell] =
+  private def parseRow(line: String): Vector[Tile] =
     line.iterator.map(parseCell).toVector
 
-  private def parseCell(char: Char): Cell =
+  private def parseCell(char: Char): Tile =
     supportedCell(char).getOrElse(
       throw new IllegalArgumentException(s"Unsupported symbol '$char' reached parser output")
     )
 
-  private def supportedCell(char: Char): Option[Cell] =
+  private def supportedCell(char: Char): Option[Tile] =
     char match
-      case '#'                    => Some(Cell.Wall)
-      case '.'                    => Some(Cell.Floor)
-      case 'S'                    => Some(Cell.Spawn)
-      case 'C'                    => Some(Cell.Collectible)
-      case 'H'                    => Some(Cell.Hunter)
-      case 'A'                    => Some(Cell.Anticipator)
-      case 'I'                    => Some(Cell.InvulnerabilityBonus)
-      case 'R'                    => Some(Cell.SlowdownBonus)
-      case digit if digit.isDigit => Some(Cell.Teleport(digit.asDigit))
+      case '#'                    => Some(Tile.Wall)
+      case '.'                    => Some(Tile.Floor)
+      case 'S'                    => Some(Tile.Spawn)
+      case 'C'                    => Some(Tile.Collectible)
+      case 'H'                    => Some(Tile.Hunter)
+      case 'A'                    => Some(Tile.Anticipator)
+      case 'I'                    => Some(Tile.InvulnerabilityBonus)
+      case 'R'                    => Some(Tile.SlowdownBonus)
+      case digit if digit.isDigit => Some(Tile.Teleport(digit.asDigit))
       case _                      => None
