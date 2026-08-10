@@ -1,0 +1,271 @@
+/*
+ * scala-man class diagram - game state.
+ *
+ * Render:  dot -Tsvg docs/uml/game-state.dot -o docs/uml/game-state.svg
+ *
+ * Conventions used in this file:
+ *   - one node per type, HTML label in sections: stereotype+name, fields, operations
+ *   - Scala 3 stereotypes: «enumeration», «sealed trait», «case class», «opaque type»
+ *   - the edge decoration always sits on the "source" node of the relation:
+ *       inheritance / implementation -> hollow triangle on the supertype
+ *       composition                  -> filled diamond on the container
+ *       association                  -> plain arrow on the referenced type
+ *   - multiplicity: label on the end it refers to
+ *   - dashed border: type detailed in another diagram
+ *
+ * Scope: game state only. The maze appears with the bare minimum the state
+ * cannot ignore (Maze, Tile and Collectible); loading, validation and level
+ * structure belong to a later diagram. Optional features of the project
+ * proposal (score, multiple game modes, saving, patrolling) are not modelled.
+ */
+
+digraph GameState {
+  graph [
+    rankdir = TB,
+    nodesep = 0.5,
+    ranksep = 0.9,
+    fontname = "Helvetica",
+    labelloc = t,
+    label = "scala-man - game state",
+    fontsize = 18
+  ]
+  node [shape = plain, fontname = "Helvetica", fontsize = 11]
+  edge [fontname = "Helvetica", fontsize = 9]
+
+  /* ---------------------------------------------------------------- */
+  /* Root aggregate                                                    */
+  /* ---------------------------------------------------------------- */
+
+  GameState [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>GameState</b></td></tr>
+      <tr><td align="left">
+        + tick: Tick<br align="left"/>
+        + teleportCooldowns: Map[TeleportId, Tick]<br align="left"/>
+      </td></tr>
+      <tr><td align="left">+ status(): GameStatus<br align="left"/></td></tr>
+    </table>
+  >]
+
+  /* ---------------------------------------------------------------- */
+  /* Moving entities                                                   */
+  /* Meeting2 sec. 8: player and enemies generalised into MovingEntity.*/
+  /* `spawn` is redundant if the spawn point is a Tile of the maze:    */
+  /* still an open point, see Meeting2 sec. 9.                         */
+  /* ---------------------------------------------------------------- */
+
+  MovingEntity [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f7f0e8"><b>&#171;sealed trait&#187;<br/>MovingEntity</b></td></tr>
+      <tr><td align="left">
+        + pos: Position<br align="left"/>
+        + facing: Direction<br align="left"/>
+        + spawn: Position<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  Player [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Player</b></td></tr>
+    </table>
+  >]
+
+  Enemy [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Enemy</b></td></tr>
+      <tr><td align="left">
+        + id: Int<br align="left"/>
+        + speed: Speed<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  MovingEntity -> Player [dir = back, arrowtail = empty, arrowhead = none]
+  MovingEntity -> Enemy  [dir = back, arrowtail = empty, arrowhead = none]
+
+  /* ---------------------------------------------------------------- */
+  /* Temporary effects and level progress                              */
+  /* ---------------------------------------------------------------- */
+
+  ActiveEffect [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>ActiveEffect</b></td></tr>
+      <tr><td align="left">
+        + effect: BonusEffect<br align="left"/>
+        + until: Int<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  LevelProgress [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>LevelProgress</b></td></tr>
+      <tr><td align="left">
+        + lives: Int<br align="left"/>
+        + collected: Int<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  Position [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Position</b></td></tr>
+      <tr><td align="left">
+        + x: Int<br align="left"/>
+        + y: Int<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  /* ---------------------------------------------------------------- */
+  /* Maze: the bare minimum the game state needs                       */
+  /* ---------------------------------------------------------------- */
+
+  Maze [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Maze</b></td></tr>
+      <tr><td align="left">
+        + width: Int<br align="left"/>
+        + height: Int<br align="left"/>
+      </td></tr>
+      <tr><td align="left">+ tileAt(p: Position): Tile<br align="left"/></td></tr>
+    </table>
+  >]
+
+  Tile [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f7f0e8"><b>&#171;sealed trait&#187;<br/>Tile</b></td></tr>
+    </table>
+  >]
+
+  Wall [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Wall</b></td></tr>
+    </table>
+  >]
+
+  Floor [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Floor</b></td></tr>
+    </table>
+  >]
+
+  Teleport [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Teleport</b></td></tr>
+      <tr><td align="left">+ pairId: TeleportId<br align="left"/></td></tr>
+    </table>
+  >]
+
+  Maze -> Tile     [dir = back, arrowtail = diamond, arrowhead = none, headlabel = "1..*"]
+  Tile -> Wall     [dir = back, arrowtail = empty, arrowhead = none]
+  Tile -> Floor    [dir = back, arrowtail = empty, arrowhead = none]
+  Tile -> Teleport [dir = back, arrowtail = empty, arrowhead = none]
+
+  /* ---------------------------------------------------------------- */
+  /* Collectibles                                                      */
+  /* Meeting2 sec. 8: they carry a Position, so they are treated as    */
+  /* elements placed on the maze.                                      */
+  /* ---------------------------------------------------------------- */
+
+  Collectible [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f7f0e8"><b>&#171;sealed trait&#187;<br/>Collectible</b></td></tr>
+      <tr><td align="left">+ pos: Position<br align="left"/></td></tr>
+    </table>
+  >]
+
+  Basic [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Basic</b></td></tr>
+    </table>
+  >]
+
+  Bonus [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#e8eef7"><b>Bonus</b></td></tr>
+      <tr><td align="left">+ effect: BonusEffect<br align="left"/></td></tr>
+    </table>
+  >]
+
+  Collectible -> Basic [dir = back, arrowtail = empty, arrowhead = none]
+  Collectible -> Bonus [dir = back, arrowtail = empty, arrowhead = none]
+
+  /* ---------------------------------------------------------------- */
+  /* Enumerations                                                      */
+  /* ---------------------------------------------------------------- */
+
+  Direction [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f2e8f7"><b>&#171;enumeration&#187;<br/>Direction</b></td></tr>
+      <tr><td align="left">
+        Up<br align="left"/>Down<br align="left"/>Left<br align="left"/>Right<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  GameStatus [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f2e8f7"><b>&#171;enumeration&#187;<br/>GameStatus</b></td></tr>
+      <tr><td align="left">
+        Loss<br align="left"/>Win<br align="left"/>Ongoing<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  Input [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f2e8f7"><b>&#171;enumeration&#187;<br/>Input</b></td></tr>
+      <tr><td align="left">
+        Turn<br align="left"/>Pause<br align="left"/>Quit<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  BonusEffect [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#f2e8f7"><b>&#171;enumeration&#187;<br/>BonusEffect</b></td></tr>
+      <tr><td align="left">
+        SlowDown<br align="left"/>Invulnerability<br align="left"/>
+      </td></tr>
+    </table>
+  >]
+
+  /* ---------------------------------------------------------------- */
+  /* AI strategies: detailed in a dedicated diagram                    */
+  /* ---------------------------------------------------------------- */
+
+  Strategy [label = <
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6" style="dashed">
+      <tr><td bgcolor="#f7f0e8"><b>&#171;sealed trait&#187;<br/>Strategy</b></td></tr>
+    </table>
+  >]
+
+  /* ---------------------------------------------------------------- */
+  /* Compositions: filled diamond on the container (GameState)         */
+  /* ---------------------------------------------------------------- */
+
+  GameState -> Maze          [dir = back, arrowtail = diamond, arrowhead = none]
+  GameState -> Player        [dir = back, arrowtail = diamond, arrowhead = none]
+  GameState -> Enemy         [dir = back, arrowtail = diamond, arrowhead = none, headlabel = "0..*"]
+  GameState -> ActiveEffect  [dir = back, arrowtail = diamond, arrowhead = none, headlabel = "0..*"]
+  GameState -> LevelProgress [dir = back, arrowtail = diamond, arrowhead = none]
+  GameState -> Collectible   [dir = back, arrowtail = diamond, arrowhead = none, headlabel = "0..*"]
+
+  /* ---------------------------------------------------------------- */
+  /* Associations                                                      */
+  /* ---------------------------------------------------------------- */
+
+  GameState    -> GameStatus  [arrowhead = vee]
+  MovingEntity -> Position    [arrowhead = vee]
+  MovingEntity -> Direction   [arrowhead = vee]
+  Enemy        -> Strategy    [arrowhead = vee]
+  Collectible  -> Position    [arrowhead = vee]
+  ActiveEffect -> BonusEffect [arrowhead = vee]
+  Bonus        -> BonusEffect [arrowhead = vee]
+
+  /* Input has no relation in this diagram: it is the vocabulary of commands
+   * consumed by the controller, detailed in the MVC diagram. */
+  { rank = same; Input; GameStatus }
+}
