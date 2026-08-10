@@ -1,11 +1,10 @@
 package it.unibo.pps.scalaman.map.generator
 
+import it.unibo.pps.scalaman.model.Position
 import scala.util.Random
-
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.MapGenerationError
 import it.unibo.pps.scalaman.model.map.MapGenerationSpec
-import it.unibo.pps.scalaman.model.map.Position
 import it.unibo.pps.scalaman.model.map.RawMap
 
 object MapGenerator:
@@ -113,8 +112,8 @@ object MapGenerator:
     row == 0 || col == 0 || row == height - 1 || col == width - 1
 
   private def overlay(
-                       grid: Vector[Vector[Tile]],
-                       cells: Vector[(Position, Tile)]
+      grid: Vector[Vector[Tile]],
+      cells: Vector[(Position, Tile)]
   ): Vector[Vector[Tile]] =
     cells.foldLeft(grid) { case (currentGrid, (position, cell)) =>
       currentGrid.updated(position.row, currentGrid(position.row).updated(position.col, cell))

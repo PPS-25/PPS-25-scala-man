@@ -1,8 +1,8 @@
 package it.unibo.pps.scalaman.model.map
 
-import java.nio.file.Path
+import it.unibo.pps.scalaman.model.Position
 
-final case class Position(row: Int, col: Int)
+import java.nio.file.Path
 
 enum Tile:
   case Wall, Floor, Spawn, Collectible

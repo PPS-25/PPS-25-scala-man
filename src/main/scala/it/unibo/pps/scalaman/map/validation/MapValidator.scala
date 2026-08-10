@@ -1,13 +1,12 @@
 package it.unibo.pps.scalaman.map.validation
 
+import it.unibo.pps.scalaman.model.Position
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
-
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapValidationError
-import it.unibo.pps.scalaman.model.map.Position
 import it.unibo.pps.scalaman.model.map.RawMap
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
