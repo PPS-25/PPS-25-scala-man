@@ -1,13 +1,12 @@
 package it.unibo.pps.scalaman.map.validation
 
+import it.unibo.pps.scalaman.model.Position
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
-
-import it.unibo.pps.scalaman.model.map.Cell
+import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapValidationError
-import it.unibo.pps.scalaman.model.map.Position
 import it.unibo.pps.scalaman.model.map.RawMap
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
@@ -164,7 +163,7 @@ object MapValidator:
       position.row < map.height &&
       position.col >= 0 &&
       position.col < map.width &&
-      map.rows(position.row)(position.col) != Cell.Wall
+      map.rows(position.row)(position.col) != Tile.Wall
 
   private def teleportLinksFrom(
       teleports: Map[Int, (Position, Position)]
@@ -179,14 +178,14 @@ object MapValidator:
       enemies: Vector[Enemy],
       teleportPositions: Map[Int, Vector[Position]]
   ):
-    def record(cell: Cell, position: Position): Inspection =
+    def record(cell: Tile, position: Position): Inspection =
       cell match
-        case Cell.Wall | Cell.Floor | Cell.InvulnerabilityBonus | Cell.SlowdownBonus => this
-        case Cell.Spawn       => copy(spawnPositions = spawnPositions :+ position)
-        case Cell.Collectible => copy(collectibles = collectibles :+ position)
-        case Cell.Hunter      => copy(enemies = enemies :+ Enemy(position, EnemyKind.Hunter))
-        case Cell.Anticipator => copy(enemies = enemies :+ Enemy(position, EnemyKind.Anticipator))
-        case Cell.Teleport(code) =>
+        case Tile.Wall | Tile.Floor | Tile.InvulnerabilityBonus | Tile.SlowdownBonus => this
+        case Tile.Spawn       => copy(spawnPositions = spawnPositions :+ position)
+        case Tile.Collectible => copy(collectibles = collectibles :+ position)
+        case Tile.Hunter      => copy(enemies = enemies :+ Enemy(position, EnemyKind.Hunter))
+        case Tile.Anticipator => copy(enemies = enemies :+ Enemy(position, EnemyKind.Anticipator))
+        case Tile.Teleport(code) =>
           copy(teleportPositions = teleportPositions.updatedWith(code)(appendPosition(position)))
 
   private object Inspection:
