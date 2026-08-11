@@ -2,6 +2,7 @@ package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Direction.{Down, Left, Right, Up}
 import org.scalatest.funsuite.AnyFunSuite
+
 import scala.concurrent.duration.DurationInt
 
 class MovingEntityTest extends AnyFunSuite:
@@ -29,7 +30,7 @@ class MovingEntityTest extends AnyFunSuite:
     )
     expectedTargets
       .foreach { case (direction, target) =>
-        val entity = basicEntity.move(direction)
+        val entity = basicEntity.move(direction, _ => true)
         assert(entity.movement.contains(Movement(startingPos, target, millis)))
         assert(entity.facing === direction)
       }
@@ -41,13 +42,13 @@ class MovingEntityTest extends AnyFunSuite:
 
   test("face does not change the movement in progress") {
     assert(
-      basicEntity.move(Down).face(Left).movement == basicEntity
-        .move(Down)
+      basicEntity.move(Down, _ => true).face(Left).movement == basicEntity
+        .move(Down, _ => true)
         .movement
     )
     assert(
-      basicEntity.move(Down).face(Left).currentPos == basicEntity
-        .move(Down)
+      basicEntity.move(Down, _ => true).face(Left).currentPos == basicEntity
+        .move(Down, _ => true)
         .currentPos
     )
   }
@@ -76,3 +77,5 @@ class MovingEntityTest extends AnyFunSuite:
       basicEntity.update(basicEntity.movement.get.remaining).movement.isEmpty
     )
   }
+
+
