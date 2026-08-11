@@ -158,7 +158,7 @@ object MapValidator:
       Position(position.row, position.col + 1)
     )
 
-  private def isWalkable(map: RawMap, position: Position): Boolean =
+  def isWalkable(map: RawMap, position: Position): Boolean =
     position.row >= 0 &&
       position.row < map.height &&
       position.col >= 0 &&
