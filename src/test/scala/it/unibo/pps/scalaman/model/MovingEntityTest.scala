@@ -77,5 +77,3 @@ class MovingEntityTest extends AnyFunSuite:
       basicEntity.update(basicEntity.movement.get.remaining).movement.isEmpty
     )
   }
-
-
