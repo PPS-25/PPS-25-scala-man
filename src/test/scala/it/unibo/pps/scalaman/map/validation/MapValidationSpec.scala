@@ -213,7 +213,7 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
       validated.fold(
         _.exists {
           case MapValidationError.OpenBorder(positions) => positions.nonEmpty
-          case _ => false
+          case _                                        => false
         },
         _ => false
       )
