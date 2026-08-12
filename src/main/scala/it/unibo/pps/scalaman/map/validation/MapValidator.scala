@@ -214,12 +214,11 @@ object MapValidator:
       row <- 0 until map.height
       col <- 0 until map.width
       if row == 0 || row == map.height - 1 || col == 0 || col == map.width - 1
-        if map.rows(row)(col) != Tile.Wall
+      if map.rows(row)(col) != Tile.Wall
     yield Position(row, col)).toSet
 
   private def openBorderErrors(map: RawMap): List[MapValidationError] =
     val openings = openBorderPositions(map)
     if openings.nonEmpty
-      then List(MapValidationError.OpenBorder(openings))
-      else Nil
-
+    then List(MapValidationError.OpenBorder(openings))
+    else Nil
