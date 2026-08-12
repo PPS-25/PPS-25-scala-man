@@ -203,4 +203,20 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
       )
     )
   }
+
+  test("rejects map with open borders") {
+    val parsed = MapParser.parse(resourceText("invalid/open-border.txt")).toOption.get
+    val validated = MapValidator.validate(parsed)
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _.exists {
+          case MapValidationError.OpenBorder(positions) => positions.nonEmpty
+          case _ => false
+        },
+        _ => false
+      )
+    )
+  }
 end MapValidationSpec
