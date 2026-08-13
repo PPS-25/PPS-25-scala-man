@@ -1,5 +1,6 @@
 package it.unibo.pps.scalaman.map.validation
 
+import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapValidationError
@@ -211,10 +212,38 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
     assert(validated.isLeft)
     assert(
       validated.fold(
-        _.exists {
-          case MapValidationError.OpenBorder(positions) => positions.nonEmpty
-          case _                                        => false
-        },
+        _ == List(MapValidationError.OpenBorder(Set(Position(1, 6), Position(4, 1)))),
+        _ => false
+      )
+    )
+  }
+
+  test("rejects maps with open corners") {
+    val validated =
+      MapValidator.validate(
+        RawMap(
+          Vector(
+            Vector(Tile.Floor, Tile.Wall, Tile.Wall, Tile.Floor),
+            Vector(Tile.Wall, Tile.Spawn, Tile.Collectible, Tile.Wall),
+            Vector(Tile.Wall, Tile.Hunter, Tile.Anticipator, Tile.Wall),
+            Vector(Tile.Floor, Tile.Wall, Tile.Wall, Tile.Floor)
+          )
+        )
+      )
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _ == List(
+          MapValidationError.OpenBorder(
+            Set(
+              Position(0, 0),
+              Position(0, 3),
+              Position(3, 0),
+              Position(3, 3)
+            )
+          )
+        ),
         _ => false
       )
     )
