@@ -312,15 +312,15 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
       validated.fold(
         errors =>
           errors.contains(MapValidationError.MissingSpawn) &&
-          errors.exists {
-            case MapValidationError.UnsupportedTeleportCode(-1) => true
-            case _                                               => false
-          } &&
-          errors.exists {
-            case MapValidationError.OpenBorder(positions) =>
-              positions == Set(Position(0, 0), Position(0, 2), Position(1, 2), Position(2, 1))
-            case _ => false
-          },
+            errors.exists {
+              case MapValidationError.UnsupportedTeleportCode(-1) => true
+              case _                                              => false
+            } &&
+            errors.exists {
+              case MapValidationError.OpenBorder(positions) =>
+                positions == Set(Position(0, 0), Position(0, 2), Position(1, 2), Position(2, 1))
+              case _ => false
+            },
         _ => false
       )
     )
