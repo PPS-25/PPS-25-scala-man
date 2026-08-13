@@ -7,21 +7,21 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.concurrent.duration.DurationInt
 
 class CollectingTest extends AnyFunSuite:
-  private val timePerCell = 100.millis
-  private val emptyCell = Cell(0, 0)
-  private val item = Basic(emptyCell + Right)
+  private val timePerPos = 100.millis
+  private val emptyPosition = Position(0, 0)
+  private val item = Basic(emptyPosition + Right)
 
   private val collectibles = Collectibles(Set(item))
-  private val standingPlayer = MovingEntity(item.cell, Right, timePerCell)
+  private val standingPlayer = MovingEntity(item.position, Right, timePerPos)
   private val approachingPlayer =
-    MovingEntity(emptyCell, Right, timePerCell).move(Right)
+    MovingEntity(emptyPosition, Right, timePerPos).move(Right)
 
   test("a player standing on a standard collectible collects it") {
     assert(collectibles.collectedBy(standingPlayer).element.contains(item))
   }
 
   test("what a player collects is no longer on the map") {
-    assert(collectibles.collectedBy(standingPlayer).left.at(item.cell).isEmpty)
+    assert(collectibles.collectedBy(standingPlayer).left.at(item.position).isEmpty)
   }
 
   test(
@@ -33,9 +33,9 @@ class CollectingTest extends AnyFunSuite:
     )
   }
 
-  test("a player standing on a cell holding nothing collects nothing") {
-    val playerOnEmptyCell = MovingEntity(emptyCell, Right, timePerCell)
-    assert(collectibles.collectedBy(playerOnEmptyCell).element.isEmpty)
+  test("a player standing on a position holding nothing collects nothing") {
+    val playerOnEmptyPosition = MovingEntity(emptyPosition, Right, timePerPos)
+    assert(collectibles.collectedBy(playerOnEmptyPosition).element.isEmpty)
   }
 
   test("a player collects nothing while still moving towards the collectible") {
@@ -45,17 +45,17 @@ class CollectingTest extends AnyFunSuite:
   test(
     "a player collects the element once its movement towards it is complete"
   ) {
-    val arrivedPlayer = approachingPlayer.update(timePerCell)
+    val arrivedPlayer = approachingPlayer.update(timePerPos)
     assert(collectibles.collectedBy(arrivedPlayer).element.contains(item))
   }
 
-  test("a player standing again on an emptied cell collects nothing") {
+  test("a player standing again on an emptied position collects nothing") {
     val afterCollection = collectibles.collectedBy(standingPlayer).left
     assert(afterCollection.collectedBy(standingPlayer).element.isEmpty)
   }
 
   test(
-    "a player standing again on an emptied cell leaves the remaining ones untouched"
+    "a player standing again on an emptied position leaves the remaining ones untouched"
   ) {
     val afterCollection = collectibles.collectedBy(standingPlayer).left
     assert(

@@ -2,9 +2,8 @@ package it.unibo.pps.scalaman.model
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-/** The temporary effects currently applied to the game. Time is taken as a
-  * parameter rather than read from a clock, so that the whole abstraction stays
-  * pure.
+/** The temporary effects currently applied to the game. Time is taken as a parameter rather than
+  * read from a clock, so that the whole abstraction stays pure.
   */
 trait ActiveEffects:
 
@@ -15,8 +14,8 @@ trait ActiveEffects:
   def isActive(effect: BonusEffect, now: FiniteDuration): Boolean =
     active(now).contains(effect)
 
-  /** Grants an effect, postponing its expiration by the full duration when the
-    * effect is already active.
+  /** Grants an effect, postponing its expiration by the full duration when the effect is already
+    * active.
     * @param effect
     *   the effect to grant.
     * @param now

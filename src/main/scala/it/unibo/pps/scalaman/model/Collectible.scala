@@ -1,24 +1,23 @@
 package it.unibo.pps.scalaman.model
 
-/** An element placed on a cell of the map that the player can pick up by
-  * reaching it.
+/** An element placed on a position of the map that the player can pick up by reaching it.
   */
 sealed trait Collectible:
-  /** The cell the collectible is placed on. */
-  def cell: Cell
+  /** The position the collectible is placed on. */
+  def position: Position
 
 object Collectible:
 
   /** A standard collectible: picking up every one of them completes the level.
-    * @param cell
-    *   the cell the collectible is placed on.
+    * @param position
+    *   the position the collectible is placed on.
     */
-  final case class Basic(cell: Cell) extends Collectible
+  final case class Basic(position: Position) extends Collectible
 
   /** A collectible granting a temporary effect, irrelevant to level completion.
-    * @param cell
-    *   the cell the collectible is placed on.
+    * @param position
+    *   the position the collectible is placed on.
     * @param effect
     *   the effect granted when the bonus is collected.
     */
-  final case class Bonus(cell: Cell, effect: BonusEffect) extends Collectible
+  final case class Bonus(position: Position, effect: BonusEffect) extends Collectible
