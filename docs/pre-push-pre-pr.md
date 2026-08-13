@@ -4,11 +4,13 @@ Checklist for what to verify before publishing changes.
 
 ## Before push
 
-1. Run the basic local checks:
+1. Format the code before checking it:
+   - `sbt scalafmtAll`
+2. Run the basic local checks:
    - `sbt compile test scalafmtCheckAll`
-2. If you changed packaging, also verify the assembly:
+3. If you changed packaging, also verify the assembly:
    - `sbt assembly`
-3. Check that there are no generated files or unwanted diff changes.
+4. Check that there are no generated files or unwanted diff changes.
 
 ## Before PR
 
