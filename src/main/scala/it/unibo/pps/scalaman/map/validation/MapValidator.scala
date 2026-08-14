@@ -6,6 +6,7 @@ import scala.collection.immutable.Queue
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.map.EnemyKind
+import it.unibo.pps.scalaman.model.map.MapCell
 import it.unibo.pps.scalaman.model.map.MapValidationError
 import it.unibo.pps.scalaman.model.map.RawMap
 import it.unibo.pps.scalaman.model.map.ValidatedMap
@@ -50,11 +51,7 @@ object MapValidator:
     map.height <= 0 || map.width <= 0 || map.rows.exists(_.length != map.width)
 
   private def inspect(map: RawMap): Inspection =
-    map.rows.zipWithIndex.foldLeft(Inspection.empty) { case (inspection, (row, rowIndex)) =>
-      row.zipWithIndex.foldLeft(inspection) { case (current, (cell, colIndex)) =>
-        current.record(cell, Position(rowIndex, colIndex))
-      }
-    }
+    map.cells.foldLeft(Inspection.empty)((inspection, cell) => inspection.record(cell))
 
   private def requiredEntityErrors(inspection: Inspection): List[MapValidationError] =
     List(
@@ -159,11 +156,7 @@ object MapValidator:
     )
 
   private def isWalkable(map: RawMap, position: Position): Boolean =
-    position.row >= 0 &&
-      position.row < map.height &&
-      position.col >= 0 &&
-      position.col < map.width &&
-      map.rows(position.row)(position.col) != Tile.Wall
+    map.cellAt(position).exists(_.isWalkable)
 
   private def teleportLinksFrom(
       teleports: Map[Int, (Position, Position)]
@@ -178,15 +171,18 @@ object MapValidator:
       enemies: Vector[Enemy],
       teleportPositions: Map[Int, Vector[Position]]
   ):
-    def record(cell: Tile, position: Position): Inspection =
-      cell match
+    def record(cell: MapCell): Inspection =
+      cell.tile match
         case Tile.Wall | Tile.Floor | Tile.InvulnerabilityBonus | Tile.SlowdownBonus => this
-        case Tile.Spawn       => copy(spawnPositions = spawnPositions :+ position)
-        case Tile.Collectible => copy(collectibles = collectibles :+ position)
-        case Tile.Hunter      => copy(enemies = enemies :+ Enemy(position, EnemyKind.Hunter))
-        case Tile.Anticipator => copy(enemies = enemies :+ Enemy(position, EnemyKind.Anticipator))
+        case Tile.Spawn       => copy(spawnPositions = spawnPositions :+ cell.position)
+        case Tile.Collectible => copy(collectibles = collectibles :+ cell.position)
+        case Tile.Hunter      => copy(enemies = enemies :+ Enemy(cell.position, EnemyKind.Hunter))
+        case Tile.Anticipator =>
+          copy(enemies = enemies :+ Enemy(cell.position, EnemyKind.Anticipator))
         case Tile.Teleport(code) =>
-          copy(teleportPositions = teleportPositions.updatedWith(code)(appendPosition(position)))
+          copy(teleportPositions =
+            teleportPositions.updatedWith(code)(appendPosition(cell.position))
+          )
 
   private object Inspection:
     val empty: Inspection = Inspection(Vector.empty, Vector.empty, Vector.empty, Map.empty)

@@ -1,7 +1,6 @@
 package it.unibo.pps.scalaman.model.ai
 
 import it.unibo.pps.scalaman.model.Position
-import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
 object EnemyMovement:
@@ -27,11 +26,7 @@ object EnemyMovement:
     )
 
   private def isWalkable(map: ValidatedMap, position: Position): Boolean =
-    position.row >= 0 &&
-      position.row < map.raw.height &&
-      position.col >= 0 &&
-      position.col < map.raw.width &&
-      map.raw.rows(position.row)(position.col) != Tile.Wall
+    map.raw.cellAt(position).exists(_.isWalkable)
 
   private def distanceFrom(target: Position)(position: Position): Int =
     (position.row - target.row).abs + (position.col - target.col).abs
