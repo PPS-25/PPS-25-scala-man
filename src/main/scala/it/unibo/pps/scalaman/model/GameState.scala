@@ -2,8 +2,8 @@ package it.unibo.pps.scalaman.model
 
 /** Explicit state of the match.
   *
-  * The game can run, be paused, or reach a terminal victory/defeat state. Once
-  * a terminal state is reached, no further gameplay transitions are allowed.
+  * The game can run, be paused, or reach a terminal victory/defeat state. Once a terminal state is
+  * reached, no further gameplay transitions are allowed.
   */
 enum GameState:
   case Running, Paused, Victory, Defeat
@@ -13,8 +13,7 @@ enum GameState:
 
   /** Returns whether the game is in a terminal state.
     *
-    * Terminal states cannot transition to any other state and should stop
-    * gameplay updates.
+    * Terminal states cannot transition to any other state and should stop gameplay updates.
     */
   def isTerminal: Boolean = this match
     case Victory | Defeat => true

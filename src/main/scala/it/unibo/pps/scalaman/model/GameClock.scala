@@ -2,8 +2,7 @@ package it.unibo.pps.scalaman.model
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-/** Immutable clock that tracks elapsed time. Does not depend on the system
-  * clock.
+/** Immutable clock that tracks elapsed time. Does not depend on the system clock.
   * @param elapsed
   *   the elapsed time
   */

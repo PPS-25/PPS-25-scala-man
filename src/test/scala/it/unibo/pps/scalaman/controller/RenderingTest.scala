@@ -1,10 +1,6 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.controller.RenderingTestSupport.{
-  recorder,
-  showingShown,
-  start
-}
+import it.unibo.pps.scalaman.controller.RenderingTestSupport.{recorder, showingShown, start}
 import org.scalatest.funsuite.AnyFunSuite
 
 class RenderingTest extends AnyFunSuite:

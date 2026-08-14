@@ -1,11 +1,6 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.controller.RenderingTestSupport.{
-  State,
-  recorder,
-  showingShown,
-  start
-}
+import it.unibo.pps.scalaman.controller.RenderingTestSupport.{State, recorder, showingShown, start}
 import it.unibo.pps.scalaman.model.GameStateUpdatePipeline
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -18,8 +13,8 @@ class TickNotificationTest extends AnyFunSuite:
   private val movingForward = pipelineMoving(_.copy(shown = 2))
   private val tickedForward = movingForward.tickNotifying(start, showingShown)
 
-  /** A rendering that has already shown the initial state, so that what the
-    * recorder holds afterwards is only what the tick notified.
+  /** A rendering that has already shown the initial state, so that what the recorder holds
+    * afterwards is only what the tick notified.
     */
   private def alreadyShownTo(
       recorded: ListBuffer[Int],

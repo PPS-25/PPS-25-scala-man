@@ -3,9 +3,8 @@ package it.unibo.pps.scalaman.controller
 /** Notified with what the view needs to draw. */
 type RenderListener[V] = V => Unit
 
-/** Shows the listeners a projection of the game state, and only when an update
-  * changes it. The last shown value is remembered, so each state is projected
-  * once.
+/** Shows the listeners a projection of the game state, and only when an update changes it. The last
+  * shown value is remembered, so each state is projected once.
   */
 final case class Rendering[S, V](
     project: S => V,
