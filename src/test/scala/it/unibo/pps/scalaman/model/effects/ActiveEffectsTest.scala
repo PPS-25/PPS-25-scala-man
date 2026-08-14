@@ -1,6 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.effects
 
-import it.unibo.pps.scalaman.model.BonusEffect.{Invulnerability, SlowDown}
+import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -57,6 +57,30 @@ class ActiveEffectsTest extends AnyFunSuite:
     assertThrows[IllegalArgumentException](
       ActiveEffects.empty.activate(Invulnerability, start, Duration.Zero)
     )
+  }
+
+  test("updating drops the effects that expired") {
+    assert(invulnerable.updated(start + duration) == ActiveEffects.empty)
+  }
+
+  test("updating keeps the effects still applied") {
+    assert(invulnerable.updated(start).isActive(Invulnerability, start))
+  }
+
+  test("updating changes nothing to what is applied at that instant") {
+    val halfway = start + duration / 2
+    assert(invulnerable.updated(halfway).active(halfway) == invulnerable.active(halfway))
+  }
+
+  test("updating twice leaves the same effects") {
+    val halfway = start + duration / 2
+    assert(invulnerable.updated(halfway).updated(halfway) == invulnerable.updated(halfway))
+  }
+
+  test("an effect granted again after it expired is applied anew") {
+    val expired = start + duration
+    val regranted = invulnerable.updated(expired).activate(Invulnerability, expired, duration)
+    assert(regranted.isActive(Invulnerability, expired))
   }
 
   test("effects expiring at different instants expire independently") {

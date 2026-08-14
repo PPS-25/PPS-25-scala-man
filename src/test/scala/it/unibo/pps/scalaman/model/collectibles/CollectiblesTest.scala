@@ -1,7 +1,8 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.BonusEffect.Invulnerability
-import it.unibo.pps.scalaman.model.Collectible.{Basic, Bonus}
+import it.unibo.pps.scalaman.model.Position
+import it.unibo.pps.scalaman.model.effects.BonusEffect.Invulnerability
+import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import org.scalatest.funsuite.AnyFunSuite
 
 class CollectiblesTest extends AnyFunSuite:
@@ -82,6 +83,14 @@ class CollectiblesTest extends AnyFunSuite:
     val emptied = Seq(basic, anotherBasic)
       .foldLeft(collectibles)((left, element) => left.collect(element.position).left)
     assert(emptied.isLevelComplete)
+  }
+
+  test("what is placed on the map is what was put there") {
+    assert(collectibles.placed == Set(basic, anotherBasic, bonus))
+  }
+
+  test("what was collected is no longer placed on the map") {
+    assert(!collectibles.collect(basic.position).left.placed.contains(basic))
   }
 
   test("a map holding no standard collectible is complete from the start") {
