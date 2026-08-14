@@ -109,6 +109,27 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(DirectPursuitStrategy.nextMove(context).contains(Position(1, 2)))
   }
 
+  test("direct pursuit follows the shortest path around dead ends") {
+    val mazeMap = validatedMap(
+      Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall, Tile.Floor, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall, Tile.Floor, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Floor, Tile.Floor, Tile.Floor, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      )
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = Position(3, 2),
+      playerPosition = Position(1, 4),
+      playerPreviousPosition = None,
+      map = mazeMap
+    )
+
+    assert(DirectPursuitStrategy.nextMove(context).contains(Position(4, 2)))
+  }
+
   test("anticipation targets a predicted player position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
