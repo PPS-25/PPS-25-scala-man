@@ -1,4 +1,7 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
+
+import it.unibo.pps.scalaman.model.Position
+import it.unibo.pps.scalaman.model.effects.BonusEffect
 
 /** An element placed on a position of the map that the player can pick up by reaching it.
   */

@@ -1,6 +1,7 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.Collectible.Basic
+import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.collectibles.Collectible.Basic
 import it.unibo.pps.scalaman.model.Direction.Right
 import org.scalatest.funsuite.AnyFunSuite
 

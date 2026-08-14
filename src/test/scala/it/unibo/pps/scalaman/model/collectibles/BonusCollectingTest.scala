@@ -1,7 +1,9 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.BonusEffect.{Invulnerability, SlowDown}
-import it.unibo.pps.scalaman.model.Collectible.{Basic, Bonus}
+import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
+import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
+import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.Direction.Right
 import org.scalatest.funsuite.AnyFunSuite
 

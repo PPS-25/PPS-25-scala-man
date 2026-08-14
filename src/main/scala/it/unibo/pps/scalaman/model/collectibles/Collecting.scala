@@ -1,4 +1,7 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
+
+import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
 
 import scala.concurrent.duration.FiniteDuration
 

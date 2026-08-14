@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.BonusEffect.{Invulnerability, SlowDown}
+import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt

@@ -1,5 +1,7 @@
 package it.unibo.pps.scalaman.model
 
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
+
 import scala.concurrent.duration.FiniteDuration
 
 extension (progress: LevelProgress)
