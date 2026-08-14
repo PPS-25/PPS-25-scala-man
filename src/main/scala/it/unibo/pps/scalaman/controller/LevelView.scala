@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.model.collectibles.Collectible
+import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.{LevelState, Position}
 
@@ -8,6 +9,7 @@ import it.unibo.pps.scalaman.model.{LevelState, Position}
   */
 final case class LevelView(
     player: Position,
+    enemies: Vector[Enemy],
     collectibles: Set[Collectible],
     remaining: Int,
     lives: Int,
@@ -19,6 +21,7 @@ object LevelView:
   /** What the view is shown of a level. */
   def of(level: LevelState): LevelView = LevelView(
     player = level.player.currentPos,
+    enemies = level.enemies,
     collectibles = level.collectibles.placed,
     remaining = level.collectibles.remaining,
     lives = level.progress.lives,
