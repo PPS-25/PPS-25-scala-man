@@ -163,6 +163,17 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).exists(_ != Position(2, 3)))
   }
 
+  test("anticipation stops prediction at the last walkable cell before a wall") {
+    val context = EnemyMovementContext(
+      enemyPosition = Position(2, 3),
+      playerPosition = Position(1, 4),
+      playerPreviousPosition = Some(Position(1, 3)),
+      map = openMap
+    )
+
+    assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 3)))
+  }
+
   test("anticipation requires a positive prediction distance") {
     assertThrows[IllegalArgumentException] {
       PlayerAnticipationStrategy(stepsAhead = 0)
