@@ -10,6 +10,9 @@ enum Tile:
   case InvulnerabilityBonus, SlowdownBonus
   case Teleport(code: Int)
 
+final case class MapCell(position: Position, tile: Tile):
+  def isWalkable: Boolean = tile != Tile.Wall
+
 enum EnemyKind:
   case Hunter, Anticipator
 
