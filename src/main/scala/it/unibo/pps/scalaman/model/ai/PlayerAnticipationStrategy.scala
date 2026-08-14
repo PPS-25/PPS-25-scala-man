@@ -12,7 +12,8 @@ final case class PlayerAnticipationStrategy(stepsAhead: Int) extends EnemyMoveme
         col = context.playerPosition.col - previous.col
       )
     )
-    val target = playerDelta.fold(context.playerPosition)(predictPosition(context.playerPosition, _))
+    val target =
+      playerDelta.fold(context.playerPosition)(predictPosition(context.playerPosition, _))
 
     EnemyMovement
       .validMovesInOrder(context.enemyPosition, context.map)

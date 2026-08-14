@@ -40,7 +40,9 @@ class EnemyStrategySelectorSpec extends AnyFunSuite:
   test("selects anticipation for anticipator enemies") {
     val strategy = EnemyStrategySelector.strategyFor(EnemyKind.Anticipator)
 
-    assert(strategy.nextMove(context) == PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context))
+    assert(
+      strategy.nextMove(context) == PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context)
+    )
   }
 
   test("different enemy kinds can use different strategies") {
