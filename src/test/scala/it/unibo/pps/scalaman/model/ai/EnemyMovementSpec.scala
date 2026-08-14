@@ -36,6 +36,39 @@ class EnemyMovementSpec extends AnyFunSuite:
     assert(moves == Set(Position(1, 0), Position(0, 1)))
   }
 
+  test("returns no valid movement when every orthogonal destination is blocked") {
+    val map = validatedMap(
+      Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall)
+      )
+    )
+
+    assert(EnemyMovement.validMoves(Position(1, 1), map).isEmpty)
+  }
+
+  test("treats non-wall tiles as walkable destinations") {
+    val map = validatedMap(
+      Vector(
+        Vector(Tile.Wall, Tile.Collectible, Tile.Wall),
+        Vector(Tile.Hunter, Tile.Floor, Tile.Anticipator),
+        Vector(Tile.Wall, Tile.InvulnerabilityBonus, Tile.Wall)
+      )
+    )
+
+    val moves = EnemyMovement.validMoves(Position(1, 1), map)
+
+    assert(
+      moves == Set(
+        Position(0, 1),
+        Position(1, 0),
+        Position(1, 2),
+        Position(2, 1)
+      )
+    )
+  }
+
   private def validatedMap(rows: Vector[Vector[Tile]]): ValidatedMap =
     ValidatedMap(
       raw = RawMap(rows),

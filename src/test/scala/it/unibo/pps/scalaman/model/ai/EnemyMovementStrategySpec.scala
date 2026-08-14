@@ -80,6 +80,35 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(DirectPursuitStrategy.nextMove(context).exists(_ != Position(2, 3)))
   }
 
+  test("direct pursuit returns no movement when the enemy is trapped") {
+    val trappedMap = validatedMap(
+      Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall)
+      )
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = Position(1, 1),
+      playerPosition = Position(1, 2),
+      playerPreviousPosition = None,
+      map = trappedMap
+    )
+
+    assert(DirectPursuitStrategy.nextMove(context).isEmpty)
+  }
+
+  test("direct pursuit is deterministic when multiple moves are equally close") {
+    val context = EnemyMovementContext(
+      enemyPosition = Position(2, 2),
+      playerPosition = Position(1, 1),
+      playerPreviousPosition = None,
+      map = openMap
+    )
+
+    assert(DirectPursuitStrategy.nextMove(context).contains(Position(1, 2)))
+  }
+
   test("anticipation targets a predicted player position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
@@ -89,6 +118,34 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     )
 
     assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 3)))
+  }
+
+  test("anticipation falls back to the current player position without movement history") {
+    val context = EnemyMovementContext(
+      enemyPosition = Position(2, 2),
+      playerPosition = Position(2, 4),
+      playerPreviousPosition = None,
+      map = openMap
+    )
+
+    assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(2, 3)))
+  }
+
+  test("anticipation respects walls while moving toward the predicted position") {
+    val context = EnemyMovementContext(
+      enemyPosition = Position(2, 2),
+      playerPosition = Position(2, 4),
+      playerPreviousPosition = Some(Position(2, 3)),
+      map = mapWithBlockedCorridor
+    )
+
+    assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).exists(_ != Position(2, 3)))
+  }
+
+  test("anticipation requires a positive prediction distance") {
+    assertThrows[IllegalArgumentException] {
+      PlayerAnticipationStrategy(stepsAhead = 0)
+    }
   }
 
   test("pursuit and anticipation produce observably different decisions") {
