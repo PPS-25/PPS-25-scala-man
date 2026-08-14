@@ -1,5 +1,6 @@
 package it.unibo.pps.scalaman.map.validation
 
+import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapValidationError
@@ -68,6 +69,26 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
     assert(validated.fold(_.contains(MapValidationError.InvalidDimensions(0, 0)), _ => false))
   }
 
+  test("rejects raw maps with empty rows") {
+    val validated =
+      MapValidator.validate(
+        RawMap(
+          Vector(
+            Vector(Tile.Wall, Tile.Wall),
+            Vector.empty
+          )
+        )
+      )
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _.contains(MapValidationError.InvalidDimensions(2, 2)),
+        _ => false
+      )
+    )
+  }
+
   test("rejects unsupported teleport codes") {
     val validated = MapValidator.validate(
       RawMap(
@@ -86,6 +107,28 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
           case MapValidationError.UnsupportedTeleportCode(12) => true
           case _                                              => false
         },
+        _ => false
+      )
+    )
+  }
+
+  test("rejects negative teleport codes in raw maps") {
+    val validated =
+      MapValidator.validate(
+        RawMap(
+          Vector(
+            Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+            Vector(Tile.Wall, Tile.Spawn, Tile.Collectible, Tile.Wall),
+            Vector(Tile.Wall, Tile.Hunter, Tile.Teleport(-1), Tile.Wall),
+            Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+          )
+        )
+      )
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _.contains(MapValidationError.UnsupportedTeleportCode(-1)),
         _ => false
       )
     )
@@ -199,6 +242,85 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
           case MapValidationError.InvalidTeleportPair(0, 3) => true
           case _                                            => false
         },
+        _ => false
+      )
+    )
+  }
+
+  test("rejects map with open borders") {
+    val parsed = MapParser.parse(resourceText("invalid/open-border.txt")).toOption.get
+    val validated = MapValidator.validate(parsed)
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _ == List(
+          MapValidationError.OpenBorder(
+            Set(Position(2, 6), Position(4, 1))
+          )
+        ),
+        _ => false
+      )
+    )
+  }
+
+  test("rejects maps with open corners") {
+    val validated =
+      MapValidator.validate(
+        RawMap(
+          Vector(
+            Vector(Tile.Floor, Tile.Wall, Tile.Wall, Tile.Floor),
+            Vector(Tile.Wall, Tile.Spawn, Tile.Collectible, Tile.Wall),
+            Vector(Tile.Wall, Tile.Hunter, Tile.Anticipator, Tile.Wall),
+            Vector(Tile.Floor, Tile.Wall, Tile.Wall, Tile.Floor)
+          )
+        )
+      )
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        _ == List(
+          MapValidationError.OpenBorder(
+            Set(
+              Position(0, 0),
+              Position(0, 3),
+              Position(3, 0),
+              Position(3, 3)
+            )
+          )
+        ),
+        _ => false
+      )
+    )
+  }
+
+  test("accumulates multiple validation errors on raw maps") {
+    val validated =
+      MapValidator.validate(
+        RawMap(
+          Vector(
+            Vector(Tile.Floor, Tile.Wall, Tile.Floor),
+            Vector(Tile.Wall, Tile.Teleport(-1), Tile.Collectible),
+            Vector(Tile.Wall, Tile.Hunter, Tile.Wall)
+          )
+        )
+      )
+
+    assert(validated.isLeft)
+    assert(
+      validated.fold(
+        errors =>
+          errors.contains(MapValidationError.MissingSpawn) &&
+            errors.exists {
+              case MapValidationError.UnsupportedTeleportCode(-1) => true
+              case _                                              => false
+            } &&
+            errors.exists {
+              case MapValidationError.OpenBorder(positions) =>
+                positions == Set(Position(0, 0), Position(0, 2), Position(1, 2), Position(2, 1))
+              case _ => false
+            },
         _ => false
       )
     )
