@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.effects.BonusEffect.Invulnerability
+import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.ActiveEffects
 import it.unibo.pps.scalaman.model.LevelTestSupport.{
   bonus,
@@ -11,6 +11,8 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
   timePerPos
 }
 import org.scalatest.funsuite.AnyFunSuite
+
+import scala.concurrent.duration.DurationInt
 
 class LevelStateTest extends AnyFunSuite:
 
@@ -35,6 +37,14 @@ class LevelStateTest extends AnyFunSuite:
     val protectedLevel = levelWith(bonus.position).collecting
     val later = protectedLevel.ticking(lasting).withoutExpiredEffects
     assert(later.effects == ActiveEffects.empty)
+  }
+
+  test("enemies wait longer between steps while the level holds the slow down") {
+    val betweenSteps = 200.millis
+    val slowed = startingLevel.copy(effects =
+      ActiveEffects.empty.activate(SlowDown, startingLevel.clock.elapsed, lasting)
+    )
+    assert(slowed.enemyStepInterval(betweenSteps) == betweenSteps * 2)
   }
 
   test("an effect is kept while the level has not ticked past its expiration") {

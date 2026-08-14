@@ -9,8 +9,11 @@ class ActiveEffectsTest extends AnyFunSuite:
   private val start = 0.seconds
   private val duration = 5.seconds
 
+  private val betweenSteps = 200.millis
+
   private val invulnerable = ActiveEffects.empty
     .activate(Invulnerability, start, duration)
+  private val slowed = ActiveEffects.empty.activate(SlowDown, start, duration)
 
   test("no effect is applied before any bonus is collected") {
     assert(ActiveEffects.empty.active(start).isEmpty)
@@ -86,4 +89,20 @@ class ActiveEffectsTest extends AnyFunSuite:
   test("effects expiring at different instants expire independently") {
     val both = invulnerable.activate(SlowDown, start, duration * 2)
     assert(both.active(start + duration) == Set(SlowDown))
+  }
+
+  test("enemies step as often as usual while no effect is applied") {
+    assert(ActiveEffects.empty.enemyStepInterval(betweenSteps, start) == betweenSteps)
+  }
+
+  test("enemies wait twice as long between steps while the slow down is applied") {
+    assert(slowed.enemyStepInterval(betweenSteps, start) == betweenSteps * 2)
+  }
+
+  test("enemies step as often as usual once the slow down expired") {
+    assert(slowed.enemyStepInterval(betweenSteps, start + duration) == betweenSteps)
+  }
+
+  test("the invulnerability leaves the enemies alone") {
+    assert(invulnerable.enemyStepInterval(betweenSteps, start) == betweenSteps)
   }
