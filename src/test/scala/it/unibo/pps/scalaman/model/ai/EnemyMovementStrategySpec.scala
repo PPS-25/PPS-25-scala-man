@@ -45,6 +45,19 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(moves == Set(Position(1, 2), Position(2, 1), Position(3, 2)))
   }
 
+  test("valid movement selection ignores positions outside the map") {
+    val edgeMap = validatedMap(
+      Vector(
+        Vector(Tile.Floor, Tile.Floor),
+        Vector(Tile.Floor, Tile.Wall)
+      )
+    )
+
+    val moves = EnemyMovement.validMoves(Position(0, 0), edgeMap)
+
+    assert(moves == Set(Position(1, 0), Position(0, 1)))
+  }
+
   test("direct pursuit moves toward the player's current position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
