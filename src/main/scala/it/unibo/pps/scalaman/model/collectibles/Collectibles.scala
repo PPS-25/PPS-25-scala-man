@@ -1,4 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collectibles
+
+import it.unibo.pps.scalaman.model.Position
 
 /** The outcome of picking up on a position.
   * @param left
@@ -16,10 +18,13 @@ trait Collectibles:
   /** The collectible placed on a position, if any. */
   def at(position: Position): Option[Collectible]
 
+  /** Everything still to be found on the map. */
+  def placed: Set[Collectible]
+
   /** How many standard collectibles are still to be picked up. */
   def remaining: Int
 
-  /** Whether no standard collectible is left, that is, the level is over. */
+  /** Whether nothing is left to pick up, that is, the level is won. */
   def isLevelComplete: Boolean = remaining == 0
 
   /** Picks up the collectible placed on a position.
@@ -37,6 +42,8 @@ object Collectibles:
   private final case class OnPositions(elements: Map[Position, Collectible]) extends Collectibles:
 
     def at(position: Position): Option[Collectible] = elements.get(position)
+
+    def placed: Set[Collectible] = elements.values.toSet
 
     def remaining: Int = elements.values.count:
       case _: Collectible.Basic => true

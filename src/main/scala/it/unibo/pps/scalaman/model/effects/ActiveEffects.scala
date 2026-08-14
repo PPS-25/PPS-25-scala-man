@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.effects
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
@@ -31,6 +31,9 @@ trait ActiveEffects:
       duration: FiniteDuration
   ): ActiveEffects
 
+  /** The effects left once the ones that expired are dropped. */
+  def updated(now: FiniteDuration): ActiveEffects
+
 object ActiveEffects:
 
   /** No effect applied. */
@@ -40,8 +43,13 @@ object ActiveEffects:
       expirations: Map[BonusEffect, FiniteDuration]
   ) extends ActiveEffects:
 
-    def active(now: FiniteDuration): Set[BonusEffect] =
-      expirations.filter((_, until) => now < until).keySet
+    def active(now: FiniteDuration): Set[BonusEffect] = stillRunning(now).keySet
+
+    def updated(now: FiniteDuration): ActiveEffects =
+      UntilExpiration(stillRunning(now))
+
+    private def stillRunning(now: FiniteDuration) =
+      expirations.filter((_, until) => now < until)
 
     def activate(
         effect: BonusEffect,
