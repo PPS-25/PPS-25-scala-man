@@ -31,7 +31,7 @@ object EnemyMovement:
   private def isWalkable(map: ValidatedMap, position: Position): Boolean =
     map.raw.cellAt(position).exists(_.isWalkable)
 
-  private def shortestPath(
+  private[ai] def shortestPath(
       from: Position,
       target: Position,
       map: ValidatedMap
