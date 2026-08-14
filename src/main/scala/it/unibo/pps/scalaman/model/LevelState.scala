@@ -1,8 +1,7 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.collectibles.{Collectibles, collectedBy}
-import it.unibo.pps.scalaman.model.collectibles.grantedBy
-import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
+import it.unibo.pps.scalaman.model.collectibles.{Collectibles, collectedBy, grantedBy}
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -28,6 +27,10 @@ final case class LevelState(
       collectibles = picked.left,
       effects = effects.grantedBy(picked.element, clock.elapsed)
     )
+
+  /** How long the enemies wait between steps, given how long they usually wait. */
+  def enemyStepInterval(betweenSteps: FiniteDuration)(using Slowdown): FiniteDuration =
+    effects.enemyStepInterval(betweenSteps, clock.elapsed)
 
   /** The level with the effects that expired dropped. */
   def withoutExpiredEffects: LevelState = copy(effects = effects.updated(clock.elapsed))

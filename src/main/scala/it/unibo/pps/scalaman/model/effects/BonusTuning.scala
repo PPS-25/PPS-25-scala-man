@@ -2,9 +2,8 @@ package it.unibo.pps.scalaman.model.effects
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
-/** How long the effect granted by a bonus lasts. */
+/** How long an effect lasts from the moment it is granted. */
 trait BonusDuration:
-  /** How long an effect lasts from the moment it is granted. */
   def of(effect: BonusEffect): FiniteDuration
 
 object BonusDuration:
@@ -16,3 +15,13 @@ object BonusDuration:
     def of(effect: BonusEffect): FiniteDuration = effect match
       case BonusEffect.SlowDown        => SlowDownLasts
       case BonusEffect.Invulnerability => InvulnerabilityLasts
+
+/** How much the slow down stretches the wait between enemy steps. */
+trait Slowdown:
+  def stretch(betweenSteps: FiniteDuration): FiniteDuration
+
+object Slowdown:
+
+  /** Half the speed: twice the wait. */
+  given halvedSpeed: Slowdown with
+    def stretch(betweenSteps: FiniteDuration): FiniteDuration = betweenSteps * 2

@@ -14,14 +14,16 @@ trait ActiveEffects:
   def isActive(effect: BonusEffect, now: FiniteDuration): Boolean =
     active(now).contains(effect)
 
-  /** Grants an effect, postponing its expiration by the full duration when the effect is already
-    * active.
-    * @param effect
-    *   the effect to grant.
-    * @param now
-    *   the current elapsed time.
-    * @param duration
-    *   how long the effect lasts from now on.
+  /** How long the enemies wait between steps, given how long they usually wait. Asked for the
+    * enemies only: the player is never held back.
+    */
+  def enemyStepInterval(betweenSteps: FiniteDuration, now: FiniteDuration)(using
+      slowdown: Slowdown
+  ): FiniteDuration =
+    if isActive(BonusEffect.SlowDown, now) then slowdown.stretch(betweenSteps)
+    else betweenSteps
+
+  /** Grants an effect, postponing its expiration by the full duration when it is already applied.
     * @throws IllegalArgumentException
     *   if the duration is not positive.
     */
