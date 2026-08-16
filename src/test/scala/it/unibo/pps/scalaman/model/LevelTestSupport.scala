@@ -26,6 +26,14 @@ object LevelTestSupport:
                                        |#H...A#
                                        |#######""".stripMargin)
 
+  val mazeWithTeleports: ValidatedMap = validated("""#######
+                                                    |#S.C.I#
+                                                    |#0###5#
+                                                    |#H...A#
+                                                    |#######""".stripMargin)
+  val teleportStart: Position = Position(2, 1)
+  val teleportDestination: Position = Position(2, 5)
+
   /** The level with the player standing on a given position. */
   def levelWith(playerAt: Position): LevelState = LevelState(
     maze = maze,
@@ -35,6 +43,9 @@ object LevelTestSupport:
     effects = ActiveEffects.empty,
     progress = LevelProgress.initial
   )
+
+  def teleportLevelWith(playerAt: Position): LevelState =
+    levelWith(playerAt).copy(maze = mazeWithTeleports)
 
   /** The level with the player standing on nothing. */
   val startingLevel: LevelState = levelWith(Position(0, 0))
