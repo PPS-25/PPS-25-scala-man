@@ -1,4 +1,24 @@
 % !TEX root = ../main.tex
 \chapter{Testing}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec feugiat, augue
-ut eleifend sagittis, purus mi bibendum nisi, non aliquet orci lacus at eros.
+The test suite follows a TDD-oriented approach for the model layer.
+
+\section{Game clock}
+The clock is verified as an immutable component that accumulates elapsed time
+and rejects negative advances.
+
+\section{Game loop lifecycle}
+The loop lifecycle is tested as a state machine, covering valid transitions and
+the invalid ones that must raise an exception.
+
+\section{State update pipeline}
+The update pipeline is covered with order-focused tests to ensure that each
+tick runs the expected stages in sequence and that each stage receives the
+result of the previous one.
+The test suite also checks that the public \texttt{run} method remains a
+backward-compatible alias of \texttt{tick}.
+
+\section{Game state transitions}
+The match state tests verify the legal transitions between running, paused,
+victory, and defeat. They also ensure that terminal states reject any further
+transition and that gameplay updates are only allowed while the game is
+running.
