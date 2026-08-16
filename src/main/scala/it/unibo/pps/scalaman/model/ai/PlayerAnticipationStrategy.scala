@@ -15,8 +15,7 @@ final case class PlayerAnticipationStrategy(stepsAhead: Int) extends EnemyMoveme
         col = context.playerPosition.col - previous.col
       ).unit
 
-      if delta == Delta.Zero then
-        Prediction(context.playerPosition, None, context.teleportDisabled)
+      if delta == Delta.Zero then Prediction(context.playerPosition, None, context.teleportDisabled)
       else
         predictPosition(context.playerPosition, delta, context.map)
           .copy(teleportDisabled = context.teleportDisabled)

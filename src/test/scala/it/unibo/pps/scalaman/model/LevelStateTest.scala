@@ -145,11 +145,13 @@ class LevelStateTest extends AnyFunSuite:
     val enemy = Enemy(Position(1, 1), EnemyKind.Hunter)
     val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
     val teleported = level.enemiesStepped(Vector(enemy.copy(position = teleportStart))).enemies.head
-    val waiting = level.copy(enemies = Vector(teleported)).enemiesStepped(Vector(teleported)).enemies.head
+    val waiting =
+      level.copy(enemies = Vector(teleported)).enemiesStepped(Vector(teleported)).enemies.head
     val exited = level
       .copy(enemies = Vector(waiting))
       .enemiesStepped(Vector(waiting.copy(position = Position(3, 5))))
-      .enemies.head
+      .enemies
+      .head
 
     assert(teleported.teleportDisabled)
     assert(waiting.teleportDisabled)
