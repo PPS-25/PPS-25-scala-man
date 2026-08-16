@@ -10,6 +10,9 @@ enum Tile:
   case InvulnerabilityBonus, SlowdownBonus
   case Teleport(code: Int)
 
+final case class MapCell(position: Position, tile: Tile):
+  def isWalkable: Boolean = tile != Tile.Wall
+
 enum EnemyKind:
   case Hunter, Anticipator
 
@@ -18,6 +21,20 @@ final case class Enemy(position: Position, kind: EnemyKind)
 final case class RawMap(rows: Vector[Vector[Tile]]):
   val height: Int = rows.length
   val width: Int = rows.headOption.fold(0)(_.length)
+  val cells: Vector[MapCell] =
+    rows.zipWithIndex.flatMap { case (row, rowIndex) =>
+      row.zipWithIndex.map { case (tile, colIndex) =>
+        MapCell(Position(rowIndex, colIndex), tile)
+      }
+    }
+
+  def cellAt(position: Position): Option[MapCell] =
+    Option.when(
+      position.row >= 0 &&
+        position.row < height &&
+        position.col >= 0 &&
+        position.col < width
+    )(MapCell(position, rows(position.row)(position.col)))
 
 final case class ValidatedMap(
     raw: RawMap,

@@ -23,14 +23,14 @@ object CollisionDetector:
     * @param map
     *   the validated map on which to check the tile.
     * @param enemies
-    *   a sequence of enemies to check for a collision on that tile.
+    *   where the enemies currently are, to check for a collision on that tile.
     * @return
     *   a set of collisions. Empty if there is no collision.
     */
   def checkForCollision(
       position: Position,
       map: ValidatedMap,
-      enemies: Seq[MovingEntity]
+      enemies: Seq[Position]
   ): Set[Collision] =
     val tileCollision =
       if !MapValidator.isWalkable(map.raw, position)
@@ -44,7 +44,7 @@ object CollisionDetector:
           case Tile.Floor | Tile.Spawn | Tile.Hunter | Tile.Anticipator => None
           case Tile.Wall                                                => None
     val enemyCollision =
-      if enemies.exists(_.currentPos == position)
+      if enemies.contains(position)
       then Some(Collision.Enemy)
       else None
     Set(tileCollision, enemyCollision).flatten
