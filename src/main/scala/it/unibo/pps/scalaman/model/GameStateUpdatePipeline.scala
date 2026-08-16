@@ -2,9 +2,9 @@ package it.unibo.pps.scalaman.model
 
 /** Ordered pipeline executed on each game tick.
   *
-  * The pipeline keeps the domain update logic inside the model and applies each
-  * stage in a deterministic order: input, AI, movement, collisions, item
-  * collection, bonuses, and final state updates.
+  * The pipeline keeps the domain update logic inside the model and applies each stage in a
+  * deterministic order: input, AI, movement, collisions, item collection, bonuses, and final state
+  * updates.
   *
   * @param processInput
   *   stage that processes player input

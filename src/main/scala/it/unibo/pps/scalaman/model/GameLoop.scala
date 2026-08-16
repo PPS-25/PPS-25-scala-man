@@ -1,11 +1,6 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.LoopState.{
-  NotStarted,
-  Running,
-  Paused,
-  Stopped
-}
+import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Running, Paused, Stopped}
 
 enum LoopState:
   case NotStarted
@@ -19,8 +14,7 @@ enum LoopState:
   */
 final case class GameLoop(state: LoopState = NotStarted):
 
-  /** Transitions the game loop to the state `to` if the loop's current state is
-    * one of `validFrom`
+  /** Transitions the game loop to the state `to` if the loop's current state is one of `validFrom`
     * @param validFrom
     *   valid states for the transition
     * @param to

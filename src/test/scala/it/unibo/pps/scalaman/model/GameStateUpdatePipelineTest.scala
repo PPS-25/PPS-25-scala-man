@@ -20,8 +20,7 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
       processInput = state => state.copy(events = state.events :+ "input"),
       updateAi = state => state.copy(events = state.events :+ "ai"),
       updateMovement = state => state.copy(events = state.events :+ "movement"),
-      resolveCollisions =
-        state => state.copy(events = state.events :+ "collisions"),
+      resolveCollisions = state => state.copy(events = state.events :+ "collisions"),
       collectItems = state => state.copy(events = state.events :+ "items"),
       applyBonuses = state => state.copy(events = state.events :+ "bonuses"),
       updateState = state => state.copy(events = state.events :+ "state")
