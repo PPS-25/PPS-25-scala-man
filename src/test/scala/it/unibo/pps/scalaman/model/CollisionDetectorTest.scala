@@ -6,8 +6,6 @@ import it.unibo.pps.scalaman.map.validation.MapValidator
 import it.unibo.pps.scalaman.model.map.{MapTestSupport, Tile, ValidatedMap}
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.concurrent.duration.DurationInt
-
 class CollisionDetectorTest extends AnyFunSuite, MapTestSupport:
 
   private val validatedMap: ValidatedMap =
@@ -18,9 +16,6 @@ class CollisionDetectorTest extends AnyFunSuite, MapTestSupport:
           case Left(errors)  => fail(s"$errors")
       case Left(error) => fail(s"$error")
     validated.getOrElse(fail(s"$validated"))
-
-  private def entityAt(position: Position): MovingEntity =
-    MovingEntity(position, Direction.Down, 100.millis)
 
   test("finds collision with wall") {
     assert(
@@ -85,8 +80,8 @@ class CollisionDetectorTest extends AnyFunSuite, MapTestSupport:
     )
   }
 
-  test("finds an enemy when a moving entity occupies the position") {
-    val enemy = entityAt(Position(3, 4))
+  test("finds an enemy when one occupies the position") {
+    val enemy = Position(3, 4)
     assert(
       CollisionDetector.checkForCollision(Position(3, 4), validatedMap, Seq(enemy)) == Set(
         Collision.Enemy
@@ -95,7 +90,7 @@ class CollisionDetectorTest extends AnyFunSuite, MapTestSupport:
   }
 
   test("finds both a tile collision and enemy collision if both are present on that position") {
-    val enemyOnCollectible = entityAt(Position(3, 1))
+    val enemyOnCollectible = Position(3, 1)
     assert(
       CollisionDetector.checkForCollision(
         Position(3, 1),
