@@ -7,7 +7,9 @@ ThisBuild / organization := "it.unibo.pps"
 lazy val root = (project in file("."))
   .settings(
     name := "scala-man",
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test,
+    libraryDependencies ++= Seq("org.scalatest" %% "scalatest" % "3.2.18" % Test, "org.scalafx" %% "scalafx" % "21.0.0-R32"),
+    fork := true,
+    javaHome := Some(file(System.getProperty("java.home"))),
     assembly / mainClass := Some("it.unibo.pps.scalaman.Main"),
     assembly / assemblyJarName := s"${name.value}-${version.value}-fat.jar",
     assembly / assemblyMergeStrategy := {
