@@ -39,9 +39,16 @@ final case class MovingEntity(
       else copy(movement = Some(advancementRes))
     case None => this
 
-  /** Makes the entity move towards a specific location, even if that location is not walkable.
+  /** Makes the entity move towards a location, only if that location is walkable, otherwise the
+    * entity is left unchanged.
     * @param direction
     *   the direction in which to move.
+    * @param isWalkable
+    *   a predicate that determines whether a position is walkable.
+    * @return
     */
-  def move(direction: Direction): MovingEntity =
-    face(direction).copy(movement = Some(Movement(currentPos, currentPos + direction, timePerPos)))
+  def move(direction: Direction, isWalkable: Position => Boolean): MovingEntity =
+    val to = currentPos + direction
+    if isWalkable(to) then
+      face(direction).copy(movement = Some(Movement(currentPos, to, timePerPos)))
+    else this
