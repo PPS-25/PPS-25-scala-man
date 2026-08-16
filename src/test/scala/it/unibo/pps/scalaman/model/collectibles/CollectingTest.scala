@@ -15,7 +15,7 @@ class CollectingTest extends AnyFunSuite:
   private val collectibles = Collectibles(Set(item))
   private val standingPlayer = MovingEntity(item.position, Right, timePerPos)
   private val approachingPlayer =
-    MovingEntity(emptyPosition, Right, timePerPos).move(Right)
+    MovingEntity(emptyPosition, Right, timePerPos).move(Right, _ => true)
 
   test("a player standing on a standard collectible collects it") {
     assert(collectibles.collectedBy(standingPlayer).element.contains(item))
