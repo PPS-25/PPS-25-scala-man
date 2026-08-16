@@ -1,10 +1,19 @@
 package it.unibo.pps.scalaman.model
 
+import it.unibo.pps.scalaman.model.Collision.Teleport
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
-import it.unibo.pps.scalaman.model.collectibles.{Collectible, Collectibles, collectedBy, grantedBy}
+import it.unibo.pps.scalaman.model.collectibles.{
+  Collectible,
+  Collectibles,
+  awardedFor,
+  collectedBy,
+  grantedBy
+}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
 import it.unibo.pps.scalaman.model.map.{Enemy, Tile, ValidatedMap}
+import it.unibo.pps.scalaman.model.score.{GameResult, ScoreTracker}
+import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 
@@ -18,6 +27,7 @@ final case class LevelState(
     collectibles: Collectibles,
     effects: ActiveEffects,
     progress: LevelProgress,
+    score: ScoreTracker = ScoreTracker(),
     clock: GameClock = GameClock(),
     playerPreviousPos: Option[Position] = None,
     sinceLastEnemyStep: FiniteDuration = Duration.Zero
@@ -28,14 +38,36 @@ final case class LevelState(
     .checkForCollision(player.currentPos, maze, enemies.map(_.position))
     .contains(Collision.Enemy)
 
-  /** The level after meeting an enemy: a life less, unless invulnerability is applied, and everyone
-    * back to their spawn. What was picked up and the effects still running are kept.
+  /** The level after meeting an enemy. If an invulnerability is applied, the enemies met are
+    * defeated, otherwise a life is lost and everyone is sent back to their spawn.
     */
   def afterMeetingEnemies: LevelState =
     if !metAnEnemy then this
+    else if effects.isActive(Invulnerability, clock.elapsed) then defeatingEnemies
     else
       val left = progress.afterCollision(effects, clock.elapsed)
       if left == progress then this else copy(progress = left).respawned
+
+  private def defeatingEnemies: LevelState =
+    val (defeated, survivors) = enemies.partition(_.position == player.currentPos)
+    defeated.foldLeft(copy(enemies = survivors)): (level, _) =>
+      level.copy(score = level.score.increaseScore(EnemyKill))
+
+  /** The level after a player was carried by a teleport it stepped on. A teleport does not send
+    * back a player that just arrived through it. To be sent back, the player needs to step off the
+    * teleport and back on again.
+    */
+  def afterTeleporting: LevelState =
+    CollisionDetector
+      .checkForCollision(player.currentPos, maze, enemies.map(_.position))
+      .collectFirst { case Teleport(code) =>
+        code
+      }
+      .fold(this): code =>
+        val carried = CollisionResolver.teleported(player, code, maze)
+        if playerPreviousPos.contains(carried.currentPos)
+        then this
+        else copy(player = carried, playerPreviousPos = Some(player.currentPos))
 
   private def respawned: LevelState = copy(
     player = player.copy(currentPos = maze.spawn, movement = None),
@@ -50,6 +82,9 @@ final case class LevelState(
     if progress.isOver then GameState.Defeat
     else if collectibles.isLevelComplete then GameState.Victory
     else GameState.Running
+
+  def result(playerName: String): Option[GameResult] =
+    Option.when(status.isTerminal)(score.toResult(playerName, progress.lives))
 
   /** The level after some time has passed. A level that ended stands still. */
   def ticking(delta: FiniteDuration): LevelState =
@@ -87,11 +122,19 @@ final case class LevelState(
     val picked = collectibles.collectedBy(player)
     copy(
       collectibles = picked.left,
-      effects = effects.grantedBy(picked.element, clock.elapsed)
+      effects = effects.grantedBy(picked.element, clock.elapsed),
+      score = score.awardedFor(picked.element)
     )
 
-  /** The level with the effects that expired dropped. */
-  def withoutExpiredEffects: LevelState = copy(effects = effects.updated(clock.elapsed))
+  /** The level with the effects that expired dropped. Manages the combo as well, because a combo
+    * can increase only while invulnerability is in effect.
+    */
+  def withoutExpiredEffects: LevelState =
+    val remaining = effects.updated(clock.elapsed)
+    copy(
+      effects = remaining,
+      score = if remaining.isActive(Invulnerability, clock.elapsed) then score else score.resetCombo
+    )
 
 object LevelState:
 
@@ -119,7 +162,7 @@ object LevelState:
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
       updateAi = whileRunning(updateAi),
-      resolveCollisions = whileRunning(_.afterMeetingEnemies),
+      resolveCollisions = whileRunning(_.afterMeetingEnemies.afterTeleporting),
       collectItems = whileRunning(_.collecting),
       applyBonuses = whileRunning(_.withoutExpiredEffects)
     )
