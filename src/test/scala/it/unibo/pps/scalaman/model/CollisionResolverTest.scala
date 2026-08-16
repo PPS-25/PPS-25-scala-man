@@ -19,21 +19,16 @@ class CollisionResolverTest extends AnyFunSuite, MapTestSupport:
       case Left(error) => fail(s"$error")
     validated.getOrElse(fail(s"$validated"))
 
-  test("hitting a wall leaves the moving entity unchanged") {
-    val entity = MovingEntity(Position(1, 1), Direction.Down, 100.millis)
-    assert(CollisionResolver.resolve(entity, Collision.Wall, validatedMap) == entity)
-  }
-
-  test(
-    "colliding with a teleport moves the entity to the corresponding teleport destination. Teleports work both ways."
-  ) {
+  test("a teleport carries the entity to the other end, and back from there") {
     val start = Position(1, 3)
     val destination = Position(3, 3)
     val entity = MovingEntity(start, Direction.Down, 100.millis)
-    val entityAfterResolvedCollision =
-      CollisionResolver.resolve(entity, Collision.Teleport(0), validatedMap)
-    assert(entityAfterResolvedCollision.currentPos == destination)
-    val resolvedCollisionAtDest =
-      CollisionResolver.resolve(entityAfterResolvedCollision, Collision.Teleport(0), validatedMap)
-    assert(resolvedCollisionAtDest.currentPos == start)
+    val carried = CollisionResolver.teleported(entity, 0, validatedMap)
+    assert(carried.currentPos == destination)
+    assert(CollisionResolver.teleported(carried, 0, validatedMap).currentPos == start)
+  }
+
+  test("a teleport reached by the code of its far end leads to the same pair") {
+    val entity = MovingEntity(Position(3, 3), Direction.Down, 100.millis)
+    assert(CollisionResolver.teleported(entity, 5, validatedMap).currentPos == Position(1, 3))
   }
