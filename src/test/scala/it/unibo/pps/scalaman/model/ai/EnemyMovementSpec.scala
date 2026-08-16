@@ -92,6 +92,33 @@ class EnemyMovementSpec extends AnyFunSuite:
     assert(moves == Set(Position(1, 2), teleportDestination))
   }
 
+  test("does not allow reusing a teleport before leaving its destination cell") {
+    val teleportStart = Position(1, 1)
+    val teleportDestination = Position(1, 3)
+    val map = validatedMap(
+      rows = Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(
+          Tile.Wall,
+          Tile.Teleport(0),
+          Tile.Floor,
+          Tile.Teleport(5),
+          Tile.Wall
+        ),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      ),
+      teleports = Map(0 -> (teleportStart, teleportDestination))
+    )
+
+    val moves = EnemyMovement.validMoves(
+      teleportDestination,
+      map,
+      teleportDisabled = true
+    )
+
+    assert(moves == Set(Position(1, 2)))
+  }
+
   private def validatedMap(
       rows: Vector[Vector[Tile]],
       teleports: Map[Int, (Position, Position)] = Map.empty

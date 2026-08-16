@@ -31,6 +31,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     val strategy: EnemyMovementStrategy = DirectPursuitStrategy
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 4),
       playerPreviousPosition = None,
       map = openMap
@@ -61,6 +62,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("direct pursuit moves toward the player's current position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 4),
       playerPreviousPosition = None,
       map = openMap
@@ -72,6 +74,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("strategies respect walls when the closest direct move is blocked") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 4),
       playerPreviousPosition = None,
       map = mapWithBlockedCorridor
@@ -90,6 +93,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     )
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 1),
+      teleportDisabled = false,
       playerPosition = Position(1, 2),
       playerPreviousPosition = None,
       map = trappedMap
@@ -101,6 +105,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("direct pursuit is deterministic when multiple moves are equally close") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(1, 1),
       playerPreviousPosition = None,
       map = openMap
@@ -122,6 +127,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     )
     val context = EnemyMovementContext(
       enemyPosition = Position(3, 2),
+      teleportDisabled = false,
       playerPosition = Position(1, 4),
       playerPreviousPosition = None,
       map = mazeMap
@@ -155,6 +161,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     )
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 1),
+      teleportDisabled = false,
       playerPosition = Position(5, 5),
       playerPreviousPosition = None,
       map = teleportMap
@@ -166,6 +173,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("anticipation targets a predicted player position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 2),
       playerPreviousPosition = Some(Position(2, 1)),
       map = openMap
@@ -177,6 +185,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("anticipation falls back to the current player position without movement history") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 4),
       playerPreviousPosition = None,
       map = openMap
@@ -188,6 +197,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("anticipation respects walls while moving toward the predicted position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 4),
       playerPreviousPosition = Some(Position(2, 3)),
       map = mapWithBlockedCorridor
@@ -199,6 +209,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("anticipation stops prediction at the last walkable cell before a wall") {
     val context = EnemyMovementContext(
       enemyPosition = Position(2, 3),
+      teleportDisabled = false,
       playerPosition = Position(1, 4),
       playerPreviousPosition = Some(Position(1, 3)),
       map = openMap
@@ -232,6 +243,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     )
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 1),
+      teleportDisabled = false,
       playerPosition = Position(5, 5),
       playerPreviousPosition = Some(Position(4, 5)),
       map = teleportMap
@@ -249,6 +261,7 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
   test("pursuit and anticipation produce observably different decisions") {
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
+      teleportDisabled = false,
       playerPosition = Position(2, 2),
       playerPreviousPosition = Some(Position(2, 1)),
       map = openMap
@@ -256,6 +269,66 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
 
     assert(DirectPursuitStrategy.nextMove(context).contains(Position(2, 2)))
     assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 3)))
+  }
+
+  test("direct pursuit must leave a teleport before reusing it") {
+    val teleportStart = Position(1, 2)
+    val teleportDestination = Position(1, 5)
+    val teleportMap = validatedMap(
+      rows = Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(
+          Tile.Wall,
+          Tile.Floor,
+          Tile.Teleport(0),
+          Tile.Floor,
+          Tile.Floor,
+          Tile.Teleport(5),
+          Tile.Wall
+        ),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      ),
+      teleports = Map(0 -> (teleportStart, teleportDestination))
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = teleportDestination,
+      teleportDisabled = true,
+      playerPosition = Position(1, 1),
+      playerPreviousPosition = None,
+      map = teleportMap
+    )
+
+    assert(DirectPursuitStrategy.nextMove(context).contains(Position(1, 4)))
+  }
+
+  test("anticipation must leave a teleport before reusing it") {
+    val teleportStart = Position(1, 2)
+    val teleportDestination = Position(1, 5)
+    val teleportMap = validatedMap(
+      rows = Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(
+          Tile.Wall,
+          Tile.Floor,
+          Tile.Teleport(0),
+          Tile.Floor,
+          Tile.Floor,
+          Tile.Teleport(5),
+          Tile.Wall
+        ),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      ),
+      teleports = Map(0 -> (teleportStart, teleportDestination))
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = teleportDestination,
+      teleportDisabled = true,
+      playerPosition = Position(1, 1),
+      playerPreviousPosition = Some(Position(1, 2)),
+      map = teleportMap
+    )
+
+    assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 4)))
   }
 
   private def validatedMap(

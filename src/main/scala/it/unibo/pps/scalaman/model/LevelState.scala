@@ -115,7 +115,7 @@ final case class LevelState(
   def enemiesStepped(stepped: Vector[Enemy])(using Slowdown): LevelState =
     copy(
       enemies = stepped.zipWithIndex.map { case (enemy, index) =>
-        enemies.lift(index).fold(enemy)(previous => teleportedEnemy(enemy, previous.position))
+        enemies.lift(index).fold(enemy)(previous => updatedEnemyAfterStep(enemy, previous))
       },
       sinceLastEnemyStep = (sinceLastEnemyStep - enemyStepInterval).max(Duration.Zero)
     )
@@ -139,6 +139,14 @@ final case class LevelState(
       score = if remaining.isActive(Invulnerability, clock.elapsed) then score else score.resetCombo
     )
 
+  private def updatedEnemyAfterStep(enemy: Enemy, previous: Enemy): Enemy =
+    if enemy.position == previous.position then
+      enemy.copy(teleportDisabled = previous.teleportDisabled)
+    else
+      val resolved = teleportedEnemy(enemy, previous.position)
+      if resolved.position != enemy.position then resolved
+      else enemy.copy(teleportDisabled = false)
+
   private def teleportedEnemy(enemy: Enemy, previousPosition: Position): Enemy =
     CollisionDetector
       .checkForCollision(enemy.position, maze, Seq.empty)
@@ -148,7 +156,10 @@ final case class LevelState(
       }
       .fold(enemy): code =>
         val carrier = player.copy(currentPos = enemy.position)
-        enemy.copy(position = CollisionResolver.teleported(carrier, code, maze).currentPos)
+        enemy.copy(
+          position = CollisionResolver.teleported(carrier, code, maze).currentPos,
+          teleportDisabled = true
+        )
 
 object LevelState:
 

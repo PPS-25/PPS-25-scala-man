@@ -141,6 +141,21 @@ class LevelStateTest extends AnyFunSuite:
     assert(level.enemiesStepped(stepped).enemies.head.position == teleportDestination)
   }
 
+  test("a teleported enemy must leave the teleport before it can use it again") {
+    val enemy = Enemy(Position(1, 1), EnemyKind.Hunter)
+    val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
+    val teleported = level.enemiesStepped(Vector(enemy.copy(position = teleportStart))).enemies.head
+    val waiting = level.copy(enemies = Vector(teleported)).enemiesStepped(Vector(teleported)).enemies.head
+    val exited = level
+      .copy(enemies = Vector(waiting))
+      .enemiesStepped(Vector(waiting.copy(position = Position(3, 5))))
+      .enemies.head
+
+    assert(teleported.teleportDisabled)
+    assert(waiting.teleportDisabled)
+    assert(!exited.teleportDisabled)
+  }
+
   test("an enemy already standing on a teleport is not sent back without a new step") {
     val enemy = Enemy(teleportDestination, EnemyKind.Hunter)
     val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
