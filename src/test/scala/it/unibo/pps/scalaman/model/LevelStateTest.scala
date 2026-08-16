@@ -26,7 +26,7 @@ class LevelStateTest extends AnyFunSuite:
   }
 
   test("a level starts with the enemies the maze holds") {
-    assert(fromMaze.enemies == maze.enemies.toVector)
+    assert(fromMaze.enemies.toSet == maze.enemies)
   }
 
   test("a level starts with the standard collectibles the maze holds") {
@@ -92,12 +92,12 @@ class LevelStateTest extends AnyFunSuite:
   }
 
   test("the player leaves its previous position behind once it changes place") {
-    val moved = startingLevel.movingPlayer(_.move(Right).update(timePerPos))
+    val moved = startingLevel.movingPlayer(_.move(Right, _ => true).update(timePerPos))
     assert(moved.playerPreviousPos.contains(startingLevel.player.currentPos))
   }
 
   test("the player leaves no previous position behind while still on its way") {
-    val moving = startingLevel.movingPlayer(_.move(Right))
+    val moving = startingLevel.movingPlayer(_.move(Right, _ => true))
     assert(moving.playerPreviousPos.isEmpty)
   }
 

@@ -29,6 +29,10 @@ class LevelViewTest extends AnyFunSuite:
     assert(LevelView.of(startingLevel).remaining == 1)
   }
 
+  test("the view is shown how the level is going") {
+    assert(LevelView.of(startingLevel).status == startingLevel.status)
+  }
+
   test("the view is shown the lives left") {
     assert(LevelView.of(startingLevel).lives == 3)
   }
