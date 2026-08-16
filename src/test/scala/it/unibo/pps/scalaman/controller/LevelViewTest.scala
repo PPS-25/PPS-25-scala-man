@@ -21,8 +21,16 @@ class LevelViewTest extends AnyFunSuite:
     assert(LevelView.of(startingLevel).collectibles == Set(item, bonus))
   }
 
+  test("the view is shown where the enemies are") {
+    assert(LevelView.of(startingLevel).enemies == startingLevel.enemies)
+  }
+
   test("the view is shown how much is left to pick up") {
     assert(LevelView.of(startingLevel).remaining == 1)
+  }
+
+  test("the view is shown how the level is going") {
+    assert(LevelView.of(startingLevel).status == startingLevel.status)
   }
 
   test("the view is shown the lives left") {
@@ -37,7 +45,7 @@ class LevelViewTest extends AnyFunSuite:
   test("a tick that picks something up is shown to the view") {
     val (recorded, listener) = recorder()
     val rendering = LevelView.rendering.subscribing(listener)
-    LevelState.pipeline.tickNotifying(levelWith(item.position), rendering)
+    LevelState.pipeline().tickNotifying(levelWith(item.position), rendering)
     assert(recorded.toSeq.map(_.remaining) == Seq(0))
   }
 
@@ -45,6 +53,6 @@ class LevelViewTest extends AnyFunSuite:
     val (recorded, listener) = recorder()
     val rendering = LevelView.rendering.subscribing(listener).notifying(startingLevel)
     recorded.clear()
-    LevelState.pipeline.tickNotifying(startingLevel, rendering)
+    LevelState.pipeline().tickNotifying(startingLevel, rendering)
     assert(recorded.isEmpty)
   }
