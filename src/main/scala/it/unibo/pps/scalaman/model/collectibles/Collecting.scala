@@ -2,6 +2,8 @@ package it.unibo.pps.scalaman.model.collectibles
 
 import it.unibo.pps.scalaman.model.{MovingEntity, Position}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
+import it.unibo.pps.scalaman.model.score.ScoreTracker
+import it.unibo.pps.scalaman.model.score.ScoringEvent.{BasicItem, BonusItem}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -28,3 +30,13 @@ extension (effects: ActiveEffects)
     case Some(Collectible.Bonus(_, effect)) =>
       effects.activate(effect, now, duration.of(effect))
     case _ => effects
+
+extension (score: ScoreTracker)
+  /** Awards the points carried by a collected element.
+    * @param collected
+    *   the element just collected.
+    */
+  def awardedFor(collected: Option[Collectible]): ScoreTracker = collected match
+    case Some(Collectible.Basic(_))    => score.increaseScore(BasicItem)
+    case Some(Collectible.Bonus(_, _)) => score.increaseScore(BonusItem)
+    case None                          => score
