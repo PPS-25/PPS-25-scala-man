@@ -112,10 +112,13 @@ final case class LevelState(
   /** The level after the enemies took their step, keeping what was waited beyond the interval so
     * that they do not fall behind.
     */
-  def enemiesStepped(stepped: Vector[Enemy])(using Slowdown): LevelState = copy(
-    enemies = stepped,
-    sinceLastEnemyStep = (sinceLastEnemyStep - enemyStepInterval).max(Duration.Zero)
-  )
+  def enemiesStepped(stepped: Vector[Enemy])(using Slowdown): LevelState =
+    copy(
+      enemies = stepped.zipWithIndex.map { case (enemy, index) =>
+        enemies.lift(index).fold(enemy)(previous => teleportedEnemy(enemy, previous.position))
+      },
+      sinceLastEnemyStep = (sinceLastEnemyStep - enemyStepInterval).max(Duration.Zero)
+    )
 
   /** The level after the player picked up what it stands on, effect included. */
   def collecting(using BonusDuration): LevelState =
@@ -135,6 +138,16 @@ final case class LevelState(
       effects = remaining,
       score = if remaining.isActive(Invulnerability, clock.elapsed) then score else score.resetCombo
     )
+
+  private def teleportedEnemy(enemy: Enemy, previousPosition: Position): Enemy =
+    CollisionDetector
+      .checkForCollision(enemy.position, maze, Seq.empty)
+      .collectFirst { case Teleport(code) if enemy.position != previousPosition =>
+        code
+      }
+      .fold(enemy): code =>
+        val carrier = player.copy(currentPos = enemy.position)
+        enemy.copy(position = CollisionResolver.teleported(carrier, code, maze).currentPos)
 
 object LevelState:
 

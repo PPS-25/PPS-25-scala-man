@@ -18,7 +18,7 @@ object EnemyMovement:
     shortestPath(from, target, map).flatMap(_.lift(1))
 
   private[ai] def validMovesInOrder(from: Position, map: ValidatedMap): Vector[Position] =
-    orthogonalNeighbors(from).filter(isWalkable(map, _))
+    orthogonalNeighbors(from).filter(isWalkable(map, _)) ++ teleportDestination(from, map).toVector
 
   private def orthogonalNeighbors(position: Position): Vector[Position] =
     Vector(
@@ -30,6 +30,12 @@ object EnemyMovement:
 
   private def isWalkable(map: ValidatedMap, position: Position): Boolean =
     map.raw.cellAt(position).exists(_.isWalkable)
+
+  private def teleportDestination(from: Position, map: ValidatedMap): Option[Position] =
+    map.teleports.valuesIterator.collectFirst {
+      case (start, destination) if from == start       => destination
+      case (start, destination) if from == destination => start
+    }
 
   private[ai] def shortestPath(
       from: Position,

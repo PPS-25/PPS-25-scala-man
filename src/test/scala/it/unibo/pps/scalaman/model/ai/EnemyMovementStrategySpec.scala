@@ -130,6 +130,39 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(DirectPursuitStrategy.nextMove(context).contains(Position(4, 2)))
   }
 
+  test("direct pursuit uses teleports when they shorten the path to the player") {
+    val teleportStart = Position(1, 2)
+    val teleportDestination = Position(1, 5)
+    val teleportMap = validatedMap(
+      rows = Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(
+          Tile.Wall,
+          Tile.Floor,
+          Tile.Teleport(0),
+          Tile.Wall,
+          Tile.Wall,
+          Tile.Teleport(5),
+          Tile.Wall
+        ),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      ),
+      teleports = Map(0 -> (teleportStart, teleportDestination))
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = Position(1, 1),
+      playerPosition = Position(5, 5),
+      playerPreviousPosition = None,
+      map = teleportMap
+    )
+
+    assert(DirectPursuitStrategy.nextMove(context).contains(teleportStart))
+  }
+
   test("anticipation targets a predicted player position") {
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
@@ -174,6 +207,39 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 3)))
   }
 
+  test("anticipation uses teleports when they shorten the path to the predicted position") {
+    val teleportStart = Position(1, 2)
+    val teleportDestination = Position(1, 5)
+    val teleportMap = validatedMap(
+      rows = Vector(
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall),
+        Vector(
+          Tile.Wall,
+          Tile.Floor,
+          Tile.Teleport(0),
+          Tile.Wall,
+          Tile.Wall,
+          Tile.Teleport(5),
+          Tile.Wall
+        ),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Floor, Tile.Wall),
+        Vector(Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall, Tile.Wall)
+      ),
+      teleports = Map(0 -> (teleportStart, teleportDestination))
+    )
+    val context = EnemyMovementContext(
+      enemyPosition = Position(1, 1),
+      playerPosition = Position(5, 5),
+      playerPreviousPosition = Some(Position(4, 5)),
+      map = teleportMap
+    )
+
+    assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(teleportStart))
+  }
+
   test("anticipation requires a positive prediction distance") {
     assertThrows[IllegalArgumentException] {
       PlayerAnticipationStrategy(stepsAhead = 0)
@@ -192,12 +258,15 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     assert(PlayerAnticipationStrategy(stepsAhead = 2).nextMove(context).contains(Position(1, 3)))
   }
 
-  private def validatedMap(rows: Vector[Vector[Tile]]): ValidatedMap =
+  private def validatedMap(
+      rows: Vector[Vector[Tile]],
+      teleports: Map[Int, (Position, Position)] = Map.empty
+  ): ValidatedMap =
     ValidatedMap(
       raw = RawMap(rows),
       spawn = Position(1, 1),
       collectibles = Set(Position(1, 2)),
       enemies = Set.empty,
-      teleports = Map.empty
+      teleports = teleports
     )
 end EnemyMovementStrategySpec
