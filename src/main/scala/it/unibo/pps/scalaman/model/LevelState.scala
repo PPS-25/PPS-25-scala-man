@@ -44,7 +44,8 @@ final case class LevelState(
     sinceLastEnemyStep = Duration.Zero
   )
 
-  /** How the level is going. Running out of lives on the very last collectible is still a defeat. */
+  /** How the level is going. Running out of lives on the very last collectible is still a defeat.
+    */
   def status: GameState =
     if progress.isOver then GameState.Defeat
     else if collectibles.isLevelComplete then GameState.Victory
