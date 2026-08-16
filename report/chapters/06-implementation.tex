@@ -1,5 +1,24 @@
 % !TEX root = ../main.tex
 \chapter{Implementation}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas tincidunt,
-arcu at congue pulvinar, nibh massa tincidunt augue, a sodales odio lacus non
-leo.
+The implementation of the game loop is intentionally split into small, pure
+model-level building blocks.
+
+\section{Clock and lifecycle}
+The game clock is immutable and tracks elapsed time without depending on the
+system clock. The loop lifecycle is represented as a finite-state machine with
+explicit transitions for start, pause, resume, and stop.
+
+\section{State update pipeline}
+Each game tick is executed through a deterministic update pipeline exposed
+through a dedicated \texttt{tick} operation. The stages run in a fixed order:
+input processing, AI updates, movement, collision resolution, item collection,
+bonuses, and final state reconciliation.
+
+Keeping the pipeline pure makes it easy to compose, reason about, and test
+before the controller and view layers are connected.
+
+\section{Game state transitions}
+The match state is modeled separately from the loop lifecycle. It supports
+running, paused, victory, and defeat states, with explicit transition methods
+that reject invalid moves. Terminal states are immutable and mark the point
+where gameplay updates must stop.

@@ -67,6 +67,7 @@ object MapValidationError:
   final case class UnreachableEnemy(position: Position) extends MapValidationError
   final case class InvalidTeleportPair(code: Int, occurrences: Int) extends MapValidationError
   final case class UnsupportedTeleportCode(code: Int) extends MapValidationError
+  final case class OpenBorder(positions: Set[Position]) extends MapValidationError
 
 sealed trait MapGenerationError
 object MapGenerationError:

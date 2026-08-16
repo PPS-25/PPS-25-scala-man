@@ -25,7 +25,8 @@ object MapValidator:
       val structuralErrors =
         requiredEntityErrors(inspection) ++
           spawnCountErrors(inspection.spawnPositions) ++
-          unsupportedTeleportCodeErrors(inspection.teleportPositions)
+          unsupportedTeleportCodeErrors(inspection.teleportPositions) ++
+          openBorderErrors(map)
       val teleportValidation = pairTeleports(inspection.teleportPositions)
       val allStructuralErrors = structuralErrors ++ teleportValidation.errors
 
@@ -155,7 +156,7 @@ object MapValidator:
       Position(position.row, position.col + 1)
     )
 
-  private def isWalkable(map: RawMap, position: Position): Boolean =
+  def isWalkable(map: RawMap, position: Position): Boolean =
     map.cellAt(position).exists(_.isWalkable)
 
   private def teleportLinksFrom(
@@ -203,3 +204,17 @@ object MapValidator:
       positions: Option[Vector[Position]]
   ): Option[Vector[Position]] =
     Some(positions.getOrElse(Vector.empty) :+ position)
+
+  private def openBorderPositions(map: RawMap): Set[Position] =
+    (for
+      row <- 0 until map.height
+      col <- 0 until map.width
+      if row == 0 || row == map.height - 1 || col == 0 || col == map.width - 1
+      if map.rows(row)(col) != Tile.Wall
+    yield Position(row, col)).toSet
+
+  private def openBorderErrors(map: RawMap): List[MapValidationError] =
+    val openings = openBorderPositions(map)
+    if openings.nonEmpty
+    then List(MapValidationError.OpenBorder(openings))
+    else Nil
