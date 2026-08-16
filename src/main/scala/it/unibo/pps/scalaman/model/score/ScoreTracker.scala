@@ -1,7 +1,5 @@
 package it.unibo.pps.scalaman.model.score
 
-import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
-
 /** Types of events that award points.
   */
 enum ScoringEvent:
@@ -27,7 +25,7 @@ final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
     */
   def increaseScore(event: ScoringEvent): ScoreTracker =
     val newCombo = increaseCombo(event, combo)
-    ScoreTracker(currentScore + ScoringRule.awardedPoints(event), combo)
+    ScoreTracker(currentScore + ScoringRule.awardedPoints(event, newCombo), newCombo)
 
   private def increaseCombo(event: ScoringEvent, combo: Int): Int = event match {
     case ScoringEvent.EnemyKill => combo + 1
