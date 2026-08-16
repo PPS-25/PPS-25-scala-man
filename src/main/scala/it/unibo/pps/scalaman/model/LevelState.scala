@@ -142,8 +142,9 @@ final case class LevelState(
   private def teleportedEnemy(enemy: Enemy, previousPosition: Position): Enemy =
     CollisionDetector
       .checkForCollision(enemy.position, maze, Seq.empty)
-      .collectFirst { case Teleport(code) if enemy.position != previousPosition =>
-        code
+      .collectFirst {
+        case Teleport(code) if enemy.position != previousPosition =>
+          code
       }
       .fold(enemy): code =>
         val carrier = player.copy(currentPos = enemy.position)
