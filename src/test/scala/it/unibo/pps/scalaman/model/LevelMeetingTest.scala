@@ -4,14 +4,18 @@ import it.unibo.pps.scalaman.model.Direction.Right
 import it.unibo.pps.scalaman.model.LevelTestSupport.{lasting, levelWith}
 import it.unibo.pps.scalaman.model.effects.ActiveEffects
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemyKind}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
+
+import scala.concurrent.duration.DurationInt
 
 class LevelMeetingTest extends AnyFunSuite:
   private val where = Position(1, 1)
   private val nextTo = Position(1, 2)
 
-  private def enemyAt(position: Position) = Enemy(position, EnemyKind.Hunter)
+  private def enemyAt(position: Position) =
+    Enemy(MovingEntity(position, Right, 250.millis), EnemyKind.Hunter)
 
   private def levelWithEnemies(playerAt: Position, enemies: Enemy*) =
     levelWith(playerAt).copy(enemies = enemies.toVector)
@@ -45,7 +49,9 @@ class LevelMeetingTest extends AnyFunSuite:
   }
 
   test("meeting an enemy sends the enemies back to their spawns") {
-    assert(met.afterMeetingEnemies.enemies.toSet == met.maze.enemies)
+    assert(
+      met.afterMeetingEnemies.enemies.map(_.currentPos).toSet == met.maze.enemies.map(_.position)
+    )
   }
 
   test("meeting an enemy interrupts the movement the player was making") {
