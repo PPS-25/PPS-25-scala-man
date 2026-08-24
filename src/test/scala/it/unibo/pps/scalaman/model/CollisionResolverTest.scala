@@ -3,6 +3,7 @@ package it.unibo.pps.scalaman.model
 import it.unibo.pps.scalaman.map.io.MapLoader
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import it.unibo.pps.scalaman.model.map.{MapTestSupport, ValidatedMap}
 import org.scalatest.funsuite.AnyFunSuite
 

@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Collision.Teleport
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
 object CollisionResolver:
