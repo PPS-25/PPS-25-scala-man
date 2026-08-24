@@ -16,7 +16,7 @@ final case class MapCell(position: Position, tile: Tile):
 enum EnemyKind:
   case Hunter, Anticipator
 
-final case class Enemy(position: Position, kind: EnemyKind)
+final case class EnemySpawn(position: Position, kind: EnemyKind)
 
 final case class RawMap(rows: Vector[Vector[Tile]]):
   val height: Int = rows.length
@@ -40,7 +40,7 @@ final case class ValidatedMap(
     raw: RawMap,
     spawn: Position,
     collectibles: Set[Position],
-    enemies: Set[Enemy],
+    enemies: Set[EnemySpawn],
     teleports: Map[Int, (Position, Position)]
 )
 
