@@ -1,6 +1,8 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.entities
 
 import it.unibo.pps.scalaman.model.Direction.*
+import it.unibo.pps.scalaman.model.{Direction, Movement, Position}
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 /** A moving entity that occupies a cell and can move towards adjacent ones, moving in one of four
