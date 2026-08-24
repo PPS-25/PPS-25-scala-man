@@ -28,6 +28,7 @@ final case class RawMap(rows: Vector[Vector[Tile]]):
       }
     }
 
+  def isWalkable(position: Position): Boolean = cellAt(position).exists(_.isWalkable)
   def cellAt(position: Position): Option[MapCell] =
     Option.when(
       position.row >= 0 &&
@@ -42,7 +43,9 @@ final case class ValidatedMap(
     collectibles: Set[Position],
     enemies: Set[EnemySpawn],
     teleports: Map[Int, (Position, Position)]
-)
+):
+  def isWalkable(position: Position): Boolean =
+    raw.isWalkable(position)
 
 sealed trait MapLoadError
 object MapLoadError:

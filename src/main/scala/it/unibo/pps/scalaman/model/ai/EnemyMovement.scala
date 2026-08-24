@@ -18,7 +18,7 @@ object EnemyMovement:
     shortestPath(from, target, map).flatMap(_.lift(1))
 
   private[ai] def validMovesInOrder(from: Position, map: ValidatedMap): Vector[Position] =
-    orthogonalNeighbors(from).filter(isWalkable(map, _))
+    orthogonalNeighbors(from).filter(map.isWalkable)
 
   private def orthogonalNeighbors(position: Position): Vector[Position] =
     Vector(
