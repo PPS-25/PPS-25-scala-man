@@ -2,16 +2,10 @@ package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Collision.Teleport
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
-import it.unibo.pps.scalaman.model.collectibles.{
-  Collectible,
-  Collectibles,
-  awardedFor,
-  collectedBy,
-  grantedBy
-}
+import it.unibo.pps.scalaman.model.collectibles.{Collectible, Collectibles, awardedFor, collectedBy, grantedBy}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
-import it.unibo.pps.scalaman.model.map.{Enemy, Tile, ValidatedMap}
+import it.unibo.pps.scalaman.model.map.{Enemy, EnemySpawn, Tile, ValidatedMap}
 import it.unibo.pps.scalaman.model.score.{GameResult, ScoreTracker}
 import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
 
@@ -143,6 +137,9 @@ object LevelState:
 
   /** How long the player takes to cross a position. */
   val PlayerTimePerPos: FiniteDuration = 200.millis
+  
+  /** How long the player takes to cross a position */
+  val EnemyTimePerPos: FiniteDuration = 250.millis
 
   /** A level about to be played: everyone on their spawn, everything still to pick up. */
   def from(maze: ValidatedMap): LevelState = LevelState(
@@ -176,6 +173,7 @@ object LevelState:
     */
   private def spawnedOn(maze: ValidatedMap): Vector[Enemy] =
     maze.enemies.toVector.sortBy(enemy => (enemy.position.row, enemy.position.col))
+      .map(spawn => Enemy(MovingEntity(spawn.position, Direction.Right, EnemyTimePerPos), spawn.kind))
 
   private def placedOn(maze: ValidatedMap): Iterable[Collectible] =
     for
