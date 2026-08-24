@@ -29,6 +29,16 @@ final case class MovingEntity(
   def face(direction: Direction): MovingEntity =
     copy(facing = direction)
 
+  /** Whether the entity is between two cells */
+  def isMoving: Boolean = movement.isDefined
+
+  def meets(other: MovingEntity): Boolean =
+    currentPos == other.currentPos || swapping(other)
+
+  private def swapping(other: MovingEntity): Boolean = (movement, other.movement) match
+    case (Some(mine), Some(theirs)) => mine.from == theirs.to && theirs.from == mine.to
+    case _                          => false
+
   /** Updates the movement based on the elapsed time. If the updated remaining time is not zero, the
     * entity will keep moving. Otherwise, it will stop.
     * @param elapsed

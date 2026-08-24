@@ -1,9 +1,10 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.GameState.{Defeat, Running, Victory}
-import it.unibo.pps.scalaman.model.LevelTestSupport.{item, levelWith, startingLevel}
+import it.unibo.pps.scalaman.model.LevelTestSupport.{item, levelWith, startingLevel, timePerPos}
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemyKind}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -40,17 +41,19 @@ class LevelOutcomeTest extends AnyFunSuite:
 
   test("a tick picks nothing up once the level ended") {
     val onACollectible = levelWith(item.position).copy(progress = LevelProgress(0))
-    assert(LevelState.pipeline().tick(onACollectible) == onACollectible)
+    assert(LevelState.pipeline(timePerPos).tick(onACollectible) == onACollectible)
   }
 
   test("a tick does not move the enemies once the level ended") {
-    val elsewhere = Vector(Enemy(Position(2, 2), EnemyKind.Hunter))
-    val moving = LevelState.pipeline(updateAi = _.enemiesStepped(elsewhere))
+    val elsewhere =
+      Vector(Enemy(MovingEntity(Position(2, 2), Direction.Right, 250.millis), EnemyKind.Hunter))
+    val moving = LevelState.pipeline(timePerPos, updateAi = _.enemiesStepped(elsewhere))
     assert(moving.tick(lost) == lost)
   }
 
   test("a tick still moves the enemies while the level runs") {
-    val elsewhere = Vector(Enemy(Position(2, 2), EnemyKind.Hunter))
-    val moving = LevelState.pipeline(updateAi = _.enemiesStepped(elsewhere))
+    val elsewhere =
+      Vector(Enemy(MovingEntity(Position(2, 2), Direction.Right, 250.millis), EnemyKind.Hunter))
+    val moving = LevelState.pipeline(timePerPos, updateAi = _.enemiesStepped(elsewhere))
     assert(moving.tick(startingLevel).enemies == elsewhere)
   }

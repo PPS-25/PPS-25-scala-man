@@ -6,3 +6,4 @@ import it.unibo.pps.scalaman.model.{Direction, Position}
 final case class Enemy(entity: MovingEntity, kind: EnemyKind):
   def currentPos: Position = entity.currentPos
   def facing: Direction = entity.facing
+  def moving(step: MovingEntity => MovingEntity): Enemy = copy(entity = step(entity))

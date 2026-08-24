@@ -2,10 +2,17 @@ package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Collision.Teleport
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
-import it.unibo.pps.scalaman.model.collectibles.{Collectible, Collectibles, awardedFor, collectedBy, grantedBy}
+import it.unibo.pps.scalaman.model.collectibles.{
+  Collectible,
+  Collectibles,
+  awardedFor,
+  collectedBy,
+  grantedBy
+}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemySpawn, Tile, ValidatedMap}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.{EnemySpawn, Tile, ValidatedMap}
 import it.unibo.pps.scalaman.model.score.{GameResult, ScoreTracker}
 import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
 
@@ -23,14 +30,11 @@ final case class LevelState(
     progress: LevelProgress,
     score: ScoreTracker = ScoreTracker(),
     clock: GameClock = GameClock(),
-    playerPreviousPos: Option[Position] = None,
-    sinceLastEnemyStep: FiniteDuration = Duration.Zero
+    playerPreviousPos: Option[Position] = None
 ):
 
   /** Whether the player ran into an enemy. */
-  def metAnEnemy: Boolean = CollisionDetector
-    .checkForCollision(player.currentPos, maze, enemies.map(_.position))
-    .contains(Collision.Enemy)
+  def metAnEnemy: Boolean = enemies.exists(enemy => player.meets(enemy.entity))
 
   /** The level after meeting an enemy. If an invulnerability is applied, the enemies met are
     * defeated, otherwise a life is lost and everyone is sent back to their spawn.
@@ -43,7 +47,7 @@ final case class LevelState(
       if left == progress then this else copy(progress = left).respawned
 
   private def defeatingEnemies: LevelState =
-    val (defeated, survivors) = enemies.partition(_.position == player.currentPos)
+    val (defeated, survivors) = enemies.partition(enemy => player.meets(enemy.entity))
     defeated.foldLeft(copy(enemies = survivors)): (level, _) =>
       level.copy(score = level.score.increaseScore(EnemyKill))
 
@@ -53,7 +57,7 @@ final case class LevelState(
     */
   def afterTeleporting: LevelState =
     CollisionDetector
-      .checkForCollision(player.currentPos, maze, enemies.map(_.position))
+      .checkForCollision(player.currentPos, maze, enemies.map(_.currentPos))
       .collectFirst { case Teleport(code) =>
         code
       }
@@ -66,8 +70,7 @@ final case class LevelState(
   private def respawned: LevelState = copy(
     player = player.copy(currentPos = maze.spawn, movement = None),
     enemies = LevelState.spawnedOn(maze),
-    playerPreviousPos = None,
-    sinceLastEnemyStep = Duration.Zero
+    playerPreviousPos = None
   )
 
   /** How the level is going. Running out of lives on the very last collectible is still a defeat.
@@ -83,11 +86,7 @@ final case class LevelState(
   /** The level after some time has passed. A level that ended stands still. */
   def ticking(delta: FiniteDuration): LevelState =
     if status.isTerminal then this
-    else
-      copy(
-        clock = clock.advance(delta),
-        sinceLastEnemyStep = sinceLastEnemyStep + delta
-      )
+    else copy(clock = clock.advance(delta))
 
   /** The level after the player moved, remembering where it came from when it changed place. */
   def movingPlayer(step: MovingEntity => MovingEntity): LevelState =
@@ -95,20 +94,16 @@ final case class LevelState(
     if moved.currentPos == player.currentPos then copy(player = moved)
     else copy(player = moved, playerPreviousPos = Some(player.currentPos))
 
-  /** Whether the enemies are due a step, waiting longer while the slow down is applied. */
-  def enemyStepDue(using Slowdown): Boolean =
-    sinceLastEnemyStep >= enemyStepInterval
+  /** The level after everyone advanced along the step they were taking. */
+  def movingOn(delta: FiniteDuration)(using Slowdown): LevelState =
+    val forEnemies: FiniteDuration = effects.enemyDelta(delta, clock.elapsed)
+    movingPlayer(_.update(delta))
+      .copy(enemies = enemies.map(enemy => enemy.moving(_.update(forEnemies))))
 
-  /** How long the enemies wait between steps right now. */
-  def enemyStepInterval(using Slowdown): FiniteDuration =
-    effects.enemyStepInterval(LevelState.BetweenEnemySteps, clock.elapsed)
-
-  /** The level after the enemies took their step, keeping what was waited beyond the interval so
-    * that they do not fall behind.
+  /** The level after the enemies took their step.
     */
-  def enemiesStepped(stepped: Vector[Enemy])(using Slowdown): LevelState = copy(
-    enemies = stepped,
-    sinceLastEnemyStep = (sinceLastEnemyStep - enemyStepInterval).max(Duration.Zero)
+  def enemiesStepped(stepped: Vector[Enemy]): LevelState = copy(
+    enemies = stepped
   )
 
   /** The level after the player picked up what it stands on, effect included. */
@@ -132,13 +127,10 @@ final case class LevelState(
 
 object LevelState:
 
-  /** How long the enemies wait between steps when nothing holds them back. */
-  val BetweenEnemySteps: FiniteDuration = 250.millis
-
   /** How long the player takes to cross a position. */
   val PlayerTimePerPos: FiniteDuration = 200.millis
-  
-  /** How long the player takes to cross a position */
+
+  /** How long the enemy takes to cross a position */
   val EnemyTimePerPos: FiniteDuration = 250.millis
 
   /** A level about to be played: everyone on their spawn, everything still to pick up. */
@@ -154,11 +146,13 @@ object LevelState:
   /** The stages a level goes through on each tick: the enemies are moved by the one given here, the
     * ones left out belong to other parts of the game.
     */
-  def pipeline(updateAi: LevelState => LevelState = identity)(using
-      BonusDuration
+  def pipeline(delta: FiniteDuration, updateAi: LevelState => LevelState = identity)(using
+      BonusDuration,
+      Slowdown
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
       updateAi = whileRunning(updateAi),
+      updateMovement = whileRunning(_.ticking(delta).movingOn(delta)),
       resolveCollisions = whileRunning(_.afterMeetingEnemies.afterTeleporting),
       collectItems = whileRunning(_.collecting),
       applyBonuses = whileRunning(_.withoutExpiredEffects)
@@ -172,8 +166,11 @@ object LevelState:
     * something to an enemy would find them swapped after a respawn.
     */
   private def spawnedOn(maze: ValidatedMap): Vector[Enemy] =
-    maze.enemies.toVector.sortBy(enemy => (enemy.position.row, enemy.position.col))
-      .map(spawn => Enemy(MovingEntity(spawn.position, Direction.Right, EnemyTimePerPos), spawn.kind))
+    maze.enemies.toVector
+      .sortBy(enemy => (enemy.position.row, enemy.position.col))
+      .map(spawn =>
+        Enemy(MovingEntity(spawn.position, Direction.Right, EnemyTimePerPos), spawn.kind)
+      )
 
   private def placedOn(maze: ValidatedMap): Iterable[Collectible] =
     for
