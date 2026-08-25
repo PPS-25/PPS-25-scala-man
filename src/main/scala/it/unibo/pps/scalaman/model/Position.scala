@@ -14,8 +14,3 @@ final case class Position(row: Int, col: Int):
     */
   def +(direction: Direction): Position =
     copy(row = row + direction.dy, col = col + direction.dx)
-
-  /** The direction leading to an adjacent position, if it is adjacent.
-    */
-  def directionTo(other: Position): Option[Direction] =
-    Direction.values.find(d => this + d == other)
