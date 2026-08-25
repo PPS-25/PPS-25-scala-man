@@ -26,7 +26,7 @@ class ScoreTrackerTest extends AnyFunSuite:
       RemainingLives(3) -> 1500
     )
     expectedPoints.foreach { case (event, points) =>
-      assert(ScoringRule.awardedPoints(event) == points)
+      assert(summon[ScoringRule].awardedPoints(event) == points)
     }
   }
 
@@ -52,7 +52,7 @@ class ScoreTrackerTest extends AnyFunSuite:
       4 -> 1600
     )
     expectedPoints.foreach { case (combo, points) =>
-      assert(ScoringRule.awardedPoints(EnemyKill, combo) == points)
+      assert(summon[ScoringRule].awardedPoints(EnemyKill, combo) == points)
     }
   }
 
