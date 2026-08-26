@@ -1,5 +1,7 @@
 package it.unibo.pps.scalaman.model.score
 
+import java.time.Instant
+
 /** Types of events that award points.
   */
 enum ScoringEvent:
@@ -19,14 +21,14 @@ object ScoringRule:
   private val RemainingLifeBonus = 500
   private val EnemyKillBasePoints = 200
   private val ComboFactor = 2
-  
-  given standardScoring: ScoringRule with 
+
+  given standardScoring: ScoringRule with
     def awardedPoints(event: ScoringEvent, combo: Int): Int = event match
       case ScoringEvent.BasicItem             => BasicItemPoints
       case ScoringEvent.BonusItem             => BonusItemPoints
       case ScoringEvent.RemainingLives(lives) => lives * RemainingLifeBonus
       case ScoringEvent.EnemyKill             => EnemyKillBasePoints * comboMultiplier(combo)
-      
+
   private def comboMultiplier(combo: Int): Int = {
     require(combo >= 1, "combo has to be at least of 1")
     List.fill(combo - 1)(ComboFactor).product
@@ -51,7 +53,11 @@ final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
 
   /** Create a persistent game result.
     */
-  def toResult(playerName: String, remainingLives: Int)(using ScoringRule): GameResult =
-    GameResult(playerName, increaseScore(ScoringEvent.RemainingLives(remainingLives)).currentScore)
-
-final case class GameResult(playerName: String = "Player1", score: Int = 0)
+  def toResult(playerName: String, remainingLives: Int, achievedAt: Instant)(using
+      ScoringRule
+  ): GameResult =
+    GameResult(
+      playerName,
+      increaseScore(ScoringEvent.RemainingLives(remainingLives)).currentScore,
+      achievedAt
+    )
