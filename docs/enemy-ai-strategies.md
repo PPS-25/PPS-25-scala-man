@@ -60,16 +60,18 @@ player position.
 
 ## Strategy Selection
 
-`EnemyStrategySelector` maps map-level enemy kinds to domain strategies:
+`EnemyStrategySelector` is the standard `EnemyStrategySelection`: it maps map-level enemy kinds
+to domain strategies:
 
 ```scala
 EnemyKind.Hunter      -> DirectPursuitStrategy
 EnemyKind.Anticipator -> PlayerAnticipationStrategy(stepsAhead = 2)
 ```
 
-The game loop should ask the selector for a strategy instead of matching on concrete AI classes.
-This keeps strategy selection independent from rendering and input handling, and allows new
-strategies to be added without changing the game loop.
+`EnemyAiStage` uses the selection to move every enemy when a step is due. It is the stage supplied
+to the level update pipeline by default; neither the pipeline nor rendering or input code matches
+on concrete strategies. Alternative selections can be injected into `EnemyAiStage` without changing
+the game loop.
 
 ## Extension Rule
 
