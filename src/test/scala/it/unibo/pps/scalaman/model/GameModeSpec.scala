@@ -3,6 +3,7 @@ package it.unibo.pps.scalaman.model
 import it.unibo.pps.scalaman.model.GameState.{Defeat, Running, Victory}
 import it.unibo.pps.scalaman.model.LevelTestSupport.{maze, startingLevel}
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
+import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -65,6 +66,16 @@ class GameModeSpec extends AnyFunSuite:
     assert(level.enemyStepInterval == LevelState.BetweenEnemySteps)
     assert(level.ticking(1.second).enemyStepInterval == 125.millis)
     assert(level.ticking(4.seconds).enemyStepInterval == 50.millis)
+  }
+
+  test("slowdown doubles the survival-adjusted enemy step interval") {
+    val mode = GameMode.Survival(difficultyEvery = 1.second, minimumEnemyStepInterval = 50.millis)
+    val advanced = LevelState.from(maze, mode).ticking(1.second)
+    val slowed = advanced.copy(effects =
+      ActiveEffects.empty.activate(BonusEffect.SlowDown, advanced.clock.elapsed, 1.second)
+    )
+
+    assert(slowed.enemyStepInterval == 250.millis)
   }
 
   test("a survival mode requires positive difficulty tuning") {
