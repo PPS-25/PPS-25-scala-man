@@ -27,6 +27,7 @@ final case class LevelState(
     collectibles: Collectibles,
     effects: ActiveEffects,
     progress: LevelProgress,
+    mode: GameMode = GameMode.Normal,
     score: ScoreTracker = ScoreTracker(),
     clock: GameClock = GameClock(),
     playerPreviousPos: Option[Position] = None,
@@ -78,10 +79,7 @@ final case class LevelState(
 
   /** How the level is going. Running out of lives on the very last collectible is still a defeat.
     */
-  def status: GameState =
-    if progress.isOver then GameState.Defeat
-    else if collectibles.isLevelComplete then GameState.Victory
-    else GameState.Running
+  def status: GameState = mode.status(progress, collectibles, clock)
 
   def result(playerName: String): Option[GameResult] =
     Option.when(status.isTerminal)(score.toResult(playerName, progress.lives))
@@ -170,13 +168,14 @@ object LevelState:
   val PlayerTimePerPos: FiniteDuration = 200.millis
 
   /** A level about to be played: everyone on their spawn, everything still to pick up. */
-  def from(maze: ValidatedMap): LevelState = LevelState(
+  def from(maze: ValidatedMap, mode: GameMode = GameMode.Normal): LevelState = LevelState(
     maze = maze,
     player = MovingEntity(maze.spawn, Direction.Right, PlayerTimePerPos),
     enemies = spawnedOn(maze),
     collectibles = Collectibles(placedOn(maze)),
     effects = ActiveEffects.empty,
-    progress = LevelProgress.initial
+    progress = LevelProgress.initial,
+    mode = mode
   )
 
   /** The stages a level goes through on each tick: the enemies are moved by the one given here, the
