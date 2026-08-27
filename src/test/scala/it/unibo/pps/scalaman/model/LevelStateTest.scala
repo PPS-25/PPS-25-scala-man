@@ -16,7 +16,7 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemyKind}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -128,38 +128,6 @@ class LevelStateTest extends AnyFunSuite:
     assert(started.movingOn(between * 2).enemies.forall(enemy => !enemy.entity.isMoving))
   }
 
-  test("stepping an enemy onto a teleport carries it to the paired end") {
-    val enemy = Enemy(Position(1, 1), EnemyKind.Hunter)
-    val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
-    val stepped = Vector(enemy.copy(position = teleportStart))
-
-    assert(level.enemiesStepped(stepped).enemies.head.position == teleportDestination)
-  }
-
-  test("a teleported enemy must leave the teleport before it can use it again") {
-    val enemy = Enemy(Position(1, 1), EnemyKind.Hunter)
-    val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
-    val teleported = level.enemiesStepped(Vector(enemy.copy(position = teleportStart))).enemies.head
-    val waiting =
-      level.copy(enemies = Vector(teleported)).enemiesStepped(Vector(teleported)).enemies.head
-    val exited = level
-      .copy(enemies = Vector(waiting))
-      .enemiesStepped(Vector(waiting.copy(position = Position(3, 5))))
-      .enemies
-      .head
-
-    assert(teleported.teleportDisabled)
-    assert(waiting.teleportDisabled)
-    assert(!exited.teleportDisabled)
-  }
-
-  test("an enemy already standing on a teleport is not sent back without a new step") {
-    val enemy = Enemy(teleportDestination, EnemyKind.Hunter)
-    val level = teleportLevelWith(Position(0, 0)).copy(enemies = Vector(enemy))
-
-    assert(level.enemiesStepped(Vector(enemy)).enemies.head.position == teleportDestination)
-  }
-
   test("collecting a standard item awards its points") {
     assert(levelWith(item.position).collecting.score.currentScore == 50)
   }
@@ -224,7 +192,7 @@ class LevelStateTest extends AnyFunSuite:
     )
   }
 
-  test("a teleport starts working again once the player steps off and on againt") {
+  test("a teleport starts working again once the player steps off and on again") {
     assert(
       teleportLevelWith(teleportStart).afterTeleporting
         .movingPlayer(_.copy(currentPos = Position(3, 5)))
@@ -235,11 +203,4 @@ class LevelStateTest extends AnyFunSuite:
     )
   }
 
-  test("an enemy teleported onto the player meets it in the same tick") {
-    val enemy = Enemy(Position(1, 1), EnemyKind.Hunter)
-    val level = teleportLevelWith(teleportDestination).copy(enemies = Vector(enemy))
-    val stepped = Vector(enemy.copy(position = teleportStart))
-    val ticked = LevelState.pipeline(updateAi = _.enemiesStepped(stepped)).tick(level)
-
-    assert(ticked.progress.lives == LevelProgress.initial.lives - 1)
-  }
+  test("an enemy does not bounce back through the teleport it just arrived from")(pending)

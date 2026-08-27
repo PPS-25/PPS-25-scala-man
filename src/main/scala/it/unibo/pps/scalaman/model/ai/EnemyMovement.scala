@@ -25,8 +25,13 @@ object EnemyMovement:
   ): Option[Position] =
     shortestPath(from, target, map, teleportDisabled).flatMap(_.lift(1))
 
-  private[ai] def validMovesInOrder(from: Position, map: ValidatedMap, teleportDisabled: Boolean = false): Vector[Position] =
-    orthogonalNeighbors(from).filter(map.isWalkable)
+  private[ai] def validMovesInOrder(
+      from: Position,
+      map: ValidatedMap,
+      teleportDisabled: Boolean = false
+  ): Vector[Position] =
+    orthogonalNeighbors(from).filter(map.isWalkable) ++
+      Option.when(!teleportDisabled)(teleportDestination(from, map)).flatten.toVector
 
   private def orthogonalNeighbors(position: Position): Vector[Position] =
     Vector(
@@ -35,9 +40,6 @@ object EnemyMovement:
       Position(position.row, position.col - 1),
       Position(position.row, position.col + 1)
     )
-
-  private def isWalkable(map: ValidatedMap, position: Position): Boolean =
-    map.raw.cellAt(position).exists(_.isWalkable)
 
   private def teleportDestination(from: Position, map: ValidatedMap): Option[Position] =
     map.teleports.valuesIterator.collectFirst {

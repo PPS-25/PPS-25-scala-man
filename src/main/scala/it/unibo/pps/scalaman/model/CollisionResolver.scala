@@ -1,7 +1,7 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Collision.Teleport
-import it.unibo.pps.scalaman.model.entities.MovingEntity
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
 object CollisionResolver:
@@ -20,3 +20,16 @@ object CollisionResolver:
         then entity.copy(currentPos = dest)
         else entity.copy(currentPos = start)
       case None => entity
+
+  /** The enemy after being carried through a teleport it stands on. It is not sent back
+    * immediately, it must first leave the teleport.
+    */
+  def enemyAfterTeleporting(enemy: Enemy, map: ValidatedMap): Enemy =
+    CollisionDetector
+      .checkForCollision(enemy.currentPos, map, Seq.empty)
+      .collectFirst { case Teleport(code) => code }
+      .fold(enemy): code =>
+        val carried = teleported(enemy.entity, code, map)
+        if enemy.previousPos.contains(carried.currentPos)
+        then enemy
+        else enemy.copy(entity = carried, previousPos = Some(enemy.currentPos))
