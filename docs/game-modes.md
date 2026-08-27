@@ -26,7 +26,11 @@ Timed mode is configured with a strictly positive duration. It preserves the nor
 the clock reaches the limit; at the limit, the level is defeated. Therefore, the last collectible
 must be collected strictly before the configured duration expires.
 
-## Planned Extension
+### Survival
 
-Survival mode will use the same contract while replacing the standard completion objective with
-survival-time and difficulty-progression rules.
+Survival mode replaces the standard completion objective with survival time: collecting every item
+does not end the level, while losing every life does. The immutable game clock tracks survival time.
+
+Enemy difficulty increases at each configured positive interval by halving the interval between
+enemy steps. The interval never becomes lower than the configured positive minimum. The regular
+slowdown bonus is applied after this mode-specific interval is calculated.

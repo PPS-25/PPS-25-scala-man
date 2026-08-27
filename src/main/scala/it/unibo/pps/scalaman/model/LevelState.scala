@@ -105,7 +105,10 @@ final case class LevelState(
 
   /** How long the enemies wait between steps right now. */
   def enemyStepInterval(using Slowdown): FiniteDuration =
-    effects.enemyStepInterval(LevelState.BetweenEnemySteps, clock.elapsed)
+    effects.enemyStepInterval(
+      mode.enemyStepInterval(LevelState.BetweenEnemySteps, clock),
+      clock.elapsed
+    )
 
   /** The level after the enemies took their step, keeping what was waited beyond the interval so
     * that they do not fall behind.

@@ -42,3 +42,36 @@ class GameModeSpec extends AnyFunSuite:
       GameMode.Timed(0.seconds)
     }
   }
+
+  test("a survival mode stays running after every collectible is collected") {
+    val survival = LevelState
+      .from(maze, GameMode.Survival())
+      .copy(collectibles = Collectibles(Set.empty))
+
+    assert(survival.status == Running)
+  }
+
+  test("a survival mode tracks elapsed survival time and ends when lives run out") {
+    val survival = LevelState.from(maze, GameMode.Survival()).ticking(5.seconds)
+
+    assert(survival.clock.elapsed == 5.seconds)
+    assert(survival.copy(progress = LevelProgress(0)).status == Defeat)
+  }
+
+  test("a survival mode progressively reduces the enemy step interval down to its minimum") {
+    val mode = GameMode.Survival(difficultyEvery = 1.second, minimumEnemyStepInterval = 50.millis)
+    val level = LevelState.from(maze, mode)
+
+    assert(level.enemyStepInterval == LevelState.BetweenEnemySteps)
+    assert(level.ticking(1.second).enemyStepInterval == 125.millis)
+    assert(level.ticking(4.seconds).enemyStepInterval == 50.millis)
+  }
+
+  test("a survival mode requires positive difficulty tuning") {
+    assertThrows[IllegalArgumentException] {
+      GameMode.Survival(difficultyEvery = 0.seconds)
+    }
+    assertThrows[IllegalArgumentException] {
+      GameMode.Survival(minimumEnemyStepInterval = 0.seconds)
+    }
+  }
