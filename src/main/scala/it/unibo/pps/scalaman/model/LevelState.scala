@@ -127,6 +127,9 @@ final case class LevelState(
 
 object LevelState:
 
+  /** How long the enemies wait between steps when nothing holds them back. */
+  val BetweenEnemySteps: FiniteDuration = 250.millis
+
   /** How long the player takes to cross a position. */
   val PlayerTimePerPos: FiniteDuration = 200.millis
 
