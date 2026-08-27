@@ -2,7 +2,7 @@ package it.unibo.pps.scalaman.model.score
 
 import java.time.Instant
 
-final case class GameResult(playerName: String = "Player1", score: Int = 0, achievedAt: Instant)
+final case class GameResult(playerName: String, score: Int, achievedAt: Instant)
 
 object GameResult:
 
