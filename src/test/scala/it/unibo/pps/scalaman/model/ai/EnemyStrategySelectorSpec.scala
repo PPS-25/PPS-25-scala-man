@@ -26,6 +26,7 @@ class EnemyStrategySelectorSpec extends AnyFunSuite:
 
   private val context = EnemyMovementContext(
     enemyPosition = Position(1, 2),
+    teleportDisabled = false,
     playerPosition = Position(2, 2),
     playerPreviousPosition = Some(Position(2, 1)),
     map = map

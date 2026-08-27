@@ -16,7 +16,11 @@ final case class MapCell(position: Position, tile: Tile):
 enum EnemyKind:
   case Hunter, Anticipator
 
-final case class Enemy(position: Position, kind: EnemyKind)
+final case class Enemy(
+    position: Position,
+    kind: EnemyKind,
+    teleportDisabled: Boolean = false
+)
 
 final case class RawMap(rows: Vector[Vector[Tile]]):
   val height: Int = rows.length

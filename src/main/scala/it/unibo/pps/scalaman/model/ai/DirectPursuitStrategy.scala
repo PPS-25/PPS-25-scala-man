@@ -7,5 +7,6 @@ object DirectPursuitStrategy extends EnemyMovementStrategy:
     EnemyMovement.nextMoveToward(
       from = context.enemyPosition,
       target = context.playerPosition,
-      map = context.map
+      map = context.map,
+      teleportDisabled = context.teleportDisabled
     )
