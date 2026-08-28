@@ -11,7 +11,6 @@ import it.unibo.pps.scalaman.model.collectibles.{
 }
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
-import it.unibo.pps.scalaman.model.ai.EnemyAiStage
 import it.unibo.pps.scalaman.model.map.{Enemy, Tile, ValidatedMap}
 import it.unibo.pps.scalaman.model.score.{GameResult, ScoreTracker}
 import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
@@ -183,9 +182,8 @@ object LevelState:
   /** The stages a level goes through on each tick: the enemies are moved by the one given here, the
     * ones left out belong to other parts of the game.
     */
-  def pipeline(updateAi: LevelState => LevelState = level => EnemyAiStage.stage(level))(using
-      BonusDuration,
-      Slowdown
+  def pipeline(updateAi: LevelState => LevelState = identity)(using
+      BonusDuration
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
       updateAi = whileRunning(updateAi),
