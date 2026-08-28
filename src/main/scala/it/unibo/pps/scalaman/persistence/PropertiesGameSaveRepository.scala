@@ -5,7 +5,8 @@ import it.unibo.pps.scalaman.map.validation.MapValidator
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemyKind, Tile, ValidatedMap}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.{EnemyKind, Tile, ValidatedMap}
 import it.unibo.pps.scalaman.model.score.ScoreTracker
 import it.unibo.pps.scalaman.model.*
 
@@ -79,7 +80,6 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
       "previous-player-position",
       level.playerPreviousPos.map(encodePosition).getOrElse("")
     )
-    properties.setProperty("since-last-enemy-step", encodeDuration(level.sinceLastEnemyStep))
     properties
 
   private def decode(properties: Properties): Either[SaveGameError, LevelState] =
@@ -95,9 +95,6 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
       score <- required(properties, "score").flatMap(decodeScore)
       elapsed <- required(properties, "clock").flatMap(decodeNonNegativeDuration(_, "clock"))
       previous <- required(properties, "previous-player-position").flatMap(decodeOptionalPosition)
-      sinceLastEnemyStep <- required(properties, "since-last-enemy-step").flatMap(
-        decodeNonNegativeDuration(_, "since-last-enemy-step")
-      )
       effects <- restoreEffects(elapsed, effectEntries)
       _ <- validatePositions(maze, player, enemies, collectibles, previous)
     yield LevelState(
@@ -110,13 +107,12 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
       mode = mode,
       score = score,
       clock = GameClock(elapsed),
-      playerPreviousPos = previous,
-      sinceLastEnemyStep = sinceLastEnemyStep
+      playerPreviousPos = previous
     )
 
 object PropertiesGameSaveRepository:
   private val VersionKey = "format-version"
-  private val CurrentVersion = "1"
+  private val CurrentVersion = "2"
 
   def apply(): GameSaveRepository = new PropertiesGameSaveRepository()
 
@@ -166,36 +162,39 @@ object PropertiesGameSaveRepository:
     case Tile.Teleport(code)       => code.toString.head
 
   private def encodeMode(mode: GameMode): String = mode match
-    case GameMode.Normal                   => "normal"
-    case GameMode.Timed(limit)             => s"timed,${encodeDuration(limit)}"
-    case GameMode.Survival(every, minimum) =>
-      s"survival,${encodeDuration(every)},${encodeDuration(minimum)}"
+    case GameMode.Normal                                  => "normal"
+    case GameMode.Timed(limit)                            => s"timed,${encodeDuration(limit)}"
+    case GameMode.Survival(every, maximumSpeedMultiplier) =>
+      s"survival,${encodeDuration(every)},$maximumSpeedMultiplier"
 
   private def decodeMode(value: String): Either[SaveGameError, GameMode] =
     value.split(",", -1).toList match
       case "normal" :: Nil         => Right(GameMode.Normal)
       case "timed" :: limit :: Nil =>
         decodePositiveDuration(limit, "timed limit").map(GameMode.Timed.apply)
-      case "survival" :: every :: minimum :: Nil =>
+      case "survival" :: every :: maximumSpeedMultiplier :: Nil =>
         for
           difficultyEvery <- decodePositiveDuration(every, "survival difficulty interval")
-          minimumInterval <- decodePositiveDuration(minimum, "survival minimum interval")
-        yield GameMode.Survival(difficultyEvery, minimumInterval)
+          maximum <- decodePositiveLong(maximumSpeedMultiplier, "survival maximum speed multiplier")
+        yield GameMode.Survival(difficultyEvery, maximum)
       case _ => invalid("invalid game mode")
 
   private def encodeEntity(entity: MovingEntity): String =
     val movement = entity.movement.map(encodeMovement).getOrElse("")
-    s"${encodePosition(entity.currentPos)},${entity.facing},${encodeDuration(entity.timePerPos)},$movement"
+    val previous = entity.previousPos.map(encodePosition).getOrElse("")
+    s"${encodePosition(entity.currentPos)}:${entity.facing}:${encodeDuration(entity.timePerPos)}:$previous:$movement"
 
   private def decodeEntity(value: String): Either[SaveGameError, MovingEntity] =
-    value.split(",", -1).toList match
-      case row :: col :: facing :: timePerPos :: movement =>
+    value.split(":", -1).toList match
+      case position :: facing :: timePerPos :: previous :: movement :: Nil =>
         for
-          position <- decodePosition(row, col)
+          currentPosition <- decodeOptionalPosition(position)
+            .flatMap(_.toRight(SaveGameError.InvalidSave("missing entity position")))
           direction <- decodeDirection(facing)
           duration <- decodePositiveDuration(timePerPos, "player time per position")
-          pending <- decodeMovement(movement.mkString(","))
-        yield MovingEntity(position, direction, duration, pending)
+          previousPosition <- decodeOptionalPosition(previous)
+          pending <- decodeMovement(movement)
+        yield MovingEntity(currentPosition, direction, duration, pending, previousPosition)
       case _ => invalid("invalid player")
 
   private def encodeMovement(movement: Movement): String =
@@ -214,16 +213,17 @@ object PropertiesGameSaveRepository:
         case _ => invalid("invalid movement")
 
   private def encodeEnemy(enemy: Enemy): String =
-    s"${encodePosition(enemy.position)},${enemy.kind},${enemy.teleportDisabled}"
+    val previous = enemy.previousPos.map(encodePosition).getOrElse("")
+    s"${encodeEntity(enemy.entity)}|${enemy.kind}|$previous"
 
   private def decodeEnemy(value: String): Either[SaveGameError, Enemy] =
-    value.split(",", -1).toList match
-      case row :: col :: kind :: disabled :: Nil =>
+    value.split("\\|", -1).toList match
+      case entity :: kind :: previous :: Nil =>
         for
-          position <- decodePosition(row, col)
+          movingEntity <- decodeEntity(entity)
           enemyKind <- decodeEnemyKind(kind)
-          teleportDisabled <- decodeBoolean(disabled, "enemy teleport flag")
-        yield Enemy(position, enemyKind, teleportDisabled)
+          previousPosition <- decodeOptionalPosition(previous)
+        yield Enemy(movingEntity, enemyKind, previousPosition)
       case _ => invalid("invalid enemy")
 
   private def encodeCollectible(
@@ -355,6 +355,15 @@ object PropertiesGameSaveRepository:
       Either.cond(number >= 0, number, SaveGameError.InvalidSave(s"$field must not be negative"))
     }
 
+  private def decodePositiveLong(value: String, field: String): Either[SaveGameError, Long] =
+    scala.util
+      .Try(value.toLong)
+      .toOption
+      .flatMap { number =>
+        Option.when(number > 0)(number)
+      }
+      .toRight(SaveGameError.InvalidSave(s"$field must be positive"))
+
   private def decodeInt(value: String, field: String): Either[SaveGameError, Int] =
     scala.util.Try(value.toInt).toOption.toRight(SaveGameError.InvalidSave(s"invalid $field"))
 
@@ -374,12 +383,15 @@ object PropertiesGameSaveRepository:
       collectibles: Vector[it.unibo.pps.scalaman.model.collectibles.Collectible],
       previous: Option[Position]
   ): Either[SaveGameError, Unit] =
-    val movementPositions =
-      player.movement.toVector.flatMap(movement => Vector(movement.from, movement.to))
+    def entityPositions(entity: MovingEntity): Vector[Position] =
+      entity.movement.toVector.flatMap(movement => Vector(movement.from, movement.to))
     val positions =
-      Vector(player.currentPos) ++ enemies.map(_.position) ++ collectibles.map(
-        _.position
-      ) ++ previous ++ movementPositions
+      Vector(player.currentPos) ++ player.previousPos ++
+        collectibles.map(_.position) ++ previous ++ entityPositions(player) ++
+        enemies.flatMap(enemy =>
+          Vector(enemy.currentPos) ++ enemy.previousPos ++ enemy.entity.previousPos ++
+            entityPositions(enemy.entity)
+        )
     Either.cond(
       positions.forall(position => maze.raw.cellAt(position).exists(_.isWalkable)),
       (),

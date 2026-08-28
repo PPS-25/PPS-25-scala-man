@@ -4,6 +4,8 @@ import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.model.LevelTestSupport.maze
 import it.unibo.pps.scalaman.model.effects.BonusEffect.SlowDown
 import it.unibo.pps.scalaman.model.effects.ActiveEffects
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.score.ScoreTracker
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -29,8 +31,36 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
         progress = LevelProgress(2),
         score = ScoreTracker(350, 1),
         clock = GameClock(10.seconds),
-        playerPreviousPos = Some(Position(1, 1)),
-        sinceLastEnemyStep = 100.millis
+        playerPreviousPos = Some(Position(1, 1))
+      )
+
+    try
+      assert(repository.save(original, path) == Right(()))
+      assert(repository.load(path) == Right(original))
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a saved game preserves survival tuning and enemy movement state") {
+    val path = Files.createTempFile("scala-man-save", ".properties")
+    val original = LevelState
+      .from(
+        maze,
+        GameMode.Survival(difficultyEvery = 10.seconds, maximumSpeedMultiplier = 4)
+      )
+      .copy(
+        enemies = Vector(
+          Enemy(
+            MovingEntity(
+              Position(3, 1),
+              Direction.Right,
+              250.millis,
+              Some(Movement(Position(3, 1), Position(3, 2), 75.millis)),
+              Some(Position(3, 2))
+            ),
+            EnemyKind.Hunter,
+            Some(Position(3, 3))
+          )
+        )
       )
 
     try
