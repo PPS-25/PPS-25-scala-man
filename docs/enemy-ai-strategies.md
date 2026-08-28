@@ -67,9 +67,10 @@ EnemyKind.Hunter      -> DirectPursuitStrategy
 EnemyKind.Anticipator -> PlayerAnticipationStrategy(stepsAhead = 2)
 ```
 
-The game loop should ask the selector for a strategy instead of matching on concrete AI classes.
-This keeps strategy selection independent from rendering and input handling, and allows new
-strategies to be added without changing the game loop.
+`EnemyAiStage` is the default AI stage of the `LevelState` pipeline. It asks the selector for a
+strategy only when an enemy is idle, then assigns the corresponding movement. The stage accepts an
+`EnemyStrategySelection`, so strategy selection remains independent from rendering and input
+handling, and new strategies can be added without changing the game loop.
 
 ## Extension Rule
 
