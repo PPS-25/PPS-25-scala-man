@@ -16,13 +16,14 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
 
 class LevelStateTest extends AnyFunSuite:
   private val fromMaze = LevelState.from(maze)
-  private val between = LevelState.BetweenEnemySteps
+  private val between = LevelState.EnemyTimePerPos
   private def invulnerable(level: LevelState): LevelState = level.copy(effects =
     ActiveEffects.empty.activate(BonusEffect.Invulnerability, 0.millis, lasting)
   )
@@ -32,7 +33,11 @@ class LevelStateTest extends AnyFunSuite:
   }
 
   test("a level starts with the enemies the maze holds") {
-    assert(fromMaze.enemies.toSet == maze.enemies)
+    assert(
+      fromMaze.enemies.map(enemy => (enemy.currentPos, enemy.kind)).toSet == maze.enemies.map(
+        spawn => (spawn.position, spawn.kind)
+      )
+    )
   }
 
   test("a level starts with the standard collectibles the maze holds") {
@@ -56,12 +61,13 @@ class LevelStateTest extends AnyFunSuite:
   }
 
   test("a tick runs the stage the enemies are moved by") {
-    val movedAway = LevelState.pipeline(updateAi = _.enemiesStepped(Vector.empty))
+    val movedAway = LevelState.pipeline(timePerPos, updateAi = _.enemiesStepped(Vector.empty))
     assert(movedAway.tick(startingLevel).enemies.isEmpty)
   }
 
-  test("a tick leaves the enemies alone when no stage moves them") {
-    assert(LevelState.pipeline().tick(startingLevel).enemies == startingLevel.enemies)
+  test("a tick starts the default AI movement for idle enemies") {
+    val playableLevel = levelWith(Position(1, 1))
+    assert(LevelState.pipeline(timePerPos).tick(playableLevel).enemies.forall(_.entity.isMoving))
   }
 
   test("a tick moves the level clock forward") {
@@ -107,29 +113,20 @@ class LevelStateTest extends AnyFunSuite:
     assert(moving.playerPreviousPos.isEmpty)
   }
 
-  test("enemies do not step before their interval has passed") {
-    assert(!startingLevel.ticking(between - 1.milli).enemyStepDue)
+  test("an enemy on its way is not given a new move") {
+    val moving = startingLevel.enemies.map(enemy => enemy.moving(_.move(Right, _ => true)))
+    assert(startingLevel.enemiesStepped(moving).enemies.forall(_.entity.isMoving))
   }
 
-  test("enemies step once their interval has passed") {
-    assert(startingLevel.ticking(between).enemyStepDue)
-  }
-
-  test("enemies wait twice as long while the slow down is applied") {
+  test("enemies take twice as long to arrive while the slow down effect is active") {
     val slowed = startingLevel.copy(effects =
       ActiveEffects.empty.activate(SlowDown, startingLevel.clock.elapsed, lasting)
     )
-    assert(!slowed.ticking(between).enemyStepDue)
-  }
-
-  test("a stepped enemy starts waiting again") {
-    val due = startingLevel.ticking(between)
-    assert(!due.enemiesStepped(due.enemies).enemyStepDue)
-  }
-
-  test("stepping the enemies puts them where they moved") {
-    val moved = startingLevel.enemies.map(enemy => enemy.copy(position = Position(1, 1)))
-    assert(startingLevel.enemiesStepped(moved).enemies == moved)
+    val started = slowed.enemiesStepped(
+      slowed.enemies.map(enemy => enemy.moving(_.move(Right, _ => true)))
+    )
+    assert(started.movingOn(between).enemies.forall(_.entity.isMoving))
+    assert(started.movingOn(between * 2).enemies.forall(enemy => !enemy.entity.isMoving))
   }
 
   test("collecting a standard item awards its points") {
@@ -148,7 +145,7 @@ class LevelStateTest extends AnyFunSuite:
     val level = invulnerable(levelWith(Position(3, 1))).afterMeetingEnemies
     assert(level.score.currentScore == 200)
     assert(level.score.combo == 1)
-    assert(!level.enemies.exists(_.position == Position(3, 1)))
+    assert(!level.enemies.exists(_.entity.currentPos == Position(3, 1)))
     assert(level.progress == LevelProgress.initial)
   }
 
@@ -196,7 +193,7 @@ class LevelStateTest extends AnyFunSuite:
     )
   }
 
-  test("a teleport starts working again once the player steps off and on againt") {
+  test("a teleport starts working again once the player steps off and on again") {
     assert(
       teleportLevelWith(teleportStart).afterTeleporting
         .movingPlayer(_.copy(currentPos = Position(3, 5)))
@@ -206,3 +203,5 @@ class LevelStateTest extends AnyFunSuite:
         .currentPos == teleportStart
     )
   }
+
+  test("an enemy does not bounce back through the teleport it just arrived from")(pending)

@@ -1,10 +1,11 @@
 package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.Direction.Right
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt

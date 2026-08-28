@@ -16,7 +16,7 @@ final case class MapCell(position: Position, tile: Tile):
 enum EnemyKind:
   case Hunter, Anticipator
 
-final case class Enemy(position: Position, kind: EnemyKind)
+final case class EnemySpawn(position: Position, kind: EnemyKind)
 
 final case class RawMap(rows: Vector[Vector[Tile]]):
   val height: Int = rows.length
@@ -28,6 +28,7 @@ final case class RawMap(rows: Vector[Vector[Tile]]):
       }
     }
 
+  def isWalkable(position: Position): Boolean = cellAt(position).exists(_.isWalkable)
   def cellAt(position: Position): Option[MapCell] =
     Option.when(
       position.row >= 0 &&
@@ -40,9 +41,11 @@ final case class ValidatedMap(
     raw: RawMap,
     spawn: Position,
     collectibles: Set[Position],
-    enemies: Set[Enemy],
+    enemies: Set[EnemySpawn],
     teleports: Map[Int, (Position, Position)]
-)
+):
+  def isWalkable(position: Position): Boolean =
+    raw.isWalkable(position)
 
 sealed trait MapLoadError
 object MapLoadError:
