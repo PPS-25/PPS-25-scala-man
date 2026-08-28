@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.Direction.Right
+import it.unibo.pps.scalaman.model.Direction.{Left, Right}
 import it.unibo.pps.scalaman.model.LevelTestSupport.{lasting, levelWith}
 import it.unibo.pps.scalaman.model.effects.ActiveEffects
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
@@ -34,6 +34,19 @@ class LevelMeetingTest extends AnyFunSuite:
 
   test("only one enemy out of many has to stand on the player") {
     assert(levelWithEnemies(where, enemyAt(nextTo), enemyAt(where)).metAnEnemy)
+  }
+
+  test("a player and an enemy exchanging cells in one pipeline tick meet") {
+    val playerAt = Position(3, 1)
+    val enemyPosition = Position(3, 2)
+    val level = levelWithEnemies(playerAt, enemyAt(enemyPosition)).copy(
+      player = MovingEntity(playerAt, Right, 250.millis).move(Right, _ => true),
+      enemies = Vector(enemyAt(enemyPosition).moving(_.move(Left, _ => true)))
+    )
+
+    val updated = LevelState.pipeline(250.millis).tick(level)
+
+    assert(updated.progress.lives == level.progress.lives - 1)
   }
 
   private val met = levelWithEnemies(where, enemyAt(where))

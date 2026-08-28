@@ -68,7 +68,7 @@ final case class LevelState(
         else copy(player = carried, playerPreviousPos = Some(player.currentPos))
 
   private def respawned: LevelState = copy(
-    player = player.copy(currentPos = maze.spawn, movement = None),
+    player = player.copy(currentPos = maze.spawn, movement = None, previousPos = None),
     enemies = LevelState.spawnedOn(maze),
     playerPreviousPos = None
   )
