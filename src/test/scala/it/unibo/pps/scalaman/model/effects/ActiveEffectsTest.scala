@@ -80,6 +80,14 @@ class ActiveEffectsTest extends AnyFunSuite:
     assert(invulnerable.updated(halfway).updated(halfway) == invulnerable.updated(halfway))
   }
 
+  test("the remaining duration can restore the active effects at another clock instant") {
+    val halfway = start + duration / 2
+    val restored = ActiveEffects.fromRemaining(10.seconds, invulnerable.remaining(halfway))
+
+    assert(restored.isActive(Invulnerability, 10.seconds))
+    assert(!restored.isActive(Invulnerability, 10.seconds + duration / 2))
+  }
+
   test("an effect granted again after it expired is applied anew") {
     val expired = start + duration
     val regranted = invulnerable.updated(expired).activate(Invulnerability, expired, duration)

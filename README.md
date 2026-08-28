@@ -31,6 +31,7 @@
 - project spec: [`docs/project-spec.md`](docs/project-spec.md)
 - development rules: [`docs/professor-rules.md`](docs/professor-rules.md)
 - pre-push / pre-PR checklist: [`docs/pre-push-pre-pr.md`](docs/pre-push-pre-pr.md)
+- save-game design: [`docs/save-games.md`](docs/save-games.md)
 - build definition: [`build.sbt`](build.sbt)
 - CI workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 - delivery workflow: [`.github/workflows/cd.yml`](.github/workflows/cd.yml)
