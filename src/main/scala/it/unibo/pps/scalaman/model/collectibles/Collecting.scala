@@ -1,7 +1,8 @@
 package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import it.unibo.pps.scalaman.model.score.ScoreTracker
 import it.unibo.pps.scalaman.model.score.ScoringEvent.{BasicItem, BonusItem}
 

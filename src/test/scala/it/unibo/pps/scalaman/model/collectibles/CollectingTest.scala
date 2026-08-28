@@ -1,8 +1,9 @@
 package it.unibo.pps.scalaman.model.collectibles
 
-import it.unibo.pps.scalaman.model.{MovingEntity, Position}
+import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.collectibles.Collectible.Basic
 import it.unibo.pps.scalaman.model.Direction.Right
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt

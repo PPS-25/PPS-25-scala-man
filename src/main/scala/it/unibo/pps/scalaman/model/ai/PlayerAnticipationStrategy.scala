@@ -3,6 +3,8 @@ package it.unibo.pps.scalaman.model.ai
 import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
+import scala.annotation.tailrec
+
 final case class PlayerAnticipationStrategy(stepsAhead: Int) extends EnemyMovementStrategy:
   require(stepsAhead >= 1, "stepsAhead must be positive")
 
@@ -43,11 +45,12 @@ final case class PlayerAnticipationStrategy(stepsAhead: Int) extends EnemyMoveme
       delta: Delta,
       map: ValidatedMap
   ): Prediction =
+    @tailrec
     def advance(current: Position, remainingSteps: Int): Prediction =
       if remainingSteps == 0 then Prediction(current, Some(delta), teleportDisabled = false)
       else
         val next = Position(current.row + delta.row, current.col + delta.col)
-        if map.raw.cellAt(next).exists(_.isWalkable) then advance(next, remainingSteps - 1)
+        if map.isWalkable(next) then advance(next, remainingSteps - 1)
         else Prediction(current, None, teleportDisabled = false)
 
     advance(position, stepsAhead)

@@ -1,17 +1,21 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.Direction.Right
+import it.unibo.pps.scalaman.model.Direction.{Left, Right}
 import it.unibo.pps.scalaman.model.LevelTestSupport.{lasting, levelWith}
 import it.unibo.pps.scalaman.model.effects.ActiveEffects
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
-import it.unibo.pps.scalaman.model.map.{Enemy, EnemyKind}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
+
+import scala.concurrent.duration.DurationInt
 
 class LevelMeetingTest extends AnyFunSuite:
   private val where = Position(1, 1)
   private val nextTo = Position(1, 2)
 
-  private def enemyAt(position: Position) = Enemy(position, EnemyKind.Hunter)
+  private def enemyAt(position: Position) =
+    Enemy(MovingEntity(position, Right, 250.millis), EnemyKind.Hunter)
 
   private def levelWithEnemies(playerAt: Position, enemies: Enemy*) =
     levelWith(playerAt).copy(enemies = enemies.toVector)
@@ -32,6 +36,19 @@ class LevelMeetingTest extends AnyFunSuite:
     assert(levelWithEnemies(where, enemyAt(nextTo), enemyAt(where)).metAnEnemy)
   }
 
+  test("a player and an enemy exchanging cells in one pipeline tick meet") {
+    val playerAt = Position(3, 1)
+    val enemyPosition = Position(3, 2)
+    val level = levelWithEnemies(playerAt, enemyAt(enemyPosition)).copy(
+      player = MovingEntity(playerAt, Right, 250.millis).move(Right, _ => true),
+      enemies = Vector(enemyAt(enemyPosition).moving(_.move(Left, _ => true)))
+    )
+
+    val updated = LevelState.pipeline(250.millis).tick(level)
+
+    assert(updated.progress.lives == level.progress.lives - 1)
+  }
+
   private val met = levelWithEnemies(where, enemyAt(where))
   private val protectedFromIt =
     met.copy(effects = ActiveEffects.empty.activate(Invulnerability, met.clock.elapsed, lasting))
@@ -45,7 +62,9 @@ class LevelMeetingTest extends AnyFunSuite:
   }
 
   test("meeting an enemy sends the enemies back to their spawns") {
-    assert(met.afterMeetingEnemies.enemies.toSet == met.maze.enemies)
+    assert(
+      met.afterMeetingEnemies.enemies.map(_.currentPos).toSet == met.maze.enemies.map(_.position)
+    )
   }
 
   test("meeting an enemy interrupts the movement the player was making") {

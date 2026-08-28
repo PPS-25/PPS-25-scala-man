@@ -41,7 +41,7 @@ object Frame:
     view.collectibles.map(collectible => collectible.position -> spriteOf(collectible)).toMap
 
   private def enemies(view: LevelView): Map[Position, Sprite] =
-    view.enemies.map(enemy => enemy.position -> Sprite.Enemy(enemy.kind)).toMap
+    view.enemies.map(enemy => enemy.currentPos -> Sprite.Enemy(enemy.kind)).toMap
 
   private def spriteOf(collectible: Collectible): Sprite = collectible match
     case Collectible.Basic(_)         => Sprite.Item

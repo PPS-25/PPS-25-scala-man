@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.Direction.{Down, Left, Right, Up}
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -76,4 +77,26 @@ class MovingEntityTest extends AnyFunSuite:
     assert(
       basicEntity.update(basicEntity.movement.get.remaining).movement.isEmpty
     )
+  }
+
+  test("two entities on the same cell meet") {
+    assert(basicEntity.meets(MovingEntity(basicEntity.currentPos, Direction.Right, 250.millis)))
+  }
+
+  test("two entities exchanging cells meet") {
+    val positionOne = Position(0, 0)
+    val positionTwo = Position(0, 1)
+    val entityOne = MovingEntity(
+      positionOne,
+      Right,
+      100.millis,
+      Some(Movement(positionOne, positionTwo, 1.millis))
+    )
+    val entityTwo = MovingEntity(
+      positionTwo,
+      Left,
+      100.millis,
+      Some(Movement(positionTwo, positionOne, 1.millis))
+    )
+    assert(entityOne.meets(entityTwo))
   }

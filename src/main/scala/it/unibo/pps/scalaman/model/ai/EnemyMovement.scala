@@ -30,7 +30,7 @@ object EnemyMovement:
       map: ValidatedMap,
       teleportDisabled: Boolean = false
   ): Vector[Position] =
-    orthogonalNeighbors(from).filter(isWalkable(map, _)) ++
+    orthogonalNeighbors(from).filter(map.isWalkable) ++
       Option.when(!teleportDisabled)(teleportDestination(from, map)).flatten.toVector
 
   private def orthogonalNeighbors(position: Position): Vector[Position] =
@@ -40,9 +40,6 @@ object EnemyMovement:
       Position(position.row, position.col - 1),
       Position(position.row, position.col + 1)
     )
-
-  private def isWalkable(map: ValidatedMap, position: Position): Boolean =
-    map.raw.cellAt(position).exists(_.isWalkable)
 
   private def teleportDestination(from: Position, map: ValidatedMap): Option[Position] =
     map.teleports.valuesIterator.collectFirst {
