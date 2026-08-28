@@ -1,7 +1,13 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.model.effects.BonusEffect.Invulnerability
-import it.unibo.pps.scalaman.model.LevelTestSupport.{bonus, item, levelWith, startingLevel}
+import it.unibo.pps.scalaman.model.LevelTestSupport.{
+  bonus,
+  item,
+  levelWith,
+  startingLevel,
+  timePerPos
+}
 import it.unibo.pps.scalaman.model.LevelState
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -45,7 +51,7 @@ class LevelViewTest extends AnyFunSuite:
   test("a tick that picks something up is shown to the view") {
     val (recorded, listener) = recorder()
     val rendering = LevelView.rendering.subscribing(listener)
-    LevelState.pipeline().tickNotifying(levelWith(item.position), rendering)
+    LevelState.pipeline(timePerPos).tickNotifying(levelWith(item.position), rendering)
     assert(recorded.toSeq.map(_.remaining) == Seq(0))
   }
 
@@ -53,6 +59,6 @@ class LevelViewTest extends AnyFunSuite:
     val (recorded, listener) = recorder()
     val rendering = LevelView.rendering.subscribing(listener).notifying(startingLevel)
     recorded.clear()
-    LevelState.pipeline().tickNotifying(startingLevel, rendering)
+    LevelState.pipeline(timePerPos).tickNotifying(startingLevel, rendering)
     assert(recorded.isEmpty)
   }
