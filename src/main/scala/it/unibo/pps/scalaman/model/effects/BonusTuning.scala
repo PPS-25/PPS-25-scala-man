@@ -16,12 +16,12 @@ object BonusDuration:
       case BonusEffect.SlowDown        => SlowDownLasts
       case BonusEffect.Invulnerability => InvulnerabilityLasts
 
-/** How much the slow down stretches the wait between enemy steps. */
+/** How much of the passing time the enemies can experience. */
 trait Slowdown:
-  def stretch(betweenSteps: FiniteDuration): FiniteDuration
+  def slowed(delta: FiniteDuration): FiniteDuration
 
 object Slowdown:
 
-  /** Half the speed: twice the wait. */
+  /** Half the speed: half the time experienced. */
   given halvedSpeed: Slowdown with
-    def stretch(betweenSteps: FiniteDuration): FiniteDuration = betweenSteps * 2
+    def slowed(delta: FiniteDuration): FiniteDuration = delta / 2

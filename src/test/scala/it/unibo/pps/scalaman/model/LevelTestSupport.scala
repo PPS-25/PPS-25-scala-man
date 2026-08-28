@@ -8,6 +8,7 @@ import it.unibo.pps.scalaman.model.effects.BonusEffect.Invulnerability
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.Direction.Right
+import it.unibo.pps.scalaman.model.entities.MovingEntity
 
 import scala.concurrent.duration.DurationInt
 
@@ -35,14 +36,13 @@ object LevelTestSupport:
   val teleportDestination: Position = Position(2, 5)
 
   /** The level with the player standing on a given position. */
-  def levelWith(playerAt: Position): LevelState = LevelState(
-    maze = maze,
-    player = MovingEntity(playerAt, Right, timePerPos),
-    enemies = maze.enemies.toVector,
-    collectibles = Collectibles(Set(item, bonus)),
-    effects = ActiveEffects.empty,
-    progress = LevelProgress.initial
-  )
+  def levelWith(playerAt: Position): LevelState =
+    LevelState
+      .from(maze)
+      .copy(
+        player = MovingEntity(playerAt, Right, timePerPos),
+        collectibles = Collectibles(Set(item, bonus))
+      )
 
   def teleportLevelWith(playerAt: Position): LevelState =
     levelWith(playerAt).copy(maze = mazeWithTeleports)

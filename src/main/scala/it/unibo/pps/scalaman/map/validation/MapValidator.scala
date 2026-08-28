@@ -4,12 +4,12 @@ import it.unibo.pps.scalaman.model.Position
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 import it.unibo.pps.scalaman.model.map.Tile
-import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapCell
 import it.unibo.pps.scalaman.model.map.MapValidationError
 import it.unibo.pps.scalaman.model.map.RawMap
 import it.unibo.pps.scalaman.model.map.ValidatedMap
+import it.unibo.pps.scalaman.model.map.EnemySpawn
 
 object MapValidator:
   /** Validates a parsed map and enriches it with semantic information.
@@ -114,7 +114,10 @@ object MapValidator:
   ): Vector[Position] =
     collectibles.filterNot(reachable.contains).sortBy(position => (position.row, position.col))
 
-  private def unreachableEnemies(enemies: Vector[Enemy], reachable: Set[Position]): Vector[Enemy] =
+  private def unreachableEnemies(
+      enemies: Vector[EnemySpawn],
+      reachable: Set[Position]
+  ): Vector[EnemySpawn] =
     enemies
       .filterNot(enemy => reachable.contains(enemy.position))
       .sortBy(enemy => (enemy.position.row, enemy.position.col))
@@ -169,7 +172,7 @@ object MapValidator:
   private final case class Inspection(
       spawnPositions: Vector[Position],
       collectibles: Vector[Position],
-      enemies: Vector[Enemy],
+      enemies: Vector[EnemySpawn],
       teleportPositions: Map[Int, Vector[Position]]
   ):
     def record(cell: MapCell): Inspection =
@@ -177,9 +180,9 @@ object MapValidator:
         case Tile.Wall | Tile.Floor | Tile.InvulnerabilityBonus | Tile.SlowdownBonus => this
         case Tile.Spawn       => copy(spawnPositions = spawnPositions :+ cell.position)
         case Tile.Collectible => copy(collectibles = collectibles :+ cell.position)
-        case Tile.Hunter      => copy(enemies = enemies :+ Enemy(cell.position, EnemyKind.Hunter))
+        case Tile.Hunter => copy(enemies = enemies :+ EnemySpawn(cell.position, EnemyKind.Hunter))
         case Tile.Anticipator =>
-          copy(enemies = enemies :+ Enemy(cell.position, EnemyKind.Anticipator))
+          copy(enemies = enemies :+ EnemySpawn(cell.position, EnemyKind.Anticipator))
         case Tile.Teleport(code) =>
           copy(teleportPositions =
             teleportPositions.updatedWith(code)(appendPosition(cell.position))

@@ -1,8 +1,8 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.model.collectibles.Collectible
-import it.unibo.pps.scalaman.model.map.Enemy
 import it.unibo.pps.scalaman.model.effects.BonusEffect
+import it.unibo.pps.scalaman.model.entities.Enemy
 import it.unibo.pps.scalaman.model.{GameState, LevelState, Position}
 
 /** What a level shows to whoever draws it, and nothing more.
