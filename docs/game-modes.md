@@ -31,6 +31,6 @@ must be collected strictly before the configured duration expires.
 Survival mode replaces the standard completion objective with survival time: collecting every item
 does not end the level, while losing every life does. The immutable game clock tracks survival time.
 
-Enemy difficulty increases at each configured positive interval by halving the interval between
-enemy steps. The interval never becomes lower than the configured positive minimum. The regular
-slowdown bonus is applied after this mode-specific interval is calculated.
+Enemy difficulty increases at each configured positive interval by increasing the time enemies
+experience while moving. The speed multiplier is capped by the configured positive maximum. The
+regular slowdown bonus is applied after this mode-specific speed increase.

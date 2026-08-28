@@ -1,6 +1,5 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.map.validation.MapValidator
 import it.unibo.pps.scalaman.model.map.{Tile, ValidatedMap}
 
 /** Collision types based on tiles
@@ -33,7 +32,7 @@ object CollisionDetector:
       enemies: Seq[Position]
   ): Set[Collision] =
     val tileCollision =
-      if !MapValidator.isWalkable(map.raw, position)
+      if !map.isWalkable(position)
       then Some(Collision.Wall)
       else
         val tileToCheck = map.raw.rows(position.row)(position.col)

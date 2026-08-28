@@ -12,8 +12,8 @@ trait GameMode:
       clock: GameClock
   ): GameState
 
-  /** The interval between enemy steps at the current game time. */
-  def enemyStepInterval(standard: FiniteDuration, clock: GameClock): FiniteDuration = standard
+  /** The time enemies experience during an update at the current game time. */
+  def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration = delta
 
 object GameMode:
 
@@ -43,12 +43,12 @@ object GameMode:
   /** Mode with no collectible-completion objective and progressively faster enemies. */
   final case class Survival(
       difficultyEvery: FiniteDuration = 30.seconds,
-      minimumEnemyStepInterval: FiniteDuration = 100.millis
+      maximumSpeedMultiplier: Long = 5
   ) extends GameMode:
     require(difficultyEvery > Duration.Zero, "difficulty must increase after a positive duration")
     require(
-      minimumEnemyStepInterval > Duration.Zero,
-      "the minimum enemy step interval must be positive"
+      maximumSpeedMultiplier > 0,
+      "the maximum enemy speed multiplier must be positive"
     )
 
     def status(
@@ -58,10 +58,7 @@ object GameMode:
     ): GameState =
       if progress.isOver then GameState.Defeat else GameState.Running
 
-    override def enemyStepInterval(
-        standard: FiniteDuration,
-        clock: GameClock
-    ): FiniteDuration =
+    override def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration =
       val difficultyLevel = clock.elapsed.toNanos / difficultyEvery.toNanos
-      val accelerated = standard / (difficultyLevel + 1)
-      if accelerated < minimumEnemyStepInterval then minimumEnemyStepInterval else accelerated
+      val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
+      delta * multiplier

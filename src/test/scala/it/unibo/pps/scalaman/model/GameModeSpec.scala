@@ -4,11 +4,20 @@ import it.unibo.pps.scalaman.model.GameState.{Defeat, Running, Victory}
 import it.unibo.pps.scalaman.model.LevelTestSupport.{maze, startingLevel}
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
 
 class GameModeSpec extends AnyFunSuite:
+
+  private def movingEnemy: Enemy =
+    Enemy(
+      MovingEntity(Position(3, 1), Direction.Right, LevelState.EnemyTimePerPos)
+        .move(Direction.Right, _ => true),
+      EnemyKind.Hunter
+    )
 
   test("normal mode preserves the standard victory and defeat rules") {
     val won = startingLevel.copy(collectibles = Collectibles(Set.empty))
@@ -59,23 +68,28 @@ class GameModeSpec extends AnyFunSuite:
     assert(survival.copy(progress = LevelProgress(0)).status == Defeat)
   }
 
-  test("a survival mode progressively reduces the enemy step interval down to its minimum") {
-    val mode = GameMode.Survival(difficultyEvery = 1.second, minimumEnemyStepInterval = 50.millis)
-    val level = LevelState.from(maze, mode)
+  test("a survival mode progressively speeds enemy movement up to its configured maximum") {
+    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
+    val accelerated =
+      LevelState.from(maze, mode).ticking(1.second).copy(enemies = Vector(movingEnemy))
+    val capped = LevelState.from(maze, mode).ticking(4.seconds).copy(enemies = Vector(movingEnemy))
 
-    assert(level.enemyStepInterval == LevelState.BetweenEnemySteps)
-    assert(level.ticking(1.second).enemyStepInterval == 125.millis)
-    assert(level.ticking(4.seconds).enemyStepInterval == 50.millis)
+    assert(!accelerated.movingOn(125.millis).enemies.head.entity.isMoving)
+    assert(!capped.movingOn(50.millis).enemies.head.entity.isMoving)
   }
 
-  test("slowdown doubles the survival-adjusted enemy step interval") {
-    val mode = GameMode.Survival(difficultyEvery = 1.second, minimumEnemyStepInterval = 50.millis)
-    val advanced = LevelState.from(maze, mode).ticking(1.second)
+  test("slowdown is applied after the survival speed increase") {
+    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
+    val advanced = LevelState
+      .from(maze, mode)
+      .ticking(1.second)
+      .copy(enemies = Vector(movingEnemy))
     val slowed = advanced.copy(effects =
       ActiveEffects.empty.activate(BonusEffect.SlowDown, advanced.clock.elapsed, 1.second)
     )
 
-    assert(slowed.enemyStepInterval == 250.millis)
+    assert(slowed.movingOn(125.millis).enemies.head.entity.isMoving)
+    assert(!slowed.movingOn(250.millis).enemies.head.entity.isMoving)
   }
 
   test("a survival mode requires positive difficulty tuning") {
@@ -83,6 +97,6 @@ class GameModeSpec extends AnyFunSuite:
       GameMode.Survival(difficultyEvery = 0.seconds)
     }
     assertThrows[IllegalArgumentException] {
-      GameMode.Survival(minimumEnemyStepInterval = 0.seconds)
+      GameMode.Survival(maximumSpeedMultiplier = 0)
     }
   }

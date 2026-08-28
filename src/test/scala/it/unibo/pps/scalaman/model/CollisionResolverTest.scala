@@ -3,7 +3,8 @@ package it.unibo.pps.scalaman.model
 import it.unibo.pps.scalaman.map.io.MapLoader
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
-import it.unibo.pps.scalaman.model.map.{MapTestSupport, ValidatedMap}
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.{EnemyKind, MapTestSupport, ValidatedMap}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -31,4 +32,19 @@ class CollisionResolverTest extends AnyFunSuite, MapTestSupport:
   test("a teleport reached by the code of its far end leads to the same pair") {
     val entity = MovingEntity(Position(3, 3), Direction.Down, 100.millis)
     assert(CollisionResolver.teleported(entity, 5, validatedMap).currentPos == Position(1, 3))
+  }
+
+  test("an enemy standing on a teleport is carried to the paired end") {
+    val enemy = Enemy(MovingEntity(Position(1, 3), Direction.Down, 100.millis), EnemyKind.Hunter)
+    assert(
+      CollisionResolver.enemyAfterTeleporting(enemy, validatedMap).currentPos == Position(3, 3)
+    )
+  }
+
+  test("a teleported enemy does not bounce back without leaving the teleport first") {
+    val enemy = Enemy(MovingEntity(Position(1, 3), Direction.Down, 100.millis), EnemyKind.Hunter)
+    val carried = CollisionResolver.enemyAfterTeleporting(enemy, validatedMap)
+    assert(
+      CollisionResolver.enemyAfterTeleporting(carried, validatedMap).currentPos == Position(3, 3)
+    )
   }
