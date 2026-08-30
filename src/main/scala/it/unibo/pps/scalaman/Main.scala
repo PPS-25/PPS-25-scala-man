@@ -12,13 +12,14 @@ import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
 import it.unibo.pps.scalaman.model.LevelState
 import it.unibo.pps.scalaman.model.map.ValidatedMap
+import it.unibo.pps.scalaman.view.{Board, Frame, GameBoard}
 import scalafx.animation.AnimationTimer
 import scalafx.application.JFXApp3
 import scalafx.scene.Scene
 import scalafx.scene.canvas.Canvas
+import scalafx.scene.Parent
 import scalafx.scene.input.KeyCode
 import scalafx.Includes.*
-import scalafx.scene.layout.Pane
 
 import java.nio.file.{Path, Paths}
 
@@ -27,13 +28,9 @@ def applicationName: String = "scala-man"
 
 object Main extends JFXApp3:
 
-  private val PlaceholderCellSize = 32
-  private val DefaultMap: Path = Paths.get("maps", "level1.txt")
+  private val DefaultMap: Path = Paths.get("maps", "level2.txt")
   private val LeaderboardFile: Path = Paths.get("data", "leaderboard.csv")
   private val PlayerName = "Player"
-
-  /** Placeholder for the real view */
-  private val drawNothing: LevelView => Unit = _ => ()
 
   private def mazeAt(path: Path): Either[String, ValidatedMap] =
     for
@@ -48,16 +45,13 @@ object Main extends JFXApp3:
       case Right(maze) => play(maze)
 
   private def play(maze: ValidatedMap): Unit =
-    val canvas = new Canvas(
-      maze.raw.width * PlaceholderCellSize,
-      maze.raw.height * PlaceholderCellSize
-    )
+    val board = GameBoard.fittingScreen(Board.of(maze))
     val recording = LeaderboardRecording[LevelState](
       _.result(PlayerName),
       FileLeaderboardStorage(LeaderboardFile)
     )
-    var session = GameSession.starting(LevelState.from(maze), drawNothing)
-    stage = window(canvas, key => session = keyed(session, key))
+    var session = GameSession.starting(LevelState.from(maze), view => board.draw(Frame.of(view)))
+    stage = window(board.node, key => session = keyed(session, key))
     AnimationTimer { now =>
       val wasOver = session.isOver
       session = session.advancedToFrame(now)
@@ -65,12 +59,10 @@ object Main extends JFXApp3:
         recording.recording(session.level).left.foreach(e => println(s"score not saved: $e"))
     }.start()
 
-  private def window(canvas: Canvas, onKey: KeyCode => Unit): JFXApp3.PrimaryStage =
-    val root = new Pane:
-      children = Seq(canvas)
+  private def window(root: Parent, onKey: KeyCode => Unit): JFXApp3.PrimaryStage =
     new JFXApp3.PrimaryStage:
       title = "scala-man"
-      scene = new Scene(root, canvas.width.value, canvas.height.value):
+      scene = new Scene(root):
         onKeyPressed = event => onKey(event.code)
 
   private def keyed(session: GameSession, key: KeyCode): GameSession =
