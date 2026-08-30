@@ -25,6 +25,17 @@ object Style:
   private val ButtonWidth = 160.0
   private val ButtonCorner = 8.0
 
+  /** The pale ground a table is read on. A scrolling pane paints its own, under the colour. */
+  def paper: String = s"-fx-background-color: $Chalk; -fx-background: $Chalk;"
+
+  /** Something read on the pale ground rather than on the dark one. */
+  def read(size: Double): String =
+    s"-fx-font-size: ${size}px; -fx-font-weight: bold; -fx-text-fill: $Ink;"
+
+  /** The heading of a column, told apart from what it heads. */
+  def heading(size: Double): String =
+    s"-fx-font-size: ${size}px; -fx-font-weight: bold; -fx-text-fill: $Red;"
+
   /** Something to press. Every button is dressed the same, whatever it is asked on top of: the
     * border is rounded exactly as much as the background, so the two never come apart.
     */

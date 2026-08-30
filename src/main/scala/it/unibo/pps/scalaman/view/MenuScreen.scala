@@ -28,8 +28,9 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
     maxWidth = FieldWidth
     maxHeight = ListHeight
 
-  private val standings = new Label(""):
-    style = Style.text(TextSize)
+  private val standings = new Button("View leaderboard"):
+    style = Style.button
+    onAction = _ => showStandings()
 
   private val play = new Button("Play"):
     onAction = _ => chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named))))
@@ -50,9 +51,7 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
     preserveRatio = true
 
   mazes.selectionModel().selectFirst()
-  mazes.selectionModel().selectedItemProperty().onChange((_, _, _) => showStandings())
   player.text.onChange((_, _, _) => refuseEmptyName())
-  showStandings()
   refuseEmptyName()
 
   /** What to put on a scene to choose a game. */
@@ -66,12 +65,12 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
       bonuses,
       player,
       mazes,
-      standings,
       new HBox:
         alignment = Pos.Center
         spacing = SpacedBy
         children = Seq(
           play,
+          standings,
           new Button("Load map..."):
             onAction = _ => picked("Open a maze").foreach(path => chosen(Command.LoadMap(path)))
             style = Style.button
@@ -90,8 +89,9 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
 
   private def refuseEmptyName(): Unit = play.disable = named.isEmpty
 
-  private def showStandings(): Unit =
-    standings.text = Standings.told(bestOn(chosenMap)).mkString("\n")
+  private def showStandings(): Unit = chosenMap.foreach(maze =>
+    LeaderboardWindow.open(maze, Standings.of(bestOn(chosenMap)), node.scene().window())
+  )
 
   private def bestOn(maze: Option[MapName]): Leaderboard =
     maze
@@ -115,20 +115,3 @@ object MenuScreen:
 
   // The drawn part of logo.png
   private val LogoDrawnOn = Rectangle2D(142, 516, 1719, 953)
-
-/** The best scores reached on a maze, as they are read in the menu. */
-object Standings:
-
-  /** How many places are worth showing beside a maze. */
-  val Places: Int = 5
-
-  private val Empty = "No scores yet"
-
-  /** The best places, in order, or a single line saying nobody has played yet. */
-  def told(leaderboard: Leaderboard): Seq[String] =
-    val best = leaderboard.top(Places)
-    if best.isEmpty then Seq(Empty)
-    else
-      best.zipWithIndex.map((result, place) =>
-        s"${place + 1}. ${result.playerName} ${result.score}"
-      )
