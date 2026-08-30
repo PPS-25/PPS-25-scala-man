@@ -1,6 +1,5 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.model.Position
 import scalafx.geometry.Insets
 import scalafx.scene.Parent
 import scalafx.scene.canvas.{Canvas, GraphicsContext}
@@ -34,7 +33,7 @@ final class GameBoard(board: Board, cellSize: Double):
   def draw(frame: Frame): Unit =
     val gc = entities.graphicsContext2D
     gc.clearRect(0, 0, entities.width.value, entities.height.value)
-    frame.entities.foreach((position, sprite) => paint(gc, position, sprite))
+    frame.entities.foreach(drawn => paint(gc, drawn.at, drawn.sprite))
     lives.text = frame.status.livesDescribed
     progress.text = frame.status.progressDescribed
 
@@ -48,16 +47,16 @@ final class GameBoard(board: Board, cellSize: Double):
     for
       (row, rowIndex) <- board.cells.zipWithIndex
       (sprite, colIndex) <- row.zipWithIndex
-      position = Position(rowIndex, colIndex)
+      spot = Spot(rowIndex, colIndex)
     do
-      paint(gc, position, Sprite.Floor)
-      if sprite != Sprite.Floor then paint(gc, position, sprite)
+      paint(gc, spot, Sprite.Floor)
+      if sprite != Sprite.Floor then paint(gc, spot, sprite)
 
-  private def paint(gc: GraphicsContext, position: Position, sprite: Sprite): Unit =
+  private def paint(gc: GraphicsContext, spot: Spot, sprite: Sprite): Unit =
     gc.drawImage(
       SpriteImages.of(sprite),
-      position.col * cellSize,
-      position.row * cellSize,
+      spot.col * cellSize,
+      spot.row * cellSize,
       cellSize,
       cellSize
     )

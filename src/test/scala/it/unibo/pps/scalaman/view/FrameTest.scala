@@ -1,56 +1,66 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.controller.LevelView
-import it.unibo.pps.scalaman.model.LevelTestSupport.{bonus, item, levelWith, startingLevel}
+import it.unibo.pps.scalaman.model.LevelTestSupport.{
+  bonus,
+  item,
+  levelWith,
+  startingLevel,
+  timePerPos
+}
 import it.unibo.pps.scalaman.model.effects.BonusEffect.Invulnerability
 import it.unibo.pps.scalaman.model.map.EnemyKind
-import it.unibo.pps.scalaman.model.{GameState, LevelState, Position}
+import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, Position}
 import org.scalatest.funsuite.AnyFunSuite
 
 class FrameTest extends AnyFunSuite:
 
   private def frameOf(level: LevelState): Frame = Frame.of(LevelView.of(level))
 
-  private def isPlayer(sprite: Sprite): Boolean = sprite match
-    case Sprite.Player(_) => true
-    case _                => false
+  private def drawnOn(frame: Frame, position: Position): Set[Sprite] =
+    frame.entities.filter(_.at == Spot.on(position)).map(_.sprite).toSet
 
   private val hunterSpawn = Position(3, 1)
   private val frame = frameOf(startingLevel)
 
   test("the player is drawn where it stands") {
-    assert(frame.at(startingLevel.player.currentPos).contains(Sprite.Player(Mouth.Open)))
+    assert(drawnOn(frame, startingLevel.player.currentPos).contains(Sprite.Player(Mouth.Open)))
   }
 
   test("an enemy is drawn as the kind it is") {
-    assert(frame.at(hunterSpawn).contains(Sprite.Enemy(EnemyKind.Hunter)))
+    assert(drawnOn(frame, hunterSpawn).contains(Sprite.Enemy(EnemyKind.Hunter)))
   }
 
   test("the mouth of the player opens and closes as it steps") {
     val stepped = Position(0, 1)
-    assert(frameOf(levelWith(stepped)).at(stepped).contains(Sprite.Player(Mouth.Closed)))
+    assert(drawnOn(frameOf(levelWith(stepped)), stepped).contains(Sprite.Player(Mouth.Closed)))
+  }
+
+  test("someone crossing between two cells is drawn between them") {
+    val moving = startingLevel.movingPlayer(_.move(Direction.Right, _ => true))
+    val halfWay = moving.movingPlayer(_.update(timePerPos / 2))
+    assert(frameOf(halfWay).entities.last.at == Spot(0.0, 0.5))
   }
 
   test("what is left to pick up is drawn") {
-    assert(frame.at(item.position).contains(Sprite.Item))
+    assert(drawnOn(frame, item.position).contains(Sprite.Item))
   }
 
   test("a bonus is drawn as the effect it grants") {
-    assert(frame.at(bonus.position).contains(Sprite.Bonus(Invulnerability)))
+    assert(drawnOn(frame, bonus.position).contains(Sprite.Bonus(Invulnerability)))
   }
 
-  test("the player covers an enemy standing on the same position") {
-    assert(frameOf(levelWith(hunterSpawn)).at(hunterSpawn).exists(isPlayer))
+  test("the player is drawn last, so that it covers everyone") {
+    assert(frameOf(levelWith(hunterSpawn)).entities.last.sprite == Sprite.Player(Mouth.Open))
   }
 
   test("what has been picked up is drawn no more") {
-    assert(
-      !frameOf(levelWith(item.position).collecting).entities.values.toSet.contains(Sprite.Item)
-    )
+    val picked = frameOf(levelWith(item.position).collecting)
+    assert(!picked.entities.map(_.sprite).contains(Sprite.Item))
   }
 
   test("nothing is drawn where nothing stands") {
-    assert(frame.at(Position(2, 3)).isEmpty)
+    assert(drawnOn(frame, Position(2, 3)).isEmpty)
   }
 
   test("the status bar shows the lives left") {
