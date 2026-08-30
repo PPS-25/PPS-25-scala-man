@@ -34,8 +34,8 @@ final class GameBoard(board: Board, cellSize: Double):
     val gc = entities.graphicsContext2D
     gc.clearRect(0, 0, entities.width.value, entities.height.value)
     frame.entities.foreach(drawn => paint(gc, drawn.at, drawn.sprite))
-    lives.text = frame.status.livesDescribed
-    progress.text = frame.status.progressDescribed
+    lives.text = frame.status.playerDescribed
+    progress.text = frame.status.levelDescribed
 
   private def told(): Label = new Label(""):
     padding = Insets(SpacedBy)

@@ -5,6 +5,8 @@ import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.{GameState, Position}
 
+import scala.concurrent.duration.FiniteDuration
+
 /** Where something is drawn, counted in cells: a whole number sits on a cell, a fraction between
   * two of them.
   */
@@ -27,15 +29,31 @@ object Spot:
 /** One thing drawn over the board, at the spot it has reached. */
 final case class Drawn(at: Spot, sprite: Sprite)
 
-/** How the player is doing, drawn beside the maze. */
-final case class StatusBar(lives: Int, remaining: Int, applied: Set[BonusEffect], state: GameState):
+/** How the player and the level are doing, drawn beside the maze. */
+final case class StatusBar(
+    lives: Int,
+    remaining: Int,
+    applied: Set[BonusEffect],
+    state: GameState,
+    score: Int,
+    elapsed: FiniteDuration
+):
 
-  def livesDescribed: String = s"Lives $lives"
+  /** How the player is doing. */
+  def playerDescribed: String = s"Lives $lives | Score $score"
 
-  def progressDescribed: String = (Seq(s"Left $remaining") ++ effects).mkString(" | ")
+  /** How far the level has got, how long it took, and what is in effect. */
+  def levelDescribed: String =
+    (Seq(timeDescribed, s"Left $remaining") ++ effects).mkString(" | ")
+
+  /** How long the level has been played. */
+  def timeDescribed: String =
+    f"${elapsed.toSeconds / SecondsPerMinute}%02d:${elapsed.toSeconds % SecondsPerMinute}%02d"
 
   private def effects: Option[String] =
     Option.when(applied.nonEmpty)(applied.map(_.toString).toSeq.sorted.mkString(", "))
+
+private val SecondsPerMinute = 60
 
 /** Whoever moves and whatever is left to pick up, drawn over the board, back to front. */
 final case class Frame(entities: Vector[Drawn], status: StatusBar)
@@ -47,7 +65,8 @@ object Frame:
     */
   def of(view: LevelView): Frame = Frame(
     entities = collectibles(view) ++ enemies(view) :+ player(view),
-    status = StatusBar(view.lives, view.remaining, view.applied, view.status)
+    status =
+      StatusBar(view.lives, view.remaining, view.applied, view.status, view.score, view.elapsed)
   )
 
   private def player(view: LevelView): Drawn =
