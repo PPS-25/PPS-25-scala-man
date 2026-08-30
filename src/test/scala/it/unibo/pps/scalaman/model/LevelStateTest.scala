@@ -65,8 +65,9 @@ class LevelStateTest extends AnyFunSuite:
     assert(movedAway.tick(startingLevel).enemies.isEmpty)
   }
 
-  test("a tick leaves the enemies alone when no stage moves them") {
-    assert(LevelState.pipeline(timePerPos).tick(startingLevel).enemies == startingLevel.enemies)
+  test("a tick starts the default AI movement for idle enemies") {
+    val playableLevel = levelWith(Position(1, 1))
+    assert(LevelState.pipeline(timePerPos).tick(playableLevel).enemies.forall(_.entity.isMoving))
   }
 
   test("a tick moves the level clock forward") {

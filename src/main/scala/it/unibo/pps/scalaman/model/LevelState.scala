@@ -11,12 +11,14 @@ import it.unibo.pps.scalaman.model.collectibles.{
 }
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusDuration, Slowdown}
+import it.unibo.pps.scalaman.model.ai.EnemyAiStage
 import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.{EnemySpawn, Tile, ValidatedMap}
 import it.unibo.pps.scalaman.model.score.{GameResult, ScoreTracker}
 import it.unibo.pps.scalaman.model.score.ScoringEvent.EnemyKill
 
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import java.time.Instant
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 
 /** A level being played: the maze, who moves on it, what is left to pick up, what the bonuses are
   * doing, and how the player is doing.
@@ -79,7 +81,7 @@ final case class LevelState(
   def status: GameState = mode.status(progress, collectibles, clock)
 
   def result(playerName: String): Option[GameResult] =
-    Option.when(status.isTerminal)(score.toResult(playerName, progress.lives))
+    Option.when(status.isTerminal)(score.toResult(playerName, progress.lives, Instant.now()))
 
   /** The level after some time has passed. A level that ended stands still. */
   def ticking(delta: FiniteDuration): LevelState =
@@ -146,7 +148,10 @@ object LevelState:
   /** The stages a level goes through on each tick: the enemies are moved by the one given here, the
     * ones left out belong to other parts of the game.
     */
-  def pipeline(delta: FiniteDuration, updateAi: LevelState => LevelState = identity)(using
+  def pipeline(
+      delta: FiniteDuration,
+      updateAi: LevelState => LevelState = level => EnemyAiStage.stage(level)
+  )(using
       BonusDuration,
       Slowdown
   ): GameStateUpdatePipeline[LevelState] =
