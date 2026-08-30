@@ -71,6 +71,9 @@ final case class LevelState(
         then this
         else copy(player = carried, playerPreviousPos = Some(player.currentPos))
 
+  def afterEnemiesTeleporting: LevelState =
+    copy(enemies = enemies.map(CollisionResolver.enemyAfterTeleporting(_, maze)))
+
   private def respawned: LevelState = copy(
     player = player.copy(currentPos = maze.spawn, movement = None, previousPos = None),
     enemies = LevelState.spawnedOn(maze),
@@ -180,7 +183,8 @@ object LevelState:
       processInput = whileRunning(processInput),
       updateAi = whileRunning(updateAi),
       updateMovement = whileRunning(_.ticking(delta).movingOn(delta)),
-      resolveCollisions = whileRunning(_.afterMeetingEnemies.afterTeleporting),
+      resolveCollisions =
+        whileRunning(_.afterMeetingEnemies.afterTeleporting.afterEnemiesTeleporting),
       collectItems = whileRunning(_.collecting),
       applyBonuses = whileRunning(_.withoutExpiredEffects),
       updateState = whileRunning(_.playerStartingNextStep)
