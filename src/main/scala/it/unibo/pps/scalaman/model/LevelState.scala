@@ -26,6 +26,7 @@ import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 final case class LevelState(
     maze: ValidatedMap,
     player: MovingEntity,
+    requestedDirection: Option[Direction] = None,
     enemies: Vector[Enemy],
     collectibles: Collectibles,
     effects: ActiveEffects,
@@ -93,12 +94,30 @@ final case class LevelState(
     val moved = step(player)
     if moved.currentPos == player.currentPos then copy(player = moved)
     else copy(player = moved, playerPreviousPos = Some(player.currentPos))
+  
+  /** The level after the player asked to turn at the next chance it gets.  */  
+  def playerAsking(direction: Direction): LevelState = 
+    copy(requestedDirection = Some(direction))
+    
+  /** The level after the player was asked to go a certain way. If impossible, nothing happens. */
+  private def playerHeading(direction: Direction): LevelState =
+    movingPlayer(_.move(direction, maze.isWalkable))
+    
+  /** The level after a player standing on a cell started its next step. If the player asked to turn,
+   *  they turn if possible, otherwise they carry on in the direction they're facing.
+   *  A turn that could not be taken is kept for the next cell, so asking early takes effect
+   *  at the first opening. */
+  private def playerStartingNextStep: LevelState = if player.isMoving then this
+  else
+    val turned = requestedDirection.fold(this)(playerHeading)
+    if turned.player.isMoving then turned.copy(requestedDirection = None)
+    else playerHeading(player.facing)
 
   /** The level after everyone advanced along the step they were taking. */
   def movingOn(delta: FiniteDuration)(using Slowdown): LevelState =
-    val forEnemies: FiniteDuration =
+    val forEnemies: FiniteDuration = 
       effects.enemyDelta(mode.enemyDelta(delta, clock), clock.elapsed)
-    movingPlayer(_.update(delta))
+    movingPlayer(_.update(delta)).playerStartingNextStep
       .copy(enemies = enemies.map(enemy => enemy.moving(_.update(forEnemies))))
 
   /** The level after the enemies took their step.
@@ -150,12 +169,14 @@ object LevelState:
     */
   def pipeline(
       delta: FiniteDuration,
+      processInput: LevelState => LevelState = identity,
       updateAi: LevelState => LevelState = level => EnemyAiStage.stage(level)
   )(using
       BonusDuration,
       Slowdown
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
+      processInput = whileRunning(processInput),
       updateAi = whileRunning(updateAi),
       updateMovement = whileRunning(_.ticking(delta).movingOn(delta)),
       resolveCollisions = whileRunning(_.afterMeetingEnemies.afterTeleporting),
