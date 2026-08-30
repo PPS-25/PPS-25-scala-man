@@ -47,11 +47,17 @@ object SpriteImages:
     case Sprite.Enemy(EnemyKind.Hunter)            => "/enemy1.png"
     case Sprite.Enemy(EnemyKind.Anticipator)       => "/enemy2.png"
 
-  /** The picture of a sprite, read on first use. A missing one is a broken build, and says so. */
-  def of(sprite: Sprite): Image = pictures(sprite)
+  /** The picture of a sprite, read the first time that very sprite is asked for and kept from then
+    * on: a screen showing two of them does not pay for all the others.
+    */
+  def of(sprite: Sprite): Image = pictures.getOrElse(sprite, readAndKeep(sprite))
 
-  private lazy val pictures: Map[Sprite, Image] =
-    Sprite.All.map(sprite => sprite -> read(fileOf(sprite))).toMap
+  private var pictures: Map[Sprite, Image] = Map.empty
+
+  private def readAndKeep(sprite: Sprite): Image =
+    val picture = read(fileOf(sprite))
+    pictures += sprite -> picture
+    picture
 
   // The files are far larger than any cell, and are decoded once at a size worth keeping in memory.
   private def read(file: String): Image =
