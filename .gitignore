@@ -137,6 +137,3 @@ report/build/
 
 # macOS
 .DS_Store
-
-# Game runtime data
-data/
