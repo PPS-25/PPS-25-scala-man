@@ -13,3 +13,6 @@ object CommandMapper:
     case KeyCode.Left | KeyCode.A  => Some(Direction.Left)
     case KeyCode.Right | KeyCode.D => Some(Direction.Right)
     case _                         => None
+
+  /** Whether this key press should pause or resume the game */
+  def isPauseKey(key: KeyCode): Boolean = key == KeyCode.Escape

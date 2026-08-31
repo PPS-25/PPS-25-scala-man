@@ -26,6 +26,12 @@ final case class GameLoop(state: LoopState = NotStarted):
     require(validFrom.contains(state), s"Invalid transition from $state to $to")
     copy(state = to)
 
+  /** The loop after the player asks to pause or resume the game. */
+  def toggled: GameLoop = state match
+    case Running => pause()
+    case Paused  => resume()
+    case _       => this
+
   /** Starts the game loop.
     * @throws IllegalArgumentException
     *   if the loop had already started.
