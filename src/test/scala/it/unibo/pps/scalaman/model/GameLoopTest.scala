@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.LoopState.{Paused, Running, Stopped}
+import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Paused, Running, Stopped}
 import org.scalatest.funsuite.AnyFunSuite
 
 class GameLoopTest extends AnyFunSuite:
@@ -67,4 +67,16 @@ class GameLoopTest extends AnyFunSuite:
     assertThrows[IllegalArgumentException] {
       gameLoop.resume()
     }
+  }
+
+  test("toggling a running loop pauses it") {
+    assert(GameLoop().start().toggled.state == LoopState.Paused)
+  }
+
+  test("toggling a paused loop resumes it") {
+    assert(GameLoop().start().pause().toggled.state == LoopState.Running)
+  }
+
+  test("toggling a loop that never started does nothing") {
+    assert(GameLoop().toggled.state == NotStarted)
   }
