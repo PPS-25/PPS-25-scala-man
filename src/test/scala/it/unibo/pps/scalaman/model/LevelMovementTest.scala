@@ -15,7 +15,7 @@ class LevelMovementTest extends AnyFunSuite:
     assert(ticks(levelWith(Position(1, 1)), 4).player.currentPos == Position(1, 4))
   }
 
-  test("the player stops wen the way it faces is blocked") {
+  test("the player stops when the way it faces is blocked") {
     val stopped = ticks(alone(Position(1, 5)), 1)
     assert(stopped.player.currentPos == Position(1, 5))
     assert(!stopped.player.isMoving)
