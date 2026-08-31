@@ -21,6 +21,12 @@ object Style:
   def text(size: Double): String =
     s"-fx-font-size: ${size}px; -fx-font-weight: bold; -fx-text-fill: $Chalk;"
 
+  /** The scale everything is read at, so that the decision is not taken in four files. */
+  val Banner = 32.0
+  val Heading = 22.0
+  val Reading = 18.0
+  val Listing = 15.0
+
   private val ButtonText = 16.0
   private val ButtonWidth = 160.0
   private val ButtonCorner = 8.0
