@@ -13,6 +13,12 @@ class OverlayTest extends AnyFunSuite:
 
   private def over(screen: Screen): Option[Overlay] = Overlay.of(screen, status)
 
+  test("a board nothing covers is not even told how the level is doing") {
+    var asked = 0
+    Overlay.of(Screen.Playing, { asked += 1; status })
+    assert(asked == 0)
+  }
+
   test("a game being played is covered by nothing") {
     assert(over(Screen.Playing).isEmpty)
   }

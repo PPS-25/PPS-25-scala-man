@@ -53,6 +53,12 @@ final case class StatusBar(
   private def effects: Option[String] =
     Option.when(applied.nonEmpty)(applied.map(_.toString).toSeq.sorted.mkString(", "))
 
+object StatusBar:
+
+  /** The half of a frame that is read rather than drawn. */
+  def of(view: LevelView): StatusBar =
+    StatusBar(view.lives, view.remaining, view.applied, view.status, view.score, view.elapsed)
+
 private val SecondsPerMinute = 60
 
 /** Whoever moves and whatever is left to pick up, drawn over the board, back to front. */
@@ -65,8 +71,7 @@ object Frame:
     */
   def of(view: LevelView): Frame = Frame(
     entities = collectibles(view) ++ enemies(view) :+ player(view),
-    status =
-      StatusBar(view.lives, view.remaining, view.applied, view.status, view.score, view.elapsed)
+    status = StatusBar.of(view)
   )
 
   private def player(view: LevelView): Drawn =
