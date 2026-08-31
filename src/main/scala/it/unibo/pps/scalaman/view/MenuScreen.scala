@@ -1,14 +1,13 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.app.{Command, DefaultMaps, GameFiles, MapName, PlayerName}
-import it.unibo.pps.scalaman.leaderboard.io.FileLeaderboardStorage
+import it.unibo.pps.scalaman.app.{Command, MapName, PlayerName}
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos, Rectangle2D}
 import scalafx.scene.Parent
-import scalafx.scene.control.{Button, Label, ListView, TextField}
+import scalafx.scene.control.{Button, ListView, TextField}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.stage.FileChooser
@@ -16,7 +15,11 @@ import scalafx.stage.FileChooser
 import java.nio.file.Path
 
 /** The screen a game is started from: who is playing, on which maze, and how others did on it. */
-final class MenuScreen(files: GameFiles, chosen: Command => Unit):
+final class MenuScreen(
+    offered: Seq[MapName],
+    bestOn: MapName => Leaderboard,
+    chosen: Command => Unit
+):
 
   import MenuScreen.*
 
@@ -24,7 +27,7 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
     promptText = "Your name"
     maxWidth = FieldWidth
 
-  private val mazes = new ListView[String](ObservableBuffer.from(DefaultMaps.All.map(_.value))):
+  private val mazes = new ListView[String](ObservableBuffer.from(offered.map(_.value))):
     maxWidth = FieldWidth
     maxHeight = ListHeight
 
@@ -34,6 +37,16 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
 
   private val play = new Button("Play"):
     onAction = _ => chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named))))
+    style = Style.button
+
+  private val loadMap = new Button("Load map..."):
+    onAction = _ =>
+      picked("Open a maze").foreach(path => chosen(Command.LoadMap(path, PlayerName(named))))
+    style = Style.button
+
+  private val loadSave = new Button("Load game..."):
+    onAction = _ =>
+      picked("Open a saved game").foreach(path => chosen(Command.LoadSave(path, PlayerName(named))))
     style = Style.button
 
   private val bonuses = new HBox:
@@ -68,18 +81,7 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
       new HBox:
         alignment = Pos.Center
         spacing = SpacedBy
-        children = Seq(
-          play,
-          standings,
-          new Button("Load map..."):
-            onAction = _ => picked("Open a maze").foreach(path => chosen(Command.LoadMap(path)))
-            style = Style.button
-          ,
-          new Button("Load game..."):
-            onAction =
-              _ => picked("Open a saved game").foreach(path => chosen(Command.LoadSave(path)))
-            style = Style.button
-        )
+        children = Seq(play, standings, loadMap, loadSave)
     )
 
   private def named: String = player.text().trim
@@ -87,17 +89,12 @@ final class MenuScreen(files: GameFiles, chosen: Command => Unit):
   private def chosenMap: Option[MapName] =
     Option(mazes.selectionModel().getSelectedItem).map(MapName.apply)
 
-  private def refuseEmptyName(): Unit = play.disable = named.isEmpty
+  private def refuseEmptyName(): Unit =
+    Seq(play, loadMap, loadSave).foreach(_.disable = named.isEmpty)
 
   private def showStandings(): Unit = chosenMap.foreach(maze =>
-    LeaderboardWindow.open(maze, Standings.of(bestOn(chosenMap)), node.scene().window())
+    LeaderboardWindow.open(maze, Standings.of(bestOn(maze)), node.scene().window())
   )
-
-  private def bestOn(maze: Option[MapName]): Leaderboard =
-    maze
-      .map(name => FileLeaderboardStorage(files.leaderboardOf(name)))
-      .flatMap(_.load().toOption)
-      .getOrElse(Leaderboard.empty)
 
   private def picked(asked: String): Option[Path] =
     val chooser = new FileChooser:
@@ -108,7 +105,6 @@ object MenuScreen:
   private val SpacedBy = 12.0
   private val FieldWidth = 320.0
   private val ListHeight = 140.0
-  private val TextSize = 14.0
   private val LogoWidth = 620.0
   private val BonusSize = 72.0
   private val Logo = "/logo.png"
