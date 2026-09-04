@@ -12,6 +12,7 @@ import it.unibo.pps.scalaman.model.{Direction, LevelState}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 
 class LevelViewTest extends AnyFunSuite:
 
@@ -70,4 +71,13 @@ class LevelViewTest extends AnyFunSuite:
     recorded.clear()
     LevelState.pipeline(timePerPos).tickNotifying(startingLevel, rendering)
     assert(recorded.isEmpty)
+  }
+
+  test("the view is shown the score so far") {
+    assert(LevelView.of(startingLevel).score == startingLevel.score.currentScore)
+  }
+
+  test("the view is shown the time in the whole seconds it is going to show") {
+    val played = startingLevel.ticking(1500.millis)
+    assert(LevelView.of(played).elapsed == 1.second)
   }
