@@ -17,3 +17,4 @@ object EnemyStrategySelector extends EnemyStrategySelection:
     kind match
       case EnemyKind.Hunter      => DirectPursuitStrategy
       case EnemyKind.Anticipator => PlayerAnticipationStrategy(stepsAhead = 2)
+      case EnemyKind.Patroller   => PatrolStrategy

@@ -40,8 +40,8 @@ object CollisionDetector:
           case Tile.Collectible                               => Some(Collision.Collectible)
           case Tile.InvulnerabilityBonus | Tile.SlowdownBonus => Some(Collision.Bonus(tileToCheck))
           case Tile.Teleport(code)                            => Some(Collision.Teleport(code))
-          case Tile.Floor | Tile.Spawn | Tile.Hunter | Tile.Anticipator => None
-          case Tile.Wall                                                => None
+          case Tile.Floor | Tile.Spawn | Tile.Hunter | Tile.Anticipator | Tile.Patroller => None
+          case Tile.Wall                                                                 => None
     val enemyCollision =
       if enemies.contains(position)
       then Some(Collision.Enemy)

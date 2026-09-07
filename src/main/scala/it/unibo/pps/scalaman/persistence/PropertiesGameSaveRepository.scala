@@ -157,6 +157,7 @@ object PropertiesGameSaveRepository:
     case Tile.Collectible          => 'C'
     case Tile.Hunter               => 'H'
     case Tile.Anticipator          => 'A'
+    case Tile.Patroller            => 'P'
     case Tile.InvulnerabilityBonus => 'I'
     case Tile.SlowdownBonus        => 'R'
     case Tile.Teleport(code)       => code.toString.head
