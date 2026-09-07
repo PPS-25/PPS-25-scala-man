@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
+import it.unibo.pps.scalaman.model.score.ScoringRule
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 
@@ -11,6 +12,7 @@ trait GameMode:
       collectibles: Collectibles,
       clock: GameClock
   ): GameState
+  def scoringRule: ScoringRule = ScoringRule.standardScoring
 
   /** The time enemies experience during an update at the current game time. */
   def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration = delta
@@ -58,7 +60,11 @@ object GameMode:
     ): GameState =
       if progress.isOver then GameState.Defeat else GameState.Running
 
+    /** How many times the difficulty has increased. */
+    def wavesSurvived(clock: GameClock): Long =
+      clock.elapsed.toNanos / difficultyEvery.toNanos
+
     override def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration =
-      val difficultyLevel = clock.elapsed.toNanos / difficultyEvery.toNanos
+      val difficultyLevel = wavesSurvived(clock)
       val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
       delta * multiplier
