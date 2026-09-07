@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model.score
 
 import java.time.Instant
+import scala.concurrent.duration.FiniteDuration
 
 /** Types of events that award points.
   */
@@ -9,6 +10,8 @@ enum ScoringEvent:
   case BonusItem
   case RemainingLives(lives: Int)
   case EnemyKill
+  case RemainingTime(left: FiniteDuration)
+  case WavesSurvived(waves: Int)
 
 trait ScoringRule:
   def awardedPoints(event: ScoringEvent, combo: Int = 1): Int
@@ -21,13 +24,29 @@ object ScoringRule:
   private val RemainingLifeBonus = 500
   private val EnemyKillBasePoints = 200
   private val ComboFactor = 2
+  private val PointsPerRemainingSecond = 1
+  private val PointsPerWaveSurvived = 1
 
-  given standardScoring: ScoringRule with
-    def awardedPoints(event: ScoringEvent, combo: Int): Int = event match
-      case ScoringEvent.BasicItem             => BasicItemPoints
-      case ScoringEvent.BonusItem             => BonusItemPoints
-      case ScoringEvent.RemainingLives(lives) => lives * RemainingLifeBonus
-      case ScoringEvent.EnemyKill             => EnemyKillBasePoints * comboMultiplier(combo)
+  val standardScoring: ScoringRule =
+    (event: ScoringEvent, combo: Int) =>
+      event match
+        case ScoringEvent.BasicItem             => BasicItemPoints
+        case ScoringEvent.BonusItem             => BonusItemPoints
+        case ScoringEvent.RemainingLives(lives) => lives * RemainingLifeBonus
+        case ScoringEvent.EnemyKill             => EnemyKillBasePoints * comboMultiplier(combo)
+        case _                                  => 0
+
+  val timedScoring: ScoringRule =
+    (event: ScoringEvent, combo: Int) =>
+      event match
+        case ScoringEvent.RemainingTime(left) => left.toSeconds.toInt * PointsPerRemainingSecond
+        case _                                => 0
+
+  val survivalScoring: ScoringRule =
+    (event: ScoringEvent, combo: Int) =>
+      event match
+        case ScoringEvent.WavesSurvived(waves) => waves * PointsPerWaveSurvived
+        case _                                 => 0
 
   private def comboMultiplier(combo: Int): Int = {
     require(combo >= 1, "combo has to be at least of 1")
