@@ -8,10 +8,11 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
   startingLevel,
   timePerPos
 }
-import it.unibo.pps.scalaman.model.LevelState
+import it.unibo.pps.scalaman.model.{Direction, LevelState}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
 
 class LevelViewTest extends AnyFunSuite:
 
@@ -20,7 +21,7 @@ class LevelViewTest extends AnyFunSuite:
     (recorded, recorded.addOne)
 
   test("the view is shown where the player is") {
-    assert(LevelView.of(startingLevel).player == startingLevel.player.currentPos)
+    assert(LevelView.of(startingLevel).player.from == startingLevel.player.currentPos)
   }
 
   test("the view is shown what is still on the map, bonuses included") {
@@ -28,7 +29,16 @@ class LevelViewTest extends AnyFunSuite:
   }
 
   test("the view is shown where the enemies are") {
-    assert(LevelView.of(startingLevel).enemies == startingLevel.enemies)
+    assert(
+      LevelView.of(startingLevel).enemies.map(_.at.from) ==
+        startingLevel.enemies.map(_.currentPos)
+    )
+  }
+
+  test("the view is shown how far along a crossing something is") {
+    val moving = startingLevel.movingPlayer(_.move(Direction.Right, _ => true))
+    val halfWay = moving.movingPlayer(_.update(timePerPos / 2))
+    assert(LevelView.of(halfWay).player.progress == 0.5)
   }
 
   test("the view is shown how much is left to pick up") {
@@ -61,4 +71,13 @@ class LevelViewTest extends AnyFunSuite:
     recorded.clear()
     LevelState.pipeline(timePerPos).tickNotifying(startingLevel, rendering)
     assert(recorded.isEmpty)
+  }
+
+  test("the view is shown the score so far") {
+    assert(LevelView.of(startingLevel).score == startingLevel.score.currentScore)
+  }
+
+  test("the view is shown the time in the whole seconds it is going to show") {
+    val played = startingLevel.ticking(1500.millis)
+    assert(LevelView.of(played).elapsed == 1.second)
   }
