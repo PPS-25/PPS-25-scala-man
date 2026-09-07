@@ -9,6 +9,7 @@ import it.unibo.pps.scalaman.controller.{
   Playing,
   RenderListener
 }
+import it.unibo.pps.scalaman.model.ModeTuning
 import it.unibo.pps.scalaman.model.effects.given
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
@@ -38,8 +39,11 @@ def applicationName: String = "scala-man"
   */
 object Main extends JFXApp3:
 
-  private var application =
-    Application(GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()), showing)
+  private var application = Application(
+    GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()),
+    showing,
+    ModeTuning.standardModes
+  )
 
   private var board: Option[GameBoard] = None
   private var veiled: Option[Screen] = None
