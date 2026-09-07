@@ -15,6 +15,9 @@ trait GameMode:
   /** The time enemies experience during an update at the current game time. */
   def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration = delta
 
+  /** How long a game has left, for the modes that run against a clock. */
+  def timeLeft(clock: GameClock): Option[FiniteDuration] = None
+
 object GameMode:
 
   /** Standard mode: collect every standard item while keeping at least one life. */
@@ -39,6 +42,9 @@ object GameMode:
     ): GameState =
       if clock.elapsed >= limit then GameState.Defeat
       else Normal.status(progress, collectibles, clock)
+
+    override def timeLeft(clock: GameClock): Option[FiniteDuration] =
+      Some((limit - clock.elapsed).max(Duration.Zero))
 
   /** Mode with no collectible-completion objective and progressively faster enemies. */
   final case class Survival(
