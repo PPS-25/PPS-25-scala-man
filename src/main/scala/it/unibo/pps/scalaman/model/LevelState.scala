@@ -173,14 +173,12 @@ object LevelState:
     */
   def pipeline(
       delta: FiniteDuration,
-      processInput: LevelState => LevelState = identity,
       updateAi: LevelState => LevelState = level => EnemyAiStage.stage(level)
   )(using
       BonusDuration,
       Slowdown
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
-      processInput = whileRunning(processInput),
       updateAi = whileRunning(updateAi),
       updateMovement = whileRunning(_.ticking(delta).movingOn(delta)),
       resolveCollisions =
