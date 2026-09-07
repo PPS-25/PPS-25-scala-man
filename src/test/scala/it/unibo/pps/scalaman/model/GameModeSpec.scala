@@ -8,7 +8,7 @@ import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class GameModeSpec extends AnyFunSuite:
 
@@ -18,6 +18,19 @@ class GameModeSpec extends AnyFunSuite:
         .move(Direction.Right, _ => true),
       EnemyKind.Hunter
     )
+
+  test("a mode without a clock has no time to run out") {
+    assert(GameMode.Normal.timeLeft(GameClock(10.seconds)).isEmpty)
+    assert(GameMode.Survival().timeLeft(GameClock(10.seconds)).isEmpty)
+  }
+
+  test("a timed mode tells how much of its limit is left") {
+    assert(GameMode.Timed(30.seconds).timeLeft(GameClock(10.seconds)).contains(20.seconds))
+  }
+
+  test("a timed mode that ran out has no time left rather than time owed") {
+    assert(GameMode.Timed(30.seconds).timeLeft(GameClock(40.seconds)).contains(Duration.Zero))
+  }
 
   test("normal mode preserves the standard victory and defeat rules") {
     val won = startingLevel.copy(collectibles = Collectibles(Set.empty))
