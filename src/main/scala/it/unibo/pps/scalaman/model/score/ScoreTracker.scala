@@ -72,11 +72,11 @@ final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
 
   /** Create a persistent game result.
     */
-  def toResult(playerName: String, remainingLives: Int, achievedAt: Instant)(using
+  def toResult(playerName: String, finalAward: ScoringEvent, achievedAt: Instant)(using
       ScoringRule
   ): GameResult =
     GameResult(
       playerName,
-      increaseScore(ScoringEvent.RemainingLives(remainingLives)).currentScore,
+      increaseScore(finalAward).currentScore,
       achievedAt
     )
