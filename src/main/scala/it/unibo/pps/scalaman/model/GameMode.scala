@@ -1,7 +1,8 @@
 package it.unibo.pps.scalaman.model
 
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
-import it.unibo.pps.scalaman.model.score.ScoringRule
+import it.unibo.pps.scalaman.model.score.ScoringEvent.{RemainingLives, RemainingTime, WavesSurvived}
+import it.unibo.pps.scalaman.model.score.{ScoringEvent, ScoringRule}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 
@@ -12,10 +13,15 @@ trait GameMode:
       collectibles: Collectibles,
       clock: GameClock
   ): GameState
+
+  /** The scoring rule that the game mode uses. */
   def scoringRule: ScoringRule = ScoringRule.standardScoring
 
   /** The time enemies experience during an update at the current game time. */
   def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration = delta
+
+  /** The final scoring event to be evaluated at the end of a game. It depends on the game mode. */
+  def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent
 
 object GameMode:
 
@@ -30,6 +36,10 @@ object GameMode:
       else if collectibles.isLevelComplete then GameState.Victory
       else GameState.Running
 
+    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = RemainingLives(
+      progress.lives
+    )
+
   /** Mode that requires the level to be completed strictly before its time limit. */
   final case class Timed(limit: FiniteDuration) extends GameMode:
     require(limit > Duration.Zero, "a timed mode must have a positive limit")
@@ -41,6 +51,12 @@ object GameMode:
     ): GameState =
       if clock.elapsed >= limit then GameState.Defeat
       else Normal.status(progress, collectibles, clock)
+
+    override def scoringRule: ScoringRule = ScoringRule.timedScoring
+
+    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = RemainingTime(
+      limit - clock.elapsed
+    )
 
   /** Mode with no collectible-completion objective and progressively faster enemies. */
   final case class Survival(
@@ -60,6 +76,8 @@ object GameMode:
     ): GameState =
       if progress.isOver then GameState.Defeat else GameState.Running
 
+    override def scoringRule: ScoringRule = ScoringRule.survivalScoring
+
     /** How many times the difficulty has increased. */
     def wavesSurvived(clock: GameClock): Long =
       clock.elapsed.toNanos / difficultyEvery.toNanos
@@ -68,3 +86,7 @@ object GameMode:
       val difficultyLevel = wavesSurvived(clock)
       val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
       delta * multiplier
+
+    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = WavesSurvived(
+      wavesSurvived(clock).toInt
+    )
