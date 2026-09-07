@@ -1,70 +1,117 @@
 package it.unibo.pps.scalaman
 
+import it.unibo.pps.scalaman.app.Command
 import it.unibo.pps.scalaman.controller.{
+  Application,
   CommandMapper,
-  GameSession,
-  LeaderboardRecording,
-  LevelView
+  GameFilesEnvironment,
+  LevelView,
+  Playing,
+  RenderListener
 }
-import it.unibo.pps.scalaman.leaderboard.io.FileLeaderboardStorage
-import it.unibo.pps.scalaman.map.io.MapLoader
-import it.unibo.pps.scalaman.map.parser.MapParser
-import it.unibo.pps.scalaman.map.validation.MapValidator
-import it.unibo.pps.scalaman.model.LevelState
+import it.unibo.pps.scalaman.model.effects.given
 import it.unibo.pps.scalaman.model.map.ValidatedMap
-import it.unibo.pps.scalaman.view.{Board, Frame, GameBoard}
+import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
+import it.unibo.pps.scalaman.view.{
+  Board,
+  Frame,
+  GameBoard,
+  MenuScreen,
+  Overlay,
+  Screen,
+  StatusBar,
+  Style
+}
+import scalafx.Includes.*
 import scalafx.animation.AnimationTimer
 import scalafx.application.JFXApp3
 import scalafx.scene.Scene
-import scalafx.scene.canvas.Canvas
-import scalafx.scene.Parent
-import scalafx.scene.input.KeyCode
-import scalafx.Includes.*
+import scalafx.scene.control.Alert
+import scalafx.scene.input.KeyEvent
+import scalafx.scene.paint.Color
 
-import java.nio.file.{Path, Paths}
-
-/** Name shown while the game loop is not yet in place. */
+/** The name the application is known by, on its window and in its messages. */
 def applicationName: String = "scala-man"
 
+/** The window: it draws what the application became, and hands it whatever whoever plays asks for.
+  * Nothing is decided here, which is why nothing here is tested — see `Application`.
+  */
 object Main extends JFXApp3:
 
-  private val DefaultMap: Path = Paths.get("maps", "level2.txt")
-  private val LeaderboardFile: Path = Paths.get("data", "leaderboard.csv")
-  private val PlayerName = "Player"
+  private var application =
+    Application(GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()), showing)
 
-  private def mazeAt(path: Path): Either[String, ValidatedMap] =
-    for
-      text <- MapLoader.load(path).left.map(_.toString)
-      raw <- MapParser.parse(text).left.map(_.mkString(", "))
-      maze <- MapValidator.validate(raw).left.map(_.mkString(", "))
-    yield maze
+  private var board: Option[GameBoard] = None
+  private var veiled: Option[Screen] = None
 
   override def start(): Unit =
-    mazeAt(DefaultMap) match
-      case Left(err)   => sys.error(s"could not start scala-man: $err")
-      case Right(maze) => play(maze)
+    stage = new JFXApp3.PrimaryStage:
+      title = applicationName
+      maximized = true
+      scene = new Scene:
+        fill = Color.web(Style.Night)
+        root = menu
+        // A filter, not a handler, and for the reason given on `steering`.
+        filterEvent(KeyEvent.KeyPressed) { (event: KeyEvent) => steering(event) }
+    AnimationTimer(framed).start()
 
-  private def play(maze: ValidatedMap): Unit =
-    val board = GameBoard.fittingScreen(Board.of(maze))
-    val recording = LeaderboardRecording[LevelState](
-      _.result(PlayerName),
-      FileLeaderboardStorage(LeaderboardFile)
-    )
-    var session = GameSession.starting(LevelState.from(maze), view => board.draw(Frame.of(view)))
-    stage = window(board.node, key => session = keyed(session, key))
-    AnimationTimer { now =>
-      val wasOver = session.isOver
-      session = session.advancedToFrame(now)
-      if !wasOver && session.isOver then
-        recording.recording(session.level).left.foreach(e => println(s"score not saved: $e"))
-    }.start()
+  private def asked(command: Command): Unit = became(application.commanded(command))
 
-  private def window(root: Parent, onKey: KeyCode => Unit): JFXApp3.PrimaryStage =
-    new JFXApp3.PrimaryStage:
-      title = "scala-man"
-      scene = new Scene(root):
-        onKeyPressed = event => onKey(event.code)
+  private def framed(now: Long): Unit =
+    became(application.advancedToFrame(now))
+    application.playing.foreach(covered)
 
-  private def keyed(session: GameSession, key: KeyCode): GameSession =
-    if CommandMapper.isPauseKey(key) then session.togglePause
-    else CommandMapper.toDir(key).fold(session)(session.requestingDirection)
+  /** Whatever the application became: a game that ended goes back to the menu, and anything it has
+    * to say is said once.
+    */
+  private def became(next: Application): Unit =
+    if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = menu
+    application = next.noticed
+    next.notice.foreach(failed)
+
+  /** How a level of a maze is drawn: the board shown here, and the brush handed back to whoever
+    * advances the game.
+    */
+  private def showing(maze: ValidatedMap): RenderListener[LevelView] =
+    val drawn = GameBoard.fittingScreen(Board.of(maze), asked)
+    board = Some(drawn)
+    stage.scene().root = drawn.node
+    view => drawn.draw(Frame.of(view))
+
+  // The veil is what the loop and the level say together, so it goes on outside the projection.
+  // Only when the screen changes: a game that ended would otherwise keep projecting its own score
+  // for as long as its veil is read.
+  private def covered(playing: Playing): Unit =
+    val screen = Screen.of(playing.loop, playing.status)
+    if !veiled.contains(screen) then
+      veiled = Some(screen)
+      board.foreach(
+        _.cover(Overlay.of(screen, StatusBar.of(LevelView.of(playing.session.level))))
+      )
+
+  /** The menu as it is right now, so that a maze added while the game is open is offered as soon as
+    * the menu comes back.
+    */
+  private def menu: scalafx.scene.Parent =
+    MenuScreen(application.mazes, application.bestOn, asked).node
+
+  /** What a key press asks for. Every control claims the arrows to move the focus and consumes
+    * them, so a steer is read on the way down and, once taken, consumed in its turn.
+    */
+  private def steering(event: KeyEvent): Unit =
+    if CommandMapper.isPauseKey(event.code) then asked(Command.Pause)
+    else
+      for
+        direction <- CommandMapper.toDir(event.code)
+        if application.steerable
+      do
+        application = application.steered(direction)
+        event.consume()
+
+  // Shown rather than waited on: a frame is being drawn, and a modal wait would refuse to open.
+  private def failed(message: String): Unit =
+    new Alert(Alert.AlertType.Error):
+      title = applicationName
+      headerText = "scala-man could not do that"
+      contentText = message
+    .show()

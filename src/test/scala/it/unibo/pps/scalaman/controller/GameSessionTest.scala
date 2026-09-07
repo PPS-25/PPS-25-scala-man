@@ -5,6 +5,8 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{levelWith, startingLevel, t
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.concurrent.duration.DurationInt
+
 class GameSessionTest extends AnyFunSuite:
 
   private val drawNothing: LevelView => Unit = _ => ()
@@ -37,7 +39,17 @@ class GameSessionTest extends AnyFunSuite:
       .requestingDirection(Direction.Down)
       .advancedToFrame(timePerPos.toNanos)
     assert(askedDirection.level.player.movement.exists(_.to == Position(2, 1)))
-    assert(askedDirection.requested.isEmpty)
+    assert(askedDirection.level.requestedDirection.isEmpty)
+  }
+
+  test("a frame that arrived before the one before it does not take the clock back") {
+    val running = sessionOn(levelWith(spawn)).advancedToFrame(10.seconds.toNanos)
+    assert(running.advancedToFrame(0L).level.clock == running.level.clock)
+  }
+
+  test("a frame the machine took too long over advances a game by no more than a step") {
+    val jumped = sessionOn(levelWith(spawn)).advancedToFrame(0L).advancedToFrame(10.seconds.toNanos)
+    assert(jumped.level.clock.elapsed == GameSession.LongestStep)
   }
 
   test("a session is over when its level is over") {

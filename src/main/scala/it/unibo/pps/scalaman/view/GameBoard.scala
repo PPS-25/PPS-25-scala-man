@@ -63,10 +63,10 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 
   private def written(overlay: Overlay): Seq[scalafx.scene.Node] =
     val title = new Label(overlay.title):
-      style = Style.text(cellSize * TitleOfCell)
+      style = Style.text(Style.Banner)
     val lines = overlay.lines.map(line =>
       new Label(line):
-        style = Style.text(cellSize * TextOfCell)
+        style = Style.text(Style.Reading)
     )
     val choices = overlay.choices.map(command =>
       new Button(spelled(command)):
@@ -84,7 +84,7 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 
   private def told(): Label = new Label(""):
     padding = Insets(SpacedBy)
-    style = Style.text(cellSize * TextOfCell)
+    style = Style.text(Style.Reading)
 
   // Walls and doors are transparent at the corners, so floor goes under every position.
   private def drawMaze(): Unit =
@@ -114,5 +114,3 @@ object GameBoard:
     GameBoard(board, CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)), chosen)
 
   private val SpacedBy = 10.0
-  private val TextOfCell = 0.3
-  private val TitleOfCell = 0.85

@@ -36,8 +36,6 @@ object Standings:
 object LeaderboardWindow:
 
   private val Headings = Seq("#", "Player", "Score", "When")
-  private val TextSize = 15.0
-  private val TitleSize = 22.0
   private val SpacedBy = 12.0
   private val Widest = 400.0
   private val Tallest = 420.0
@@ -55,11 +53,12 @@ object LeaderboardWindow:
         spacing = SpacedBy
         padding = Insets(SpacedBy * 2)
         style = Style.menu
-        children = Seq(told(maze.value, Style.heading(TitleSize)), read(places), closing(opened))
+        children =
+          Seq(told(maze.value, Style.heading(Style.Heading)), read(places), closing(opened))
     opened.showAndWait()
 
   private def read(places: Seq[Standing]): scalafx.scene.Node =
-    if places.isEmpty then told("No scores yet", Style.text(TextSize))
+    if places.isEmpty then told("No scores yet", Style.text(Style.Listing))
     else
       new ScrollPane:
         content = tabulated(places)
@@ -78,11 +77,11 @@ object LeaderboardWindow:
     vgap = SpacedBy / 3
     padding = Insets(SpacedBy)
     Headings.zipWithIndex.foreach((heading, column) =>
-      add(told(heading, Style.heading(TextSize)), column, 0)
+      add(told(heading, Style.heading(Style.Listing)), column, 0)
     )
     places.zipWithIndex.foreach((standing, place) =>
       columnsOf(standing).zipWithIndex.foreach((text, column) =>
-        add(told(text, Style.read(TextSize)), column, place + 1)
+        add(told(text, Style.read(Style.Listing)), column, place + 1)
       )
     )
 

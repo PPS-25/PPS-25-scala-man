@@ -30,10 +30,10 @@ final case class Overlay(title: String, lines: Seq[String], choices: Seq[Command
 
 object Overlay:
 
-  /** What covers the board, if anything. A game being played is covered by nothing, and the menu is
-    * a screen of its own rather than a veil over a board.
+  /** What covers the board, if anything: nothing while a game is played, and the menu is a screen
+    * of its own. The status is read by name, because a game being played never asks for it.
     */
-  def of(screen: Screen, status: StatusBar): Option[Overlay] = screen match
+  def of(screen: Screen, status: => StatusBar): Option[Overlay] = screen match
     case Screen.Paused =>
       Some(Overlay("Paused", Seq.empty, Seq(Command.Restart, Command.Resume, Command.SaveAndQuit)))
     case Screen.Over(outcome) =>
