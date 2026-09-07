@@ -6,6 +6,8 @@ import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, Position}
 
+import scala.concurrent.duration.{DurationLong, FiniteDuration}
+
 /** What a level shows to whoever draws it, and nothing more.
   */
 final case class LevelView(
@@ -15,7 +17,9 @@ final case class LevelView(
     remaining: Int,
     lives: Int,
     applied: Set[BonusEffect],
-    status: GameState
+    status: GameState,
+    score: Int,
+    elapsed: FiniteDuration
 )
 
 object LevelView:
@@ -30,7 +34,9 @@ object LevelView:
     remaining = level.collectibles.remaining,
     lives = level.progress.lives,
     applied = level.effects.active(level.clock.elapsed),
-    status = level.status
+    status = level.status,
+    score = level.score.currentScore,
+    elapsed = level.clock.elapsed.toSeconds.seconds
   )
 
   /** Notifies whoever draws a level, whenever a tick changes what it is shown. */
