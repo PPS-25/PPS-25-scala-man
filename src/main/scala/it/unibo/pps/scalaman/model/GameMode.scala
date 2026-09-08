@@ -23,8 +23,8 @@ trait GameMode:
   /** How long a game has left, for the modes that run against a clock. */
   def timeLeft(clock: GameClock): Option[FiniteDuration] = None
 
-  /** The final scoring event to be evaluated at the end of a game. It depends on the game mode. */
-  def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent
+  /** What the game mode awards on top of the points scored while playing. */
+  def bonus(progress: LevelProgress, clock: GameClock, over: Boolean): Option[ScoringEvent] = None
 
 object GameMode:
 
@@ -39,9 +39,12 @@ object GameMode:
       else if collectibles.isLevelComplete then GameState.Victory
       else GameState.Running
 
-    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = RemainingLives(
-      progress.lives
-    )
+    override def bonus(
+        progress: LevelProgress,
+        clock: GameClock,
+        over: Boolean
+    ): Option[ScoringEvent] =
+      Option.when(over)(ScoringEvent.RemainingLives(progress.lives))
 
   /** Mode that requires the level to be completed strictly before its time limit. */
   final case class Timed(limit: FiniteDuration) extends GameMode:
@@ -60,9 +63,12 @@ object GameMode:
 
     override def scoringRule: ScoringRule = ScoringRule.timedScoring
 
-    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = RemainingTime(
-      timeLeft(clock).getOrElse(Duration.Zero)
-    )
+    override def bonus(
+        progress: LevelProgress,
+        clock: GameClock,
+        over: Boolean
+    ): Option[ScoringEvent] =
+      Some(RemainingTime(timeLeft(clock).getOrElse(Duration.Zero)))
 
   /** Mode with no collectible-completion objective and progressively faster enemies. */
   final case class Survival(
@@ -84,6 +90,13 @@ object GameMode:
 
     override def scoringRule: ScoringRule = ScoringRule.survivalScoring
 
+    override def bonus(
+        progress: LevelProgress,
+        clock: GameClock,
+        over: Boolean
+    ): Option[ScoringEvent] =
+      Some(ScoringEvent.WavesSurvived(wavesSurvived(clock).toInt))
+
     /** How many times the difficulty has increased. */
     def wavesSurvived(clock: GameClock): Long =
       clock.elapsed.toNanos / difficultyEvery.toNanos
@@ -92,7 +105,3 @@ object GameMode:
       val difficultyLevel = wavesSurvived(clock)
       val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
       delta * multiplier
-
-    def finalAward(progress: LevelProgress, clock: GameClock): ScoringEvent = WavesSurvived(
-      wavesSurvived(clock).toInt
-    )
