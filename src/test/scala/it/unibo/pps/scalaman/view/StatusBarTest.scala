@@ -33,16 +33,16 @@ class StatusBarTest extends AnyFunSuite:
   test("a level against the clock is read by the time it has left, not the time it took") {
     assert(
       bar(elapsed = 95.seconds, timeLeft = Some(25.seconds)).levelDescribed
-        .startsWith("00:25")
+        .startsWith("Classic | 00:25")
     )
   }
 
   test("minutes and seconds are always told with two figures") {
-    assert(bar(elapsed = 5.seconds).levelDescribed.startsWith("00:05"))
+    assert(bar(elapsed = 5.seconds).levelDescribed.startsWith("Classic | 00:05"))
   }
 
   test("a long game is still told in minutes") {
-    assert(bar(elapsed = 3661.seconds).levelDescribed.startsWith("61:01"))
+    assert(bar(elapsed = 3661.seconds).levelDescribed.startsWith("Classic | 61:01"))
   }
 
   test("an applied effect is told beside what is left") {
