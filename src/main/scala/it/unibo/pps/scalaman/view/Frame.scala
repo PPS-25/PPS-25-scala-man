@@ -3,7 +3,7 @@ package it.unibo.pps.scalaman.view
 import it.unibo.pps.scalaman.controller.{LevelView, RenderedMovement}
 import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
-import it.unibo.pps.scalaman.model.{GameState, Position}
+import it.unibo.pps.scalaman.model.{GameState, LeaderboardMode, Position}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -37,7 +37,8 @@ final case class StatusBar(
     state: GameState,
     score: Int,
     elapsed: FiniteDuration,
-    timeLeft: Option[FiniteDuration]
+    timeLeft: Option[FiniteDuration],
+    mode: LeaderboardMode = LeaderboardMode.Classic
 ):
 
   /** How the player is doing. */
@@ -45,7 +46,7 @@ final case class StatusBar(
 
   /** How far the level has got, how long it took, and what is in effect. */
   def levelDescribed: String =
-    (Seq(timeDescribed, s"Left $remaining") ++ effects).mkString(" | ")
+    (Seq(mode.label, timeDescribed, s"Left $remaining") ++ effects).mkString(" | ")
 
   /** The clock the level is read by while it is played: what is left of it when it runs against
     * one, otherwise how long it has been going.
@@ -74,7 +75,8 @@ object StatusBar:
     view.status,
     view.score,
     view.elapsed,
-    view.timeLeft
+    view.timeLeft,
+    view.mode
   )
 
 private val SecondsPerMinute = 60

@@ -1,5 +1,7 @@
 package it.unibo.pps.scalaman.view
 
+import it.unibo.pps.scalaman.app.MapName
+import it.unibo.pps.scalaman.model.LeaderboardMode
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -33,6 +35,26 @@ class StandingsTest extends AnyFunSuite:
   test("the places are numbered from the first down") {
     val many = List.tabulate(3)(n => played(s"player$n", n))
     assert(Standings.of(Leaderboard.of(many)).map(_.place) == Seq(1, 2, 3))
+  }
+
+  test("a selection reads only the standings for its map and mode") {
+    val arena = MapName("arena")
+    val selected = LeaderboardSelection(arena, LeaderboardMode.Timed)
+    val classic = Leaderboard.of(List(played("Classic", 100)))
+    val timed = Leaderboard.of(List(played("Timed", 200)))
+
+    val standings = Standings.forSelection(
+      selected,
+      (map, mode) => if map == arena && mode == LeaderboardMode.Timed then timed else classic
+    )
+
+    assert(standings.map(_.player) == Seq("Timed"))
+  }
+
+  test("an empty leaderboard identifies its selected map and mode") {
+    val selection = LeaderboardSelection(MapName("arena"), LeaderboardMode.Survival)
+
+    assert(Standings.emptyMessage(selection) == "No Survival scores for arena yet.")
   }
 
   test("when a game was played is told where whoever reads it lives") {

@@ -1,11 +1,18 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.app.{DefaultMaps, GameFiles, MapName, Played, PlayableMazes}
+import it.unibo.pps.scalaman.app.{
+  DefaultMaps,
+  GameFiles,
+  MapName,
+  Played,
+  PlayableMazes,
+  PlayerName
+}
 import it.unibo.pps.scalaman.leaderboard.io.FileLeaderboardStorage
 import it.unibo.pps.scalaman.map.io.MapLoader
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
-import it.unibo.pps.scalaman.model.LevelState
+import it.unibo.pps.scalaman.model.{LeaderboardMode, LevelState}
 import it.unibo.pps.scalaman.model.map.{
   MapLoadError,
   MapParseError,
@@ -30,6 +37,22 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
 
   def mazes: Seq[MapName] = PlayableMazes.offered(found(files.mazes))
 
+  def playerName: Option[PlayerName] =
+    Option
+      .when(Files.isRegularFile(files.playerName))(files.playerName)
+      .flatMap(path => scala.util.Try(Files.readString(path).trim).toOption)
+      .flatMap(name => Option.when(name.nonEmpty)(PlayerName(name)))
+
+  def remembering(player: PlayerName): Either[String, Unit] =
+    if playerName.contains(player) then Right(())
+    else
+      for
+        _ <- made(files.home)
+        _ <- attempted("the player name cannot be kept")(
+          Files.writeString(files.playerName, player.value)
+        )
+      yield ()
+
   def maze(name: MapName): Either[String, ValidatedMap] =
     PlayableMazes.fileOf(name, files.mazes).fold(shipped(name))(mazeAt)
 
@@ -52,14 +75,14 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
       _ <- saves.save(level, folder.resolve(fileFor(by))).left.map(described)
     yield ()
 
-  def recording(result: GameResult, on: MapName): Either[String, Unit] =
-    val storage = FileLeaderboardStorage(files.leaderboardOf(on))
+  def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit] =
+    val storage = FileLeaderboardStorage(files.leaderboardOf(on, mode))
     // A recording reads the result out of a state: here the state handed to it is the result.
     LeaderboardRecording[GameResult](Some.apply, storage).recording(result).left.map(described)
 
   // Best scores nobody can read are shown as none reached: a menu has nowhere to tell it.
-  def bestOn(maze: MapName): Leaderboard =
-    FileLeaderboardStorage(files.leaderboardOf(maze)).load().getOrElse(Leaderboard.empty)
+  def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard =
+    FileLeaderboardStorage(files.leaderboardOf(maze, mode)).load().getOrElse(Leaderboard.empty)
 
   private def shipped(name: MapName): Either[String, ValidatedMap] =
     DefaultMaps
