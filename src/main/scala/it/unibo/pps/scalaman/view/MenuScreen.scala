@@ -1,13 +1,14 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.app.{Command, MapName, PlayerName}
+import it.unibo.pps.scalaman.model.ModeChoice
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos, Rectangle2D}
 import scalafx.scene.Parent
-import scalafx.scene.control.{Button, ListView, TextField}
+import scalafx.scene.control.{Button, ComboBox, ListView, TextField}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.stage.FileChooser
@@ -27,6 +28,11 @@ final class MenuScreen(
     promptText = "Your name"
     maxWidth = FieldWidth
 
+  private val modes = new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
+    maxWidth = FieldWidth
+    prefWidth = FieldWidth
+    value = ModeChoice.Normal
+
   private val mazes = new ListView[String](ObservableBuffer.from(offered.map(_.value))):
     maxWidth = FieldWidth
     maxHeight = ListHeight
@@ -36,12 +42,15 @@ final class MenuScreen(
     onAction = _ => showStandings()
 
   private val play = new Button("Play"):
-    onAction = _ => chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named))))
+    onAction = _ =>
+      chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named), chosenMode)))
     style = Style.button
 
   private val loadMap = new Button("Load map..."):
     onAction = _ =>
-      picked("Open a maze").foreach(path => chosen(Command.LoadMap(path, PlayerName(named))))
+      picked("Open a maze").foreach(path =>
+        chosen(Command.LoadMap(path, PlayerName(named), chosenMode))
+      )
     style = Style.button
 
   private val loadSave = new Button("Load game..."):
@@ -77,6 +86,7 @@ final class MenuScreen(
       logo,
       bonuses,
       player,
+      modes,
       mazes,
       new HBox:
         alignment = Pos.Center
@@ -85,6 +95,8 @@ final class MenuScreen(
     )
 
   private def named: String = player.text().trim
+
+  private def chosenMode: ModeChoice = modes.value()
 
   private def chosenMap: Option[MapName] =
     Option(mazes.selectionModel().getSelectedItem).map(MapName.apply)

@@ -2,10 +2,18 @@ package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.app.{Command, MapName, Played, PlayerName}
 import it.unibo.pps.scalaman.model.LevelTestSupport
+import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.effects.given
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
-import it.unibo.pps.scalaman.model.{Direction, GameMode, LevelState}
+import it.unibo.pps.scalaman.model.{
+  Direction,
+  GameMode,
+  GameState,
+  LevelState,
+  ModeChoice,
+  ModeTuning
+}
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.{Path, Paths}
@@ -16,13 +24,23 @@ class ApplicationTest extends AnyFunSuite:
 
   private val player = PlayerName("Matilde")
   private val onMaze = MapName("test")
-  private val start = Command.StartGame(onMaze, player)
+  private val start = Command.StartGame(onMaze, player, ModeChoice.Normal)
+
+  /** Rules whose clock runs out before the only collectible of the maze can be reached, so that a
+    * game against the clock is lost to the clock rather than won.
+    */
+  private val RunsOutIn = LevelState.PlayerTimePerPos / 2
+  private val soon: ModeTuning = choice =>
+    if choice == ModeChoice.Timed then GameMode.Timed(RunsOutIn)
+    else summon[ModeTuning].of(choice)
   private val elsewhere = Paths.get("/somewhere/spirale.txt")
   private val aFrameApart = GameSession.LongestStep.toNanos
 
   /** Frames enough to reach the only collectible, two positions away. Two go by first: one records
     * when it happened, the other starts the crossing.
     */
+  private val EnoughToRunOut = (RunsOutIn / GameSession.LongestStep).toInt + 2
+
   private val EnoughToWin =
     2 * (LevelState.PlayerTimePerPos / GameSession.LongestStep).toInt + 2
 
@@ -61,8 +79,9 @@ class ApplicationTest extends AnyFunSuite:
 
   private def application(
       outside: GameEnvironment = Outside(),
-      showing: ValidatedMap => RenderListener[LevelView] = drawingNothing
-  ): Application = Application(outside, showing)
+      showing: ValidatedMap => RenderListener[LevelView] = drawingNothing,
+      tuning: ModeTuning = ModeTuning.standardModes
+  ): Application = Application(outside, showing, tuning)
 
   /** Whoever draws, together with everything they were shown. */
   private def watching(): (ListBuffer[LevelView], ValidatedMap => RenderListener[LevelView]) =
@@ -154,6 +173,32 @@ class ApplicationTest extends AnyFunSuite:
     assert(outside.recorded.isEmpty)
   }
 
+  test("a game is played by the rules that were chosen") {
+    val timed = application().commanded(Command.StartGame(onMaze, player, ModeChoice.Timed))
+    assert(timed.playing.map(_.session.level.mode).contains(GameMode.Timed(2.minutes)))
+  }
+
+  test("a maze read from elsewhere is played by the rules that were chosen too") {
+    val survived =
+      application().commanded(Command.LoadMap(elsewhere, player, ModeChoice.Survival))
+    assert(survived.playing.map(_.session.level.mode).contains(GameMode.Survival()))
+  }
+
+  test("a game against the clock is over once its time has run out") {
+    val timed =
+      application(tuning = soon).commanded(Command.StartGame(onMaze, player, ModeChoice.Timed))
+    assert(played(timed, EnoughToRunOut).playing.map(_.status).contains(GameState.Defeat))
+  }
+
+  test("a game of survival is not won even with nothing left to collect") {
+    val nothingLeft = LevelState
+      .from(LevelTestSupport.maze, GameMode.Survival())
+      .copy(collectibles = Collectibles(Set.empty))
+    val survived = application(Outside(resumable = Some(nothingLeft)))
+      .commanded(Command.LoadSave(elsewhere, player))
+    assert(survived.playing.map(_.status).contains(GameState.Running))
+  }
+
   test("a game saved on request is put away") {
     assert(application().commanded(start).commanded(Command.SaveAndQuit).playing.isEmpty)
   }
@@ -185,12 +230,12 @@ class ApplicationTest extends AnyFunSuite:
 
   test("a maze read from elsewhere is kept, so that it is offered from then on") {
     val outside = Outside()
-    application(outside).commanded(Command.LoadMap(elsewhere, player))
+    application(outside).commanded(Command.LoadMap(elsewhere, player, ModeChoice.Normal))
     assert(outside.kept.toSeq == Seq(elsewhere))
   }
 
   test("a maze read from elsewhere is played under the name of its file") {
-    val played = application().commanded(Command.LoadMap(elsewhere, player))
+    val played = application().commanded(Command.LoadMap(elsewhere, player, ModeChoice.Normal))
     assert(played.playing.map(_.by.maze).contains(Some(MapName("spirale"))))
   }
 

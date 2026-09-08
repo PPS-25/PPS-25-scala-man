@@ -19,7 +19,8 @@ final case class LevelView(
     applied: Set[BonusEffect],
     status: GameState,
     score: Int,
-    elapsed: FiniteDuration
+    elapsed: FiniteDuration,
+    timeLeft: Option[FiniteDuration]
 )
 
 object LevelView:
@@ -36,11 +37,19 @@ object LevelView:
     applied = level.effects.active(level.clock.elapsed),
     status = level.status,
     score = level.score.currentScore,
-    elapsed = level.clock.elapsed.toSeconds.seconds
+    elapsed = level.clock.elapsed.toSeconds.seconds,
+    timeLeft = level.mode.timeLeft(level.clock).map(wholeSecondsUp)
   )
 
   /** Notifies whoever draws a level, whenever a tick changes what it is shown. */
   def rendering: Rendering[LevelState, LevelView] = Rendering(of)
+
+// Rounded up: a countdown that truncated would read zero for a whole second before the game is
+// over. Whole seconds because that is all the bar shows.
+private def wholeSecondsUp(left: FiniteDuration): FiniteDuration =
+  ((left.toMillis + MillisPerSecond - 1) / MillisPerSecond).seconds
+
+private val MillisPerSecond = 1000
 
 /** Where a MovingEntity is drawn. Contains the cell the entity is leaving, the one it is reaching,
   * and how far along the movement it is. A still entity is leaving and reaching the same cell.

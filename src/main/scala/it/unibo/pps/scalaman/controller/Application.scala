@@ -4,7 +4,14 @@ import it.unibo.pps.scalaman.app.{Command, MapName, Played, PlayableMazes, Playe
 import it.unibo.pps.scalaman.model.effects.{BonusDuration, Slowdown}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
-import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, LoopState}
+import it.unibo.pps.scalaman.model.{
+  Direction,
+  GameMode,
+  GameState,
+  LevelState,
+  LoopState,
+  ModeTuning
+}
 
 import java.nio.file.Path
 
@@ -52,6 +59,7 @@ final case class Playing(session: GameSession, by: Played):
 final case class Application(
     environment: GameEnvironment,
     showing: ValidatedMap => RenderListener[LevelView],
+    tuning: ModeTuning,
     playing: Option[Playing] = None,
     notice: Option[String] = None
 ):
@@ -64,13 +72,13 @@ final case class Application(
 
   /** The application after whoever plays asked for something. */
   def commanded(command: Command): Application = command match
-    case Command.StartGame(maze, player) =>
-      begun(environment.maze(maze), Played(player, Some(maze)))
-    case Command.LoadMap(path, player) =>
+    case Command.StartGame(maze, player, mode) =>
+      begun(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
+    case Command.LoadMap(path, player, mode) =>
       val read = environment.mazeAt(path)
       // Only a maze that reads is kept, and a maze that cannot be kept is played all the same.
       read.foreach(_ => environment.keeping(path))
-      begun(read, Played(player, PlayableMazes.named(path)))
+      begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
     case Command.LoadSave(path, player) =>
       environment.savedGame(path).fold(told, resumed(_, Played(player, None)))
     case Command.Pause | Command.Resume => onHold
@@ -105,8 +113,11 @@ final case class Application(
   /** The same application, with what it had to say taken as said. */
   def noticed: Application = copy(notice = None)
 
-  private def begun(maze: Either[String, ValidatedMap], by: Played): Application =
-    maze.fold(told, read => resumed(LevelState.from(read), by))
+  private def begun(
+      maze: Either[String, ValidatedMap],
+      by: Played,
+      mode: GameMode
+  ): Application = maze.fold(told, read => resumed(LevelState.from(read, mode), by))
 
   private def resumed(level: LevelState, by: Played): Application = copy(
     playing = Some(Playing(GameSession.starting(level, showing(level.maze)), by)),
