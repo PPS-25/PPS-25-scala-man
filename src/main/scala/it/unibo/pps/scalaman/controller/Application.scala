@@ -53,8 +53,8 @@ trait GameEnvironment:
 
 /** A message the application asks the interface to show. */
 enum ApplicationNotice:
-  case Error(message: String)
-  case Information(message: String)
+  case Error(override val message: String)
+  case Information(override val message: String)
 
   def message: String = this match
     case Error(message)       => message
@@ -173,11 +173,15 @@ final case class Application(
   // A game whose maze has no name of its own, which is any game resumed from a file, has no
   // leaderboard to be recorded in.
   private def recorded(level: LevelState, by: Played): Application =
-    val written = for
+    val result = for
       maze <- by.maze
       result <- level.result(by.player.value)
-    yield environment.recording(result, maze, LeaderboardMode.of(level.mode))
-    written.fold(this)(_.fold(told, _ => informed(maze, level.mode)))
+    yield (maze, result)
+    result.fold(this) { case (maze, score) =>
+      environment
+        .recording(score, maze, LeaderboardMode.of(level.mode))
+        .fold(told, _ => informed(maze, level.mode))
+    }
 
   private def informed(maze: MapName, mode: GameMode): Application = copy(
     notice = Some(
