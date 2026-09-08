@@ -1,5 +1,7 @@
 package it.unibo.pps.scalaman.app
 
+import it.unibo.pps.scalaman.model.LeaderboardMode
+
 import java.nio.file.{Path, Paths}
 import scala.io.Source
 import scala.util.Using
@@ -13,9 +15,18 @@ final case class GameFiles(home: Path):
   /** Where whoever plays keeps the mazes they added themselves. */
   def mazes: Path = home.resolve(GameFiles.Mazes)
 
-  /** Where the best scores reached on a maze are kept, one file per maze. */
-  def leaderboardOf(map: MapName): Path =
-    home.resolve(GameFiles.Leaderboards).resolve(s"${map.value}.csv")
+  /** Where the best scores reached on a maze in a mode are kept. Classic keeps its original file
+    * name so that existing scores remain visible.
+    */
+  def leaderboardOf(map: MapName, mode: LeaderboardMode): Path =
+    val suffix = mode match
+      case LeaderboardMode.Classic  => ""
+      case LeaderboardMode.Timed    => "-timed"
+      case LeaderboardMode.Survival => "-survival"
+    home.resolve(GameFiles.Leaderboards).resolve(s"${map.value}$suffix.csv")
+
+  /** Where the classic leaderboard of a maze is kept. */
+  def leaderboardOf(map: MapName): Path = leaderboardOf(map, LeaderboardMode.Classic)
 
 object GameFiles:
 

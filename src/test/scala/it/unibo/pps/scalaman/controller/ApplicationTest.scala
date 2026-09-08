@@ -10,6 +10,7 @@ import it.unibo.pps.scalaman.model.{
   Direction,
   GameMode,
   GameState,
+  LeaderboardMode,
   LevelState,
   ModeChoice,
   ModeTuning
@@ -33,6 +34,9 @@ class ApplicationTest extends AnyFunSuite:
   private val soon: ModeTuning = choice =>
     if choice == ModeChoice.Timed then GameMode.Timed(RunsOutIn)
     else summon[ModeTuning].of(choice)
+  private val enoughTime: ModeTuning = choice =>
+    if choice == ModeChoice.Timed then GameMode.Timed(1.second)
+    else summon[ModeTuning].of(choice)
   private val elsewhere = Paths.get("/somewhere/spirale.txt")
   private val aFrameApart = GameSession.LongestStep.toNanos
 
@@ -53,14 +57,14 @@ class ApplicationTest extends AnyFunSuite:
       resumable: Option[LevelState] = None
   ) extends GameEnvironment:
     val saved: ListBuffer[(LevelState, Played)] = ListBuffer.empty
-    val recorded: ListBuffer[(GameResult, MapName)] = ListBuffer.empty
+    val recorded: ListBuffer[(GameResult, MapName, LeaderboardMode)] = ListBuffer.empty
     val kept: ListBuffer[Path] = ListBuffer.empty
 
     private def refusing[A](answer: A, refused: Boolean): Either[String, A] =
       if refused then Left("the world says no") else Right(answer)
 
     def mazes: Seq[MapName] = Seq(onMaze)
-    def bestOn(maze: MapName): Leaderboard = Leaderboard.empty
+    def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = Leaderboard.empty
     def maze(name: MapName): Either[String, ValidatedMap] =
       refusing(LevelTestSupport.maze, unreadable)
     def mazeAt(path: Path): Either[String, ValidatedMap] =
@@ -71,8 +75,12 @@ class ApplicationTest extends AnyFunSuite:
     def saving(level: LevelState, by: Played): Either[String, Unit] =
       saved += ((level, by))
       refusing((), unwritable)
-    def recording(result: GameResult, on: MapName): Either[String, Unit] =
-      recorded += ((result, on))
+    def recording(
+        result: GameResult,
+        on: MapName,
+        mode: LeaderboardMode
+    ): Either[String, Unit] =
+      recorded += ((result, on, mode))
       refusing((), unwritable)
 
   private def drawingNothing: ValidatedMap => RenderListener[LevelView] = _ => _ => ()
@@ -159,6 +167,16 @@ class ApplicationTest extends AnyFunSuite:
     val outside = Outside()
     played(application(outside).commanded(start), EnoughToWin)
     assert(outside.recorded.map(_._2).toSeq == Seq(onMaze))
+  }
+
+  test("a score is recorded under the mode it was played in") {
+    val outside = Outside()
+    played(
+      application(outside, tuning = enoughTime)
+        .commanded(Command.StartGame(onMaze, player, ModeChoice.Timed)),
+      EnoughToWin
+    )
+    assert(outside.recorded.map(_._3).toSeq == Seq(LeaderboardMode.Timed))
   }
 
   test("a score is recorded once, however many frames follow the end of the game") {

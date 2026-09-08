@@ -1,7 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.app.{Command, MapName, PlayerName}
-import it.unibo.pps.scalaman.model.ModeChoice
+import it.unibo.pps.scalaman.model.{LeaderboardMode, ModeChoice}
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
@@ -18,7 +18,7 @@ import java.nio.file.Path
 /** The screen a game is started from: who is playing, on which maze, and how others did on it. */
 final class MenuScreen(
     offered: Seq[MapName],
-    bestOn: MapName => Leaderboard,
+    bestOn: (MapName, LeaderboardMode) => Leaderboard,
     chosen: Command => Unit
 ):
 
@@ -105,7 +105,8 @@ final class MenuScreen(
     Seq(play, loadMap, loadSave).foreach(_.disable = named.isEmpty)
 
   private def showStandings(): Unit = chosenMap.foreach(maze =>
-    LeaderboardWindow.open(maze, Standings.of(bestOn(maze)), node.scene().window())
+    val mode = LeaderboardMode.of(chosenMode)
+    LeaderboardWindow.open(maze, mode, Standings.of(bestOn(maze, mode)), node.scene().window())
   )
 
   private def picked(asked: String): Option[Path] =

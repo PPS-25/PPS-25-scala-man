@@ -1,7 +1,7 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.app.{DefaultMaps, GameFiles, MapName, Played, PlayerName}
-import it.unibo.pps.scalaman.model.{LevelState, LevelTestSupport}
+import it.unibo.pps.scalaman.model.{LeaderboardMode, LevelState, LevelTestSupport}
 import it.unibo.pps.scalaman.model.score.GameResult
 import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
 import org.scalatest.funsuite.AnyFunSuite
@@ -131,21 +131,21 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     inItsOwnHome((world, files) => assert(world.savedGame(files.saves.resolve("none")).isLeft))
   }
 
-  test("a maze nobody played has no best scores") {
-    inItsOwnHome((world, _) => assert(world.bestOn(arena).entries.isEmpty))
+  test("a maze nobody played in a mode has no best scores") {
+    inItsOwnHome((world, _) => assert(world.bestOn(arena, LeaderboardMode.Classic).entries.isEmpty))
   }
 
-  test("a score recorded on a maze is among the best scores of that maze") {
+  test("a score recorded on a maze is among the best scores of that map and mode") {
     inItsOwnHome { (world, _) =>
       val result = GameResult(player.value, 100, Instant.parse("2026-01-01T00:00:00Z"))
-      world.recording(result, arena)
-      assert(world.bestOn(arena).entries == List(result))
+      world.recording(result, arena, LeaderboardMode.Timed)
+      assert(world.bestOn(arena, LeaderboardMode.Timed).entries == List(result))
     }
   }
 
-  test("a score recorded on a maze is not among the best scores of another") {
+  test("scores for different modes on a maze are kept apart") {
     inItsOwnHome { (world, _) =>
-      world.recording(GameResult(player.value, 100, Instant.now()), arena)
-      assert(world.bestOn(mine).entries.isEmpty)
+      world.recording(GameResult(player.value, 100, Instant.now()), arena, LeaderboardMode.Classic)
+      assert(world.bestOn(arena, LeaderboardMode.Survival).entries.isEmpty)
     }
   }

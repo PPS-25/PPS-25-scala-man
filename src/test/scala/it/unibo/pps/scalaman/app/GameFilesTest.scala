@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.app
 
 import org.scalatest.funsuite.AnyFunSuite
+import it.unibo.pps.scalaman.model.LeaderboardMode
 
 import java.nio.file.Paths
 
@@ -22,6 +23,14 @@ class GameFilesTest extends AnyFunSuite:
 
   test("a leaderboard is named after the maze it belongs to") {
     assert(files.leaderboardOf(MapName("arena")).getFileName.toString == "arena.csv")
+  }
+
+  test("leaderboards for different modes of a maze have different files") {
+    val arena = MapName("arena")
+    assert(
+      files.leaderboardOf(arena, LeaderboardMode.Classic) !=
+        files.leaderboardOf(arena, LeaderboardMode.Timed)
+    )
   }
 
   test("a maze cannot go without a name") {

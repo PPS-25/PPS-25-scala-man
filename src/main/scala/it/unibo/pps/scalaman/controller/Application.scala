@@ -8,6 +8,7 @@ import it.unibo.pps.scalaman.model.{
   Direction,
   GameMode,
   GameState,
+  LeaderboardMode,
   LevelState,
   LoopState,
   ModeTuning
@@ -38,11 +39,11 @@ trait GameEnvironment:
   /** Puts a game away, under the name of whoever was playing it and where. */
   def saving(level: LevelState, by: Played): Either[String, Unit]
 
-  /** Writes a result among the best scores reached on a maze. */
-  def recording(result: GameResult, on: MapName): Either[String, Unit]
+  /** Writes a result among the best scores reached on a maze in a mode. */
+  def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit]
 
-  /** The best scores reached on a maze, as they are kept. */
-  def bestOn(maze: MapName): Leaderboard
+  /** The best scores reached on a maze in a mode, as they are kept. */
+  def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard
 
 /** A game in progress: what advances it, and who is playing it where. */
 final case class Playing(session: GameSession, by: Played):
@@ -67,8 +68,8 @@ final case class Application(
   /** Every maze that can be chosen right now. */
   def mazes: Seq[MapName] = environment.mazes
 
-  /** The best scores reached on a maze. */
-  def bestOn(maze: MapName): Leaderboard = environment.bestOn(maze)
+  /** The best scores reached on a maze in a mode. */
+  def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = environment.bestOn(maze, mode)
 
   /** The application after whoever plays asked for something. */
   def commanded(command: Command): Application = command match
@@ -150,7 +151,7 @@ final case class Application(
     val written = for
       maze <- by.maze
       result <- level.result(by.player.value)
-    yield environment.recording(result, maze)
+    yield environment.recording(result, maze, LeaderboardMode.of(level.mode))
     written.fold(this)(_.fold(told, _ => this))
 
   private def told(message: String): Application = copy(notice = Some(message))

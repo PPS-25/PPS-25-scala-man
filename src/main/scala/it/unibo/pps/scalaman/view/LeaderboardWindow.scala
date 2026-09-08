@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.app.MapName
+import it.unibo.pps.scalaman.model.LeaderboardMode
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
 import scalafx.geometry.{Insets, Pos}
@@ -40,10 +41,15 @@ object LeaderboardWindow:
   private val Widest = 400.0
   private val Tallest = 420.0
 
-  /** Opens the standings of a maze over the window they were asked from. */
-  def open(maze: MapName, places: Seq[Standing], from: Window): Unit =
+  /** Opens the standings of a maze and mode over the window they were asked from. */
+  def open(
+      maze: MapName,
+      mode: LeaderboardMode,
+      places: Seq[Standing],
+      from: Window
+  ): Unit =
     val opened = new Stage
-    opened.title = s"Leaderboard - ${maze.value}"
+    opened.title = s"Leaderboard - ${maze.value} (${mode.label})"
     // Owned, so it closes with the game instead of outliving it, and holds the menu meanwhile.
     opened.initOwner(from)
     opened.initModality(Modality.ApplicationModal)
@@ -54,7 +60,11 @@ object LeaderboardWindow:
         padding = Insets(SpacedBy * 2)
         style = Style.menu
         children =
-          Seq(told(maze.value, Style.heading(Style.Heading)), read(places), closing(opened))
+          Seq(
+            told(s"${maze.value} - ${mode.label}", Style.heading(Style.Heading)),
+            read(places),
+            closing(opened)
+          )
     opened.showAndWait()
 
   private def read(places: Seq[Standing]): scalafx.scene.Node =
