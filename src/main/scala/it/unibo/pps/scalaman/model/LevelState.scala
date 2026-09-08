@@ -84,11 +84,18 @@ final case class LevelState(
     */
   def status: GameState = mode.status(progress, collectibles, clock)
 
+  /** The score of the game as it is, made up of the points scored so far plus whatever the mode is
+    * awarding at the moment.
+    */
+  def liveScore: Int =
+    score.currentScore + mode
+      .bonus(progress, clock, status.isTerminal)
+      .fold(0)(mode.scoringRule.awardedPoints(_))
+
+  /** The result of the game, if the game is over. */
   def result(playerName: String): Option[GameResult] =
     Option.when(status.isTerminal)(
-      score.toResult(playerName, mode.finalAward(progress, clock), Instant.now())(using
-        mode.scoringRule
-      )
+      GameResult(playerName, liveScore, Instant.now())
     )
 
   /** The level after some time has passed. A level that ended stands still. */
