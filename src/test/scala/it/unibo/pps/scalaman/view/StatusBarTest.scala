@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.model.GameState
+import it.unibo.pps.scalaman.model.{GameState, LeaderboardMode}
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.effects.BonusEffect.{Invulnerability, SlowDown}
 import org.scalatest.funsuite.AnyFunSuite
@@ -23,7 +23,11 @@ class StatusBarTest extends AnyFunSuite:
   }
 
   test("the time played is told in minutes and seconds") {
-    assert(bar(elapsed = 95.seconds).levelDescribed == "01:35 | Left 1")
+    assert(bar(elapsed = 95.seconds).levelDescribed == "Classic | 01:35 | Left 1")
+  }
+
+  test("the selected game mode is told with the level status") {
+    assert(bar().copy(mode = LeaderboardMode.Survival).levelDescribed.startsWith("Survival"))
   }
 
   test("a level against the clock is read by the time it has left, not the time it took") {
