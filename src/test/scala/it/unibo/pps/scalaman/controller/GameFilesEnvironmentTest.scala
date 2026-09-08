@@ -6,6 +6,7 @@ import it.unibo.pps.scalaman.model.score.GameResult
 import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
 import org.scalatest.funsuite.AnyFunSuite
 
+import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
@@ -129,6 +130,33 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
 
   test("a game that was never put away cannot be read back") {
     inItsOwnHome((world, files) => assert(world.savedGame(files.saves.resolve("none")).isLeft))
+  }
+
+  test("a remembered player name is offered again") {
+    inItsOwnHome { (world, _) =>
+      assert(world.remembering(player) == Right(()))
+      assert(world.playerName.contains(player))
+    }
+  }
+
+  test("remembering the same player name does not rewrite it") {
+    inItsOwnHome { (world, files) =>
+      world.remembering(player)
+      val firstWritten = FileTime.fromMillis(1)
+      Files.setLastModifiedTime(files.playerName, firstWritten)
+
+      assert(world.remembering(player) == Right(()))
+      assert(Files.getLastModifiedTime(files.playerName) == firstWritten)
+    }
+  }
+
+  test("a changed player name replaces the remembered one") {
+    inItsOwnHome { (world, _) =>
+      val changed = PlayerName("Gaia")
+      world.remembering(player)
+      assert(world.remembering(changed) == Right(()))
+      assert(world.playerName.contains(changed))
+    }
   }
 
   test("a maze nobody played in a mode has no best scores") {

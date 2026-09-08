@@ -1,6 +1,13 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.app.{DefaultMaps, GameFiles, MapName, Played, PlayableMazes}
+import it.unibo.pps.scalaman.app.{
+  DefaultMaps,
+  GameFiles,
+  MapName,
+  Played,
+  PlayableMazes,
+  PlayerName
+}
 import it.unibo.pps.scalaman.leaderboard.io.FileLeaderboardStorage
 import it.unibo.pps.scalaman.map.io.MapLoader
 import it.unibo.pps.scalaman.map.parser.MapParser
@@ -29,6 +36,22 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
   import GameFilesEnvironment.*
 
   def mazes: Seq[MapName] = PlayableMazes.offered(found(files.mazes))
+
+  def playerName: Option[PlayerName] =
+    Option
+      .when(Files.isRegularFile(files.playerName))(files.playerName)
+      .flatMap(path => scala.util.Try(Files.readString(path).trim).toOption)
+      .flatMap(name => Option.when(name.nonEmpty)(PlayerName(name)))
+
+  def remembering(player: PlayerName): Either[String, Unit] =
+    if playerName.contains(player) then Right(())
+    else
+      for
+        _ <- made(files.home)
+        _ <- attempted("the player name cannot be kept")(
+          Files.writeString(files.playerName, player.value)
+        )
+      yield ()
 
   def maze(name: MapName): Either[String, ValidatedMap] =
     PlayableMazes.fileOf(name, files.mazes).fold(shipped(name))(mazeAt)

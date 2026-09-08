@@ -19,6 +19,7 @@ import java.nio.file.Path
 final class MenuScreen(
     offered: Seq[MapName],
     bestOn: (MapName, LeaderboardMode) => Leaderboard,
+    playerName: Option[PlayerName],
     chosen: Command => Unit
 ):
 
@@ -27,6 +28,7 @@ final class MenuScreen(
   private val player = new TextField:
     promptText = "Your name"
     maxWidth = FieldWidth
+    text = playerName.fold("")(_.value)
 
   private val modes = new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
     maxWidth = FieldWidth

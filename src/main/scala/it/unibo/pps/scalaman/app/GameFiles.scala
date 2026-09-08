@@ -15,6 +15,9 @@ final case class GameFiles(home: Path):
   /** Where whoever plays keeps the mazes they added themselves. */
   def mazes: Path = home.resolve(GameFiles.Mazes)
 
+  /** Where the last player name is kept between application runs. */
+  def playerName: Path = home.resolve(GameFiles.PlayerName)
+
   /** Where the best scores reached on a maze in a mode are kept. Classic keeps its original file
     * name so that existing scores remain visible.
     */
@@ -33,6 +36,7 @@ object GameFiles:
   private val Folder = ".scala-man"
   private val Saves = "saves"
   private val Mazes = "maps"
+  private val PlayerName = "player-name.txt"
   private val Leaderboards = "leaderboards"
 
   /** Where the game keeps its files for whoever is running it. */

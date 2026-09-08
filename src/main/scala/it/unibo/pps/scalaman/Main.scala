@@ -97,7 +97,7 @@ object Main extends JFXApp3:
     * the menu comes back.
     */
   private def menu: scalafx.scene.Parent =
-    MenuScreen(application.mazes, application.bestOn, asked).node
+    MenuScreen(application.mazes, application.bestOn, application.playerName, asked).node
 
   /** What a key press asks for. Every control claims the arrows to move the focus and consumes
     * them, so a steer is read on the way down and, once taken, consumed in its turn.

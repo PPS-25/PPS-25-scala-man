@@ -17,6 +17,10 @@ class GameFilesTest extends AnyFunSuite:
     assert(files.mazes.startsWith(files.home))
   }
 
+  test("the player name is kept under the home of the game") {
+    assert(files.playerName == files.home.resolve("player-name.txt"))
+  }
+
   test("a maze has a leaderboard of its own, told apart by its name") {
     assert(files.leaderboardOf(MapName("arena")) != files.leaderboardOf(MapName("classic")))
   }

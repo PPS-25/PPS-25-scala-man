@@ -24,6 +24,12 @@ trait GameEnvironment:
   /** Every maze that can be chosen right now. */
   def mazes: Seq[MapName]
 
+  /** The name most recently used to play a game, if any. */
+  def playerName: Option[PlayerName]
+
+  /** Keeps the name that will be offered the next time the menu opens. */
+  def remembering(player: PlayerName): Either[String, Unit]
+
   /** A maze the game offers under a name. */
   def maze(name: MapName): Either[String, ValidatedMap]
 
@@ -68,20 +74,27 @@ final case class Application(
   /** Every maze that can be chosen right now. */
   def mazes: Seq[MapName] = environment.mazes
 
+  /** The name that is pre-filled in the menu, if one was used before. */
+  def playerName: Option[PlayerName] = environment.playerName
+
   /** The best scores reached on a maze in a mode. */
   def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = environment.bestOn(maze, mode)
 
   /** The application after whoever plays asked for something. */
   def commanded(command: Command): Application = command match
     case Command.StartGame(maze, player, mode) =>
-      begun(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
+      remembering(player)(
+        begun(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
+      )
     case Command.LoadMap(path, player, mode) =>
-      val read = environment.mazeAt(path)
-      // Only a maze that reads is kept, and a maze that cannot be kept is played all the same.
-      read.foreach(_ => environment.keeping(path))
-      begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
+      remembering(player) {
+        val read = environment.mazeAt(path)
+        // Only a maze that reads is kept, and a maze that cannot be kept is played all the same.
+        read.foreach(_ => environment.keeping(path))
+        begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
+      }
     case Command.LoadSave(path, player) =>
-      environment.savedGame(path).fold(told, resumed(_, Played(player, None)))
+      remembering(player)(environment.savedGame(path).fold(told, resumed(_, Played(player, None))))
     case Command.Pause | Command.Resume => onHold
     case Command.Restart                => again
     case Command.BackToMenu             => putAway
@@ -119,6 +132,9 @@ final case class Application(
       by: Played,
       mode: GameMode
   ): Application = maze.fold(told, read => resumed(LevelState.from(read, mode), by))
+
+  private def remembering(player: PlayerName)(next: => Application): Application =
+    environment.remembering(player).fold(told, _ => next)
 
   private def resumed(level: LevelState, by: Played): Application = copy(
     playing = Some(Playing(GameSession.starting(level, showing(level.maze)), by)),

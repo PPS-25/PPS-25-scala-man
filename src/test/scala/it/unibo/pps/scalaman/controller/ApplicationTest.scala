@@ -59,11 +59,16 @@ class ApplicationTest extends AnyFunSuite:
     val saved: ListBuffer[(LevelState, Played)] = ListBuffer.empty
     val recorded: ListBuffer[(GameResult, MapName, LeaderboardMode)] = ListBuffer.empty
     val kept: ListBuffer[Path] = ListBuffer.empty
+    val remembered: ListBuffer[PlayerName] = ListBuffer.empty
 
     private def refusing[A](answer: A, refused: Boolean): Either[String, A] =
       if refused then Left("the world says no") else Right(answer)
 
     def mazes: Seq[MapName] = Seq(onMaze)
+    def playerName: Option[PlayerName] = remembered.lastOption
+    def remembering(player: PlayerName): Either[String, Unit] =
+      remembered += player
+      Right(())
     def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = Leaderboard.empty
     def maze(name: MapName): Either[String, ValidatedMap] =
       refusing(LevelTestSupport.maze, unreadable)
@@ -104,6 +109,12 @@ class ApplicationTest extends AnyFunSuite:
 
   test("a game asked for from the menu is played") {
     assert(application().commanded(start).playing.isDefined)
+  }
+
+  test("the name used to start a game is remembered") {
+    val outside = Outside()
+    application(outside).commanded(start)
+    assert(outside.remembered.toSeq == Seq(player))
   }
 
   test("a maze that cannot be read starts no game") {
