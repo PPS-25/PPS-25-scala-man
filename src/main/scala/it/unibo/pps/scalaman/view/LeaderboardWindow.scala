@@ -4,10 +4,11 @@ import it.unibo.pps.scalaman.app.MapName
 import it.unibo.pps.scalaman.model.LeaderboardMode
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
+import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Scene
-import scalafx.scene.control.{Button, Label, ScrollPane}
-import scalafx.scene.layout.{GridPane, VBox}
+import scalafx.scene.control.{Button, ComboBox, Label, ScrollPane}
+import scalafx.scene.layout.{GridPane, HBox, VBox}
 import scalafx.stage.{Modality, Stage, Window}
 
 import java.time.format.DateTimeFormatter
@@ -15,6 +16,9 @@ import java.time.{Instant, ZoneId}
 
 /** One place in the standings, with everything a finished game carries. */
 final case class Standing(place: Int, player: String, score: Int, achievedAt: Instant)
+
+/** The map and game category currently shown by a leaderboard. */
+final case class LeaderboardSelection(maze: MapName, mode: LeaderboardMode)
 
 /** The best scores reached on a maze, as they are read. */
 object Standings:
@@ -29,6 +33,12 @@ object Standings:
         Standing(place + 1, result.playerName, result.score, result.achievedAt)
       )
 
+  /** The standings for the selected map and game category. */
+  def forSelection(
+      selection: LeaderboardSelection,
+      bestOn: (MapName, LeaderboardMode) => Leaderboard
+  ): Seq[Standing] = of(bestOn(selection.maze, selection.mode))
+
   /** When a game was played, told where whoever reads it lives. */
   def dated(achievedAt: Instant, where: ZoneId): String =
     When.format(achievedAt.atZone(where))
@@ -41,15 +51,31 @@ object LeaderboardWindow:
   private val Widest = 400.0
   private val Tallest = 420.0
 
-  /** Opens the standings of a maze and mode over the window they were asked from. */
+  /** Opens standings that can be filtered by map and game category. */
   def open(
-      maze: MapName,
-      mode: LeaderboardMode,
-      places: Seq[Standing],
+      offered: Seq[MapName],
+      initially: LeaderboardSelection,
+      bestOn: (MapName, LeaderboardMode) => Leaderboard,
       from: Window
   ): Unit =
     val opened = new Stage
-    opened.title = s"Leaderboard - ${maze.value} (${mode.label})"
+    val maps = new ComboBox[String](ObservableBuffer.from(offered.map(_.value))):
+      value = initially.maze.value
+    val modes = new ComboBox[LeaderboardMode](ObservableBuffer.from(LeaderboardMode.values.toSeq)):
+      value = initially.mode
+    val heading = told("", Style.heading(Style.Heading))
+    val places = new VBox:
+      alignment = Pos.Center
+    def selection: LeaderboardSelection =
+      LeaderboardSelection(MapName(maps.value()), modes.value())
+    def refresh(): Unit =
+      val selected = selection
+      opened.title = s"Leaderboard - ${selected.maze.value} (${selected.mode.label})"
+      heading.text = s"${selected.maze.value} - ${selected.mode.label}"
+      places.children = Seq(read(Standings.forSelection(selected, bestOn)))
+    maps.value.onChange((_, _, _) => refresh())
+    modes.value.onChange((_, _, _) => refresh())
+    refresh()
     // Owned, so it closes with the game instead of outliving it, and holds the menu meanwhile.
     opened.initOwner(from)
     opened.initModality(Modality.ApplicationModal)
@@ -61,8 +87,9 @@ object LeaderboardWindow:
         style = Style.menu
         children =
           Seq(
-            told(s"${maze.value} - ${mode.label}", Style.heading(Style.Heading)),
-            read(places),
+            heading,
+            selectors(maps, modes),
+            places,
             closing(opened)
           )
     opened.showAndWait()
@@ -79,6 +106,11 @@ object LeaderboardWindow:
         maxWidth = Widest
         maxHeight = Tallest
         style = Style.paper
+
+  private def selectors(maps: ComboBox[String], modes: ComboBox[LeaderboardMode]): HBox = new HBox:
+    alignment = Pos.Center
+    spacing = SpacedBy
+    children = Seq(maps, modes)
 
   private def tabulated(places: Seq[Standing]): GridPane = new GridPane:
     alignment = Pos.Center

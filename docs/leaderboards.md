@@ -13,8 +13,8 @@ consistent with the score tracked and persisted by the domain model.
 
 ## UI and storage
 
-The menu selection of map and game mode is also the leaderboard filter. Opening the leaderboard
-shows only that map/category pair and identifies both in its title.
+The leaderboard opens on the map and mode selected in the menu. Its own map and mode selectors
+allow switching to any other map/category pair without closing the window.
 
 Classic leaderboards retain their existing `<map>.csv` storage file. Timed and Survival use
 `<map>-timed.csv` and `<map>-survival.csv`, respectively.

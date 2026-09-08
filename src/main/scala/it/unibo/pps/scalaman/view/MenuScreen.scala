@@ -106,7 +106,12 @@ final class MenuScreen(
 
   private def showStandings(): Unit = chosenMap.foreach(maze =>
     val mode = LeaderboardMode.of(chosenMode)
-    LeaderboardWindow.open(maze, mode, Standings.of(bestOn(maze, mode)), node.scene().window())
+    LeaderboardWindow.open(
+      offered,
+      LeaderboardSelection(maze, mode),
+      bestOn,
+      node.scene().window()
+    )
   )
 
   private def picked(asked: String): Option[Path] =
