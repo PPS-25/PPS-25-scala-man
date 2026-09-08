@@ -4,7 +4,7 @@ import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.EnemyKind
-import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, Position}
+import it.unibo.pps.scalaman.model.{Direction, GameState, LeaderboardMode, LevelState, Position}
 
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
@@ -20,7 +20,8 @@ final case class LevelView(
     status: GameState,
     score: Int,
     elapsed: FiniteDuration,
-    timeLeft: Option[FiniteDuration]
+    timeLeft: Option[FiniteDuration],
+    mode: LeaderboardMode = LeaderboardMode.Classic
 )
 
 object LevelView:
@@ -38,7 +39,8 @@ object LevelView:
     status = level.status,
     score = level.liveScore,
     elapsed = level.clock.elapsed.toSeconds.seconds,
-    timeLeft = level.mode.timeLeft(level.clock).map(wholeSecondsUp)
+    timeLeft = level.mode.timeLeft(level.clock).map(wholeSecondsUp),
+    mode = LeaderboardMode.of(level.mode)
   )
 
   /** Notifies whoever draws a level, whenever a tick changes what it is shown. */

@@ -1,7 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.app.{Command, MapName, PlayerName}
-import it.unibo.pps.scalaman.model.ModeChoice
+import it.unibo.pps.scalaman.model.{LeaderboardMode, ModeChoice}
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.score.Leaderboard
 import scalafx.Includes.*
@@ -18,15 +18,17 @@ import java.nio.file.Path
 /** The screen a game is started from: who is playing, on which maze, and how others did on it. */
 final class MenuScreen(
     offered: Seq[MapName],
-    bestOn: MapName => Leaderboard,
+    bestOn: (MapName, LeaderboardMode) => Leaderboard,
+    playerName: Option[PlayerName],
     chosen: Command => Unit
 ):
 
   import MenuScreen.*
 
   private val player = new TextField:
-    promptText = "Your name"
+    promptText = s"Your name (max $MaxNameLength)"
     maxWidth = FieldWidth
+    text = playerName.fold("")(_.value)
 
   private val modes = new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
     maxWidth = FieldWidth
@@ -45,6 +47,7 @@ final class MenuScreen(
     onAction = _ =>
       chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named), chosenMode)))
     style = Style.button
+    defaultButton = true
 
   private val loadMap = new Button("Load map..."):
     onAction = _ =>
@@ -73,7 +76,10 @@ final class MenuScreen(
     preserveRatio = true
 
   mazes.selectionModel().selectFirst()
-  player.text.onChange((_, _, _) => refuseEmptyName())
+  player.text.onChange((_, _, entered) =>
+    val limited = limitedName(entered)
+    if entered != limited then player.text = limited else refuseEmptyName()
+  )
   refuseEmptyName()
 
   /** What to put on a scene to choose a game. */
@@ -105,7 +111,13 @@ final class MenuScreen(
     Seq(play, loadMap, loadSave).foreach(_.disable = named.isEmpty)
 
   private def showStandings(): Unit = chosenMap.foreach(maze =>
-    LeaderboardWindow.open(maze, Standings.of(bestOn(maze)), node.scene().window())
+    val mode = LeaderboardMode.of(chosenMode)
+    LeaderboardWindow.open(
+      offered,
+      LeaderboardSelection(maze, mode),
+      bestOn,
+      node.scene().window()
+    )
   )
 
   private def picked(asked: String): Option[Path] =
@@ -119,7 +131,10 @@ object MenuScreen:
   private val ListHeight = 140.0
   private val LogoWidth = 620.0
   private val BonusSize = 72.0
+  private val MaxNameLength = 24
   private val Logo = "/logo.png"
+
+  private[view] def limitedName(name: String): String = name.take(MaxNameLength)
 
   // The drawn part of logo.png
   private val LogoDrawnOn = Rectangle2D(142, 516, 1719, 953)
