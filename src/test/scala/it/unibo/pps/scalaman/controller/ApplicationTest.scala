@@ -196,6 +196,15 @@ class ApplicationTest extends AnyFunSuite:
     assert(outside.recorded.size == 1)
   }
 
+  test("a recorded score is confirmed with its map and mode") {
+    val completed = played(application().commanded(start), EnoughToWin)
+    assert(
+      completed.notice.contains(
+        ApplicationNotice.Information("Result recorded in the Classic leaderboard for test.")
+      )
+    )
+  }
+
   test("a game resumed from a file has no leaderboard to be recorded in") {
     val outside = Outside(resumable = Some(LevelState.from(LevelTestSupport.maze)))
     played(application(outside).commanded(Command.LoadSave(elsewhere, player)), EnoughToWin)

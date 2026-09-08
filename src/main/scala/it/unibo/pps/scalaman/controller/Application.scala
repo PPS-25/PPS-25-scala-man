@@ -51,6 +51,15 @@ trait GameEnvironment:
   /** The best scores reached on a maze in a mode, as they are kept. */
   def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard
 
+/** A message the application asks the interface to show. */
+enum ApplicationNotice:
+  case Error(message: String)
+  case Information(message: String)
+
+  def message: String = this match
+    case Error(message)       => message
+    case Information(message) => message
+
 /** A game in progress: what advances it, and who is playing it where. */
 final case class Playing(session: GameSession, by: Played):
 
@@ -68,7 +77,7 @@ final case class Application(
     showing: ValidatedMap => RenderListener[LevelView],
     tuning: ModeTuning,
     playing: Option[Playing] = None,
-    notice: Option[String] = None
+    notice: Option[ApplicationNotice] = None
 ):
 
   /** Every maze that can be chosen right now. */
@@ -168,6 +177,15 @@ final case class Application(
       maze <- by.maze
       result <- level.result(by.player.value)
     yield environment.recording(result, maze, LeaderboardMode.of(level.mode))
-    written.fold(this)(_.fold(told, _ => this))
+    written.fold(this)(_.fold(told, _ => informed(maze, level.mode)))
 
-  private def told(message: String): Application = copy(notice = Some(message))
+  private def informed(maze: MapName, mode: GameMode): Application = copy(
+    notice = Some(
+      ApplicationNotice.Information(
+        s"Result recorded in the ${LeaderboardMode.of(mode).label} leaderboard for ${maze.value}."
+      )
+    )
+  )
+
+  private def told(message: String): Application =
+    copy(notice = Some(ApplicationNotice.Error(message)))
