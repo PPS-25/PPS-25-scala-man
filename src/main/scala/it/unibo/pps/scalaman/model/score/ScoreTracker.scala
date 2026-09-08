@@ -69,14 +69,3 @@ final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
   }
 
   def resetCombo: ScoreTracker = copy(combo = 0)
-
-  /** Create a persistent game result.
-    */
-  def toResult(playerName: String, finalAward: ScoringEvent, achievedAt: Instant)(using
-      ScoringRule
-  ): GameResult =
-    GameResult(
-      playerName,
-      increaseScore(finalAward).currentScore,
-      achievedAt
-    )
