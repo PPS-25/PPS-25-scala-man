@@ -43,8 +43,9 @@ class StandingsTest extends AnyFunSuite:
     val classic = Leaderboard.of(List(played("Classic", 100)))
     val timed = Leaderboard.of(List(played("Timed", 200)))
 
-    val standings = Standings.forSelection(selected, (map, mode) =>
-      if map == arena && mode == LeaderboardMode.Timed then timed else classic
+    val standings = Standings.forSelection(
+      selected,
+      (map, mode) => if map == arena && mode == LeaderboardMode.Timed then timed else classic
     )
 
     assert(standings.map(_.player) == Seq("Timed"))
