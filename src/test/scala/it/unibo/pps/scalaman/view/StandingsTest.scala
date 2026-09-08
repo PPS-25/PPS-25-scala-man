@@ -51,6 +51,12 @@ class StandingsTest extends AnyFunSuite:
     assert(standings.map(_.player) == Seq("Timed"))
   }
 
+  test("an empty leaderboard identifies its selected map and mode") {
+    val selection = LeaderboardSelection(MapName("arena"), LeaderboardMode.Survival)
+
+    assert(Standings.emptyMessage(selection) == "No Survival scores for arena yet.")
+  }
+
   test("when a game was played is told where whoever reads it lives") {
     assert(Standings.dated(whenever, ZoneId.of("Europe/Rome")) == "30/08/2026 23:45")
   }

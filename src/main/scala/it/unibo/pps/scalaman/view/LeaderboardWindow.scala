@@ -39,6 +39,10 @@ object Standings:
       bestOn: (MapName, LeaderboardMode) => Leaderboard
   ): Seq[Standing] = of(bestOn(selection.maze, selection.mode))
 
+  /** The explanation shown when a selected leaderboard has no entries. */
+  def emptyMessage(selection: LeaderboardSelection): String =
+    s"No ${selection.mode.label} scores for ${selection.maze.value} yet."
+
   /** When a game was played, told where whoever reads it lives. */
   def dated(achievedAt: Instant, where: ZoneId): String =
     When.format(achievedAt.atZone(where))
@@ -72,7 +76,7 @@ object LeaderboardWindow:
       val selected = selection
       opened.title = s"Leaderboard - ${selected.maze.value} (${selected.mode.label})"
       heading.text = s"${selected.maze.value} - ${selected.mode.label}"
-      places.children = Seq(read(Standings.forSelection(selected, bestOn)))
+      places.children = Seq(read(Standings.forSelection(selected, bestOn), selected))
     maps.value.onChange((_, _, _) => refresh())
     modes.value.onChange((_, _, _) => refresh())
     refresh()
@@ -93,8 +97,8 @@ object LeaderboardWindow:
         )
     opened.showAndWait()
 
-  private def read(places: Seq[Standing]): scalafx.scene.Node =
-    if places.isEmpty then told("No scores yet", Style.text(Style.Listing))
+  private def read(places: Seq[Standing], selection: LeaderboardSelection): scalafx.scene.Node =
+    if places.isEmpty then told(Standings.emptyMessage(selection), Style.text(Style.Listing))
     else
       new ScrollPane:
         content = tabulated(places)
@@ -109,7 +113,12 @@ object LeaderboardWindow:
   private def selectors(maps: ComboBox[String], modes: ComboBox[LeaderboardMode]): HBox = new HBox:
     alignment = Pos.Center
     spacing = SpacedBy
-    children = Seq(maps, modes)
+    children = Seq(labeled("Map", maps), labeled("Mode", modes))
+
+  private def labeled(label: String, control: scalafx.scene.Node): HBox = new HBox:
+    alignment = Pos.Center
+    spacing = SpacedBy / 2
+    children = Seq(told(label, Style.text(Style.Listing)), control)
 
   private def tabulated(places: Seq[Standing]): GridPane = new GridPane:
     alignment = Pos.Center
