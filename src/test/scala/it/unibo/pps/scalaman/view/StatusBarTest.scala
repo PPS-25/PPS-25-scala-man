@@ -14,8 +14,9 @@ class StatusBarTest extends AnyFunSuite:
       remaining: Int = 1,
       applied: Set[BonusEffect] = Set.empty,
       score: Int = 0,
-      elapsed: FiniteDuration = Duration.Zero
-  ) = StatusBar(lives, remaining, applied, GameState.Running, score, elapsed)
+      elapsed: FiniteDuration = Duration.Zero,
+      timeLeft: Option[FiniteDuration] = None
+  ) = StatusBar(lives, remaining, applied, GameState.Running, score, elapsed, timeLeft)
 
   test("the lives left and the score are told together") {
     assert(bar(lives = 3, score = 1200).playerDescribed == "Lives 3 | Score 1200")
@@ -23,6 +24,13 @@ class StatusBarTest extends AnyFunSuite:
 
   test("the time played is told in minutes and seconds") {
     assert(bar(elapsed = 95.seconds).levelDescribed == "01:35 | Left 1")
+  }
+
+  test("a level against the clock is read by the time it has left, not the time it took") {
+    assert(
+      bar(elapsed = 95.seconds, timeLeft = Some(25.seconds)).levelDescribed
+        .startsWith("00:25")
+    )
   }
 
   test("minutes and seconds are always told with two figures") {

@@ -8,7 +8,7 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
   startingLevel,
   timePerPos
 }
-import it.unibo.pps.scalaman.model.{Direction, LevelState}
+import it.unibo.pps.scalaman.model.{Direction, GameClock, GameMode, LevelState}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
@@ -80,4 +80,20 @@ class LevelViewTest extends AnyFunSuite:
   test("the view is shown the time in the whole seconds it is going to show") {
     val played = startingLevel.ticking(1500.millis)
     assert(LevelView.of(played).elapsed == 1.second)
+  }
+
+  test("a level with no clock to run out shows no time left") {
+    assert(LevelView.of(startingLevel).timeLeft.isEmpty)
+  }
+
+  test("a level against the clock shows the time it has left, down to the second") {
+    val timed =
+      startingLevel.copy(mode = GameMode.Timed(30.seconds), clock = GameClock(1500.millis))
+    assert(LevelView.of(timed).timeLeft.contains(29.seconds))
+  }
+
+  test("a countdown reads a whole second while any part of one is left") {
+    val nearlyOut =
+      startingLevel.copy(mode = GameMode.Timed(30.seconds), clock = GameClock(29500.millis))
+    assert(LevelView.of(nearlyOut).timeLeft.contains(1.second))
   }

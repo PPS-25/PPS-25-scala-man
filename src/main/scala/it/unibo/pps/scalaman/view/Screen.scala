@@ -45,4 +45,4 @@ object Overlay:
     case Outcome.Defeat  => "Defeat"
 
   private def reached(status: StatusBar): Seq[String] =
-    Seq(s"Score ${status.score}", s"Time ${status.timeDescribed}")
+    Seq(s"Score ${status.score}", s"Time ${status.timePlayed}")
