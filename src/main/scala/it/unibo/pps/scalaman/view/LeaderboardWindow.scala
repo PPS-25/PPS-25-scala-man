@@ -85,13 +85,12 @@ object LeaderboardWindow:
         spacing = SpacedBy
         padding = Insets(SpacedBy * 2)
         style = Style.menu
-        children =
-          Seq(
-            heading,
-            selectors(maps, modes),
-            places,
-            closing(opened)
-          )
+        children = Seq(
+          heading,
+          selectors(maps, modes),
+          places,
+          closing(opened)
+        )
     opened.showAndWait()
 
   private def read(places: Seq[Standing]): scalafx.scene.Node =

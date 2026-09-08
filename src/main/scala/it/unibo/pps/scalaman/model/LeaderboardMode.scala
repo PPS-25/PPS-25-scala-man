@@ -10,9 +10,9 @@ object LeaderboardMode:
 
   /** The leaderboard category used by a running game. */
   def of(mode: GameMode): LeaderboardMode = mode match
-    case GameMode.Normal       => LeaderboardMode.Classic
-    case _: GameMode.Timed     => LeaderboardMode.Timed
-    case _: GameMode.Survival  => LeaderboardMode.Survival
+    case GameMode.Normal      => LeaderboardMode.Classic
+    case _: GameMode.Timed    => LeaderboardMode.Timed
+    case _: GameMode.Survival => LeaderboardMode.Survival
 
   /** The leaderboard category selected from the menu. */
   def of(choice: ModeChoice): LeaderboardMode = choice match
