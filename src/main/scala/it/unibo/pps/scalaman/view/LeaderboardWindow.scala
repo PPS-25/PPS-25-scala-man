@@ -144,6 +144,7 @@ object LeaderboardWindow:
 
   private def closing(opened: Stage): Button = new Button("Close"):
     style = Style.button
+    cancelButton = true
     onAction = _ => opened.close()
 
   private def told(text: String, dressed: String): Label = new Label(text):

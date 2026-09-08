@@ -47,6 +47,7 @@ final class MenuScreen(
     onAction = _ =>
       chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named), chosenMode)))
     style = Style.button
+    defaultButton = true
 
   private val loadMap = new Button("Load map..."):
     onAction = _ =>
