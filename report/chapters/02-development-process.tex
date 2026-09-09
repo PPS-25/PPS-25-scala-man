@@ -1,19 +1,133 @@
 % !TEX root = ../main.tex
 \chapter{Development Process}
 
+The team adopted a SCRUM-inspired process, adapted to a group of three developers working part-time on a single codebase.
+Alongside their work as developers, two members took on additional roles: Alex Santini acted as product owner, responsible
+for maintaining and prioritizing the product backlog, while Matilde D'Antino acted as the client and domain expert, responsible
+for judging whether a completed item behaved as the game required.
+
+Development was organized into four one-week sprints of roughly fifteen hours of work per member, preceded by an organizational phase in which the build, the repository
+structure and the initial product backlog were set up.
+Each sprint was expected to end with a tangible increment
+carrying value for the client, rather than an isolated technical layer.
+
 \section{Task breakdown over time}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras vel ex sed metus
-ullamcorper sodales. Mauris at orci at magna tempor posuere.
+
+The product backlog was drawn up collectively in the first meeting. Work was expressed as \textbf{epics}, each covering one
+coherent area of the system, which were then decomposed into smaller \textbf{tasks}.
+Only the highest-priority epics were decomposed immediately, while the rest were refined during later
+sprint plannings.
+
+Fourteen epics were identified, the last four marked optional from the outset and scheduled only once the core game was
+playable.
+
+\begin{enumerate}
+    \item Project configuration and CI/CD
+    \item Domain model
+    \item Map loading, generation and validation
+    \item Movement and input management
+    \item Game loop and state updates
+    \item Collectibles and bonuses
+    \item Lives, victory and defeat
+    \item Enemy AI standard strategies
+    \item User interface and system integration
+    \item Documentation
+    \item Optional: scoring and leaderboard
+    \item Optional: additional enemy strategy
+    \item Optional: game saving and loading
+    \item Optional: additional game modes
+\end{enumerate}
+
+The backlog is kept on GitHub, with Issues representing epics and tasks and GitHub Project board tracking their state.
+An item moves through five states: \texttt{backlog} for work not yet scheduled into a sprint, \texttt{ready} for work
+scheduled but not started, \texttt{in progress}, \texttt{in review} once a pull request is open, and \texttt{done}.
 
 \section{Planned meetings and interactions}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, urna non
-fringilla luctus, turpis nisl faucibus urna, sed cursus massa lorem et mauris.
+Two recurring meetings were planned for each sprint. A backlog refinement was held mid-week, on Fridays, to re-examine
+the items scheduled for the current sprint, so that items that proved themselves to be more complex than
+expected could be split into smaller tasks, eventually assigned to the following sprint.
+The sprint boundary was held on Sundays and grouped three activities: a sprint review, in which the increment was demonstrated
+and judged against the definition of done; a sprint retrospective on how the process itself had worked; and the sprint
+planning for the following week, which selected the backlog items to be tackled and assigned them to members.
+
+Outside these fixed points, the team interacted continuously through pull request reviews.
+
+The four sprints were scheduled as follows:
+\begin{center}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Sprint} & \textbf{Period} \\
+        \hline
+        1 & 3-9 August \\
+        2 & 10-16 August \\
+        3 & 24-30 August \\
+        4 & 7-13 September \\
+        \hline
+    \end{tabular}
+\end{center}
 
 \section{Task review over time}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vel eros sed
-lectus tristique viverra. Vivamus euismod, augue sed laoreet facilisis, ipsum
-erat dictum libero, sed tincidunt velit nunc id mi.
+
+Work was reviewed continuously, through the branching model and the pull request process, rather than only at sprint
+boundaries.
+Four kinds of branch were used:
+
+\begin{center}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Branch} & \textbf{Purpose}
+        \hline
+        \texttt{main} & Release branch, kept in a state that can always be built and released \\
+        \texttt{dev} & Integration branch, where completed epics are brought together \\
+        \texttt{epic/<n>-<name>} & Branch collecting all work belonging to a single epic \\
+        \texttt{task/<n>-<name>} & Branch for an individual task within an epic \\
+        \hline
+    \end{tabular}
+\end{center}
+
+Work flows in one direction: a task branch is merged into its epic branch, an epic branch into \texttt{dev}, and \texttt{dev}
+into \texttt{main}. Every merge into \texttt{dev} requires a pull request approved by at least one other
+member, normally the one whose own epics interact most closely with the work under review, so that integration
+problems surface during review rather than after merging.
+
+Commit messages follow the Conventional Commits format, \texttt{<type<(<scope>): description}, which keeps the history
+readable.
+
+A task is considered \textbf{done} when it fulfills its requirements, is covered by automated tests, passes continuous
+integration, and has had its documentation updated. An epic is \textbf{done} when all of its tasks are done and its work
+has been merged into \texttt{dev}.
 
 \section{Testing, build, and CI tools}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean convallis
-finibus turpis, in laoreet ex viverra sed. Integer at tempus neque.
+
+The project is written in Scala 3 and targets JDK 21. The build is managed by sbt, which handles compilation, dependency
+resolution, test execution and packaging through a single definition. Two runtime dependencies are declared: ScalaFX 21.0.0-R32
+for the graphical interface, and ScalaTest 3.2.18, scoped to testing only.
+
+\subsection{Code style and static checks}
+
+Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}, so that the
+agreed style is enforced mechanically: continuous integration runs \texttt{scalafmtCheckAll} and fails the build on any deviation,
+which keeps formatting out of code review and prevents the style from drifting between developers.
+
+\subsection{Testing}
+
+Automated tests are written with ScalaTest and run under sbt. The suite is executed locally before every push and again
+by continuous integration on every push and pull request, so that no branch can be merged while failing.
+
+\subsection{Continuous integration}
+
+Continuous integration runs on GitHub Actions. The \textbf{Scala Tests} workflow triggers on every push and every pull request,
+provisions a Temurin JDK 21 toolchain with a cached sbt installation, and runs compilation, the test suite and the formatting
+check as a single command. Collapsing the three into one gate means a branch is either wholly accepted or rejected,
+with no partially passing state.
+
+\subsection{Continuous Delivery}
+
+Delivery is automated by the \textbf{Project Delivery} workflow, which runs on every push to \texttt{main} and can also
+be triggered manually. It produces the two artifacts that make a release: an executable fat JAR, assembled by the sbt-assembly
+plugin and the PDF of the report, compiled with latexmk inside a TeX Live container so that the result does not
+depend on any local LaTeX installation.
+The two are packaged together with the sources into a single archive, whose structure is verified programmatically before publication:
+the workflow asserts that the archive contains exactly one JAR, exactly one report, and no unexpected files
+at its root, failing the build otherwise. The verified archive is then published as a GitHub release. Automating the packaging
+in this way means the deliverable is rebuilt and re-checked on every change to \texttt{main}.
