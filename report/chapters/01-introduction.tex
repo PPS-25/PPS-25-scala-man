@@ -1,5 +1,29 @@
 % !TEX root = ../main.tex
 \chapter{Introduction}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae
-ultricies lacus. Vivamus hendrerit, mauris in auctor aliquet, ipsum nibh
-fermentum mi, sed viverra nulla orci et odio.
+
+Scala-Man is an arcade game inspired by the classic Pac-Man, written in Scala 3 with a ScalaFx user interface.
+
+The player moves inside a maze filled with collectible items as well as enemies, with the goal of collecting
+all items on the map, while avoiding being caught by the enemies, which move following different strategies:
+the Hunter enemy follows the player movement, the Anticipator tries to cut off the player's path, and the
+Patroller follows a set path.
+To avoid them, the player can exploit a few mechanics: teleports scattered across the map allow whoever steps on
+them to instantly teleport from a place to another, while special items provide bonuses, such as temporary
+invulnerability and enemy slowdown.
+If an enemy is able to catch the player, a life is lost: once all lives are lost, the game is over.
+
+Three different game modes are available.
+Classic mode is won by collecting every item, awarding extra points for bonuses collected and enemies defeated.
+Timed mode keeps the same objective, with the added challenge of completing the maze as quickly as possible.
+Survival mode drops the collection objective entirely: enemies become faster every thirty seconds, and the score increases
+by surviving each difficulty increase.
+
+The game allows the player to provide their own maps, which they can easily create as plain text files
+using specific ASCII characters.
+Each map is validated before play, to guarantee that it is well formed and that all collectibles are reachable.
+
+A leaderboard is generated for each combination of map and mode, so that games can be compared only if they have been
+played in the same map and in the same game mode.
+Games are displayed in the leaderboard by descending score, so that games with the highest score are on top.
+
+A game in progress can be paused and saved from the in-game menu, and resumed later from the start menu.
