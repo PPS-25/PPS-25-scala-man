@@ -73,9 +73,9 @@ boundaries.
 Four kinds of branch were used:
 
 \begin{center}
-    \begin{tabular}{|l|l|}
+    \begin{tabular}{|l|p{9cm}|}
         \hline
-        \textbf{Branch} & \textbf{Purpose}
+        \textbf{Branch} & \textbf{Purpose} \\
         \hline
         \texttt{main} & Release branch, kept in a state that can always be built and released \\
         \texttt{dev} & Integration branch, where completed epics are brought together \\
@@ -90,7 +90,7 @@ into \texttt{main}. Every merge into \texttt{dev} requires a pull request approv
 member, normally the one whose own epics interact most closely with the work under review, so that integration
 problems surface during review rather than after merging.
 
-Commit messages follow the Conventional Commits format, \texttt{<type<(<scope>): description}, which keeps the history
+Commit messages follow the Conventional Commits format, \texttt{<type>(<scope>): description}, which keeps the history
 readable.
 
 A task is considered \textbf{done} when it fulfills its requirements, is covered by automated tests, passes continuous
@@ -100,10 +100,10 @@ has been merged into \texttt{dev}.
 \section{Testing, build, and CI tools}
 
 The project is written in Scala 3 and targets JDK 21. The build is managed by sbt, which handles compilation, dependency
-resolution, test execution and packaging through a single definition. Two runtime dependencies are declared: ScalaFX 21.0.0-R32
+resolution, test execution and packaging through a single definition. Two dependencies are declared: ScalaFX 21.0.0-R32
 for the graphical interface, and ScalaTest 3.2.18, scoped to testing only.
 
-\subsection{Code style and static checks}
+\subsection{Code style}
 
 Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}, so that the
 agreed style is enforced mechanically: continuous integration runs \texttt{scalafmtCheckAll} and fails the build on any deviation,
