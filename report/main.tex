@@ -13,7 +13,6 @@
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
 
-\definecolor{accent}{HTML}{087E8B}
 \definecolor{ink}{HTML}{1F2933}
 
 \setlength{\parindent}{0pt}
@@ -22,25 +21,23 @@
 \renewcommand{\arraystretch}{1.12}
 \setlist{topsep=0.45em,itemsep=0.3em}
 
-\titleformat{\chapter}[display]
+\titleformat{\chapter}[hang]
   {\normalfont\bfseries\color{ink}\Huge}
-  {\color{accent}\Large\chaptername\ \thechapter}
-  {0.35em}
+  {\color{ink}\thechapter.}
+  {0.6em}
   {}
-  [\vspace{0.35em}\color{accent}\titlerule]
 \titlespacing*{\chapter}{0pt}{0pt}{1.4em}
 \titleformat{\section}{\normalfont\Large\bfseries\color{ink}}
-  {\color{accent}\thesection}{0.7em}{}
+  {\color{ink}\thesection}{0.7em}{}
 \titleformat{\subsection}{\normalfont\large\bfseries\color{ink}}
-  {\color{accent}\thesubsection}{0.65em}{}
+  {\color{ink}\thesubsection}{0.65em}{}
 
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{ink}\nouppercase{\leftmark}}
-\fancyhead[R]{\small\color{accent}scala-man}
+\fancyhead[R]{\small\color{ink}scala-man}
 \fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.3pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{accent}\leaders\hrule height \headrulewidth\hfill}}
 \fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
 
 \hypersetup{pdftitle={scala-man Final Report}}
@@ -64,13 +61,13 @@
 
     {\Large\color{ink} PPS -- Programming Paradigms and Development\par}
     \vspace{1.2cm}
-    {\color{accent}\rule{0.82\textwidth}{1pt}\par}
+    {\rule{0.82\textwidth}{0.5pt}\par}
     \vspace{0.9cm}
     {\fontsize{34}{40}\selectfont\bfseries\color{ink} scala-man\par}
     \vspace{0.35cm}
-    {\LARGE\color{accent} Final Report\par}
+    {\LARGE\color{ink} Final Report\par}
     \vspace{0.9cm}
-    {\color{accent}\rule{0.82\textwidth}{1pt}\par}
+    {\rule{0.82\textwidth}{0.5pt}\par}
 
     \vspace{1.6cm}
     {\large\bfseries\color{ink} Authors\par}

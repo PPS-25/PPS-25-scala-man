@@ -1,15 +1,17 @@
 % !TEX root = ../main.tex
 \chapter{Development Process}
 
-The team adopted a SCRUM-inspired process, adapted to a group of three developers working part-time on a single codebase.
-Alongside their work as developers, two members took on additional roles: Alex Santini acted as product owner, responsible
-for maintaining and prioritizing the product backlog, while Matilde D'Antino acted as the client and domain expert, responsible
-for judging whether a completed item behaved as the game required.
+The team adopted a \textbf{SCRUM-inspired process}, adapted to three developers working part-time on a single codebase.
+Alongside development work, two members took on additional roles:
 
-Development was organized into four one-week sprints of roughly fifteen hours of work per member, preceded by an organizational phase in which the build, the repository
-structure and the initial product backlog were set up.
-Each sprint was expected to end with a tangible increment
-carrying value for the client, rather than an isolated technical layer.
+\begin{itemize}
+  \item \textbf{Alex Santini --- product owner}: maintained and prioritised the product backlog;
+  \item \textbf{Matilde D'Antino --- client and domain expert}: judged whether a completed item behaved as required.
+\end{itemize}
+
+Development was organised into \textbf{four one-week sprints} of roughly fifteen hours per member, preceded by an
+organisational phase that established the build, repository structure, and initial backlog. Each sprint was expected to
+end with a \textbf{tangible client-facing increment}, rather than an isolated technical layer.
 
 \section{Task breakdown over time}
 
@@ -38,17 +40,26 @@ playable.
     \item Optional: additional game modes
 \end{enumerate}
 
-The backlog is kept on GitHub, with Issues representing epics and tasks and GitHub Project board tracking their state.
-An item moves through five states: \texttt{backlog} for work not yet scheduled into a sprint, \texttt{ready} for work
-scheduled but not started, \texttt{in progress}, \texttt{in review} once a pull request is open, and \texttt{done}.
+The backlog is kept on GitHub, with Issues representing epics and tasks and the GitHub Project board tracking their
+state. An item moves through the following workflow:
+
+\begin{center}
+  \texttt{backlog} $\rightarrow$ \texttt{ready} $\rightarrow$ \texttt{in progress} $\rightarrow$
+  \texttt{in review} $\rightarrow$ \texttt{done}
+\end{center}
+
+Here, \texttt{backlog} identifies work not yet scheduled into a sprint, \texttt{ready} scheduled but unstarted work,
+and \texttt{in review} work with an open pull request.
 
 \section{Planned meetings and interactions}
-Two recurring meetings were planned for each sprint. A backlog refinement was held mid-week, on Fridays, to re-examine
-the items scheduled for the current sprint, so that items that proved themselves to be more complex than
-expected could be split into smaller tasks, eventually assigned to the following sprint.
-The sprint boundary was held on Sundays and grouped three activities: a sprint review, in which the increment was demonstrated
-and judged against the definition of done; a sprint retrospective on how the process itself had worked; and the sprint
-planning for the following week, which selected the backlog items to be tackled and assigned them to members.
+Two recurring meetings were planned for each sprint:
+
+\begin{itemize}
+  \item \textbf{Friday backlog refinement}: the team re-examined current work, splitting unexpectedly complex items
+  into smaller tasks that could move to the following sprint.
+  \item \textbf{Sunday sprint boundary}: the team held the sprint review, retrospective, and planning for the following
+  week; the completed increment was demonstrated and judged against the definition of done.
+\end{itemize}
 
 Outside these fixed points, the team interacted continuously through pull request reviews.
 
@@ -85,17 +96,29 @@ Four kinds of branch were used:
     \end{tabular}
 \end{center}
 
-Work flows in one direction: a task branch is merged into its epic branch, an epic branch into \texttt{dev}, and \texttt{dev}
-into \texttt{main}. Every merge into \texttt{dev} requires a pull request approved by at least one other
-member, normally the one whose own epics interact most closely with the work under review, so that integration
-problems surface during review rather than after merging.
+Work flows in one direction:
+
+\begin{center}
+  \texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
+\end{center}
+
+Every merge into \texttt{dev} requires a pull request approved by at least one other member, normally the one whose
+own epics interact most closely with the work under review. This lets \textbf{integration problems surface during review}
+rather than after merging.
 
 Commit messages follow the Conventional Commits format, \texttt{<type>(<scope>): description}, which keeps the history
 readable.
 
-A task is considered \textbf{done} when it fulfills its requirements, is covered by automated tests, passes continuous
-integration, and has had its documentation updated. An epic is \textbf{done} when all of its tasks are done and its work
-has been merged into \texttt{dev}.
+\textbf{Definition of done.} A task is done when it:
+
+\begin{itemize}
+  \item fulfils its requirements;
+  \item is covered by automated tests;
+  \item passes continuous integration; and
+  \item has its documentation updated.
+\end{itemize}
+
+An epic is done when all of its tasks are done and its work has been merged into \texttt{dev}.
 
 \section{Testing, build, and CI tools}
 

@@ -1,33 +1,42 @@
 % !TEX root = ../main.tex
 \chapter{Introduction}
 
-Scala-Man is an arcade game inspired by the classic Pac-Man.
+\textbf{Scala-Man} is an arcade game inspired by the classic Pac-Man.
 
-The player moves inside a maze filled with collectible items as well as enemies, with the goal of collecting
-all items on the map, while avoiding being caught by the enemies, which move following different strategies:
-the Hunter enemy follows the player movement, the Anticipator tries to cut off the player's path, and the
-Patroller follows a set path.
-To avoid them, the player can exploit a few mechanics: teleports scattered across the map allow whoever steps on
-them to instantly teleport from one place to another, while special items provide bonuses, such as temporary
-invulnerability and enemy slowdown.
-If an enemy is able to catch the player, a life is lost: once all lives are lost, the game is over.
+The player moves inside a maze filled with collectible items and enemies. The game combines the following
+core mechanics:
 
-Three different game modes are available.
-Classic mode is won by collecting every item, awarding extra points for bonuses collected, enemies defeated, and
-remaining lives at the end of the game.
-Timed mode keeps the same objective, with the added challenge of completing the maze as quickly as possible.
-Survival mode drops the collection objective entirely: enemies become faster every thirty seconds, and the score increases
-by surviving each difficulty increase.
+\begin{itemize}
+  \item \textbf{Collection and survival}: the player clears the maze while avoiding enemies; being caught costs a
+  life, and the game ends once no life remains.
+  \item \textbf{Enemy strategies}: the \textbf{Hunter} follows the player, the \textbf{Anticipator} tries to cut off
+  their path, and the \textbf{Patroller} follows a set path.
+  \item \textbf{Mobility and bonuses}: teleports instantly carry whoever steps on them to their paired endpoint,
+  while special items grant temporary invulnerability or slow enemies down.
+\end{itemize}
 
-The game allows the player to provide their own maps, which they can easily create as plain text files
-using specific ASCII characters.
-Each map is validated before play, to guarantee that it is well-formed and that all collectibles are reachable.
+Three \textbf{game modes} offer distinct objectives and ranking criteria:
 
-A leaderboard is generated for each combination of map and mode, so that games can be compared only if they have been
-played on the same map and in the same game mode.
-Games are displayed in the leaderboard by descending score.
-A game in progress can be paused and saved from the in-game menu, and resumed later from the start menu.
+\begin{itemize}
+  \item \textbf{Classic}: collect every standard item; bonuses, defeated enemies, and remaining lives add points.
+  \item \textbf{Timed}: complete the same objective as quickly as possible.
+  \item \textbf{Survival}: survive increasingly fast enemies; the score grows with each difficulty increase.
+\end{itemize}
 
-Beyond being playable, the project sets itself three criteria for a good result: enemy behavior that can be extended
-with new strategies, game modes that can be added without touching the application core, and a model that can be tested
-independently of the graphical interface.
+Players can provide their own maps as plain-text files using the documented ASCII format. Each map is
+\textbf{validated before play} to guarantee that it is well formed and that all collectibles are reachable.
+
+The game also supports the following player-facing features:
+
+\begin{itemize}
+  \item a \textbf{leaderboard} for each map--mode combination, ordered by descending score;
+  \item \textbf{saving and loading}, so a paused game can be resumed later from the start menu.
+\end{itemize}
+
+Beyond being playable, the project is designed around three quality goals:
+
+\begin{itemize}
+  \item \textbf{Extensible enemy behaviour}, through new strategies;
+  \item \textbf{Extensible game modes}, without changing the application core;
+  \item \textbf{Independent model testing}, without a graphical interface.
+\end{itemize}

@@ -7,29 +7,20 @@ scalable and testable.
 
 \section{Business requirements}
 
-Scala-Man must be a single-player arcade maze game, distributed as a runnable executable and played locally on one
-computer. It must be recognizable to anyone who knows the arcade game it takes after: the mechanics that define the
-game, that is a maze to be cleared of items, enemies that hunt the player through it, and power-ups, must all be present
-and behave as expected.
+The business requirements can be summarised as follows:
 
-The player must be able to start playing almost immediately, with little or no need for documentation, choosing a name,
-a maze and a game mode before each game. The game must therefore offer several modes, each setting a different objective,
-so that the same maze can be played in more than one way.
-
-A game in progress must not be lost when the player stops playing: it must be possible to set a game aside and
-take it up again later.
-
-The outcome of a completed game must be recorded, and results achieved on the same maze in the same mode must be
-comparable with one another, so that a player can measure a run against their earlier ones.
-
-Players must be able to play on mazes they have written themselves, as well as on the mazes supplied with the game.
-
-The game must be able to grow further after delivery, with new game modes, new enemy behaviors and new bonus effects
-that can be added to the system.
-
-The project itself carries two further constraints: it must be completed within four one-week sprints of roughly
-fifteen hours of work per member, and it must employ functional programming techniques, systematic automated testing,
-and an agile development process.
+\begin{itemize}
+  \item \textbf{Accessible arcade game}: Scala-Man is a single-player maze game, distributed as a runnable executable
+  and played locally. Its maze clearing, enemy pursuit, and power-up mechanics must be immediately recognisable.
+  \item \textbf{Fast start}: a player chooses a name, maze, and game mode with little or no need for documentation.
+  Each mode offers a distinct objective, allowing the same maze to be played in more than one way.
+  \item \textbf{Continuity and comparison}: games can be saved and resumed, while completed games are recorded so runs
+  on the same maze and in the same mode remain comparable.
+  \item \textbf{Player-authored content}: players can play both supplied mazes and mazes they have written themselves.
+  \item \textbf{Extensibility}: new game modes, enemy behaviours, and bonus effects can be added after delivery.
+  \item \textbf{Project constraints}: development is limited to four one-week sprints of roughly fifteen hours per
+  member and uses functional programming, systematic automated testing, and an agile process.
+\end{itemize}
 
 \section{Domain model}
 
