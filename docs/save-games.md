@@ -7,8 +7,9 @@ does not know the storage format or perform file I/O.
 copy of the ASCII map, rather than a reference to its original file, so it can be resumed after
 application restarts even if the original map is moved or edited.
 
-The current format is version 2. Version 2 is not compatible with version 1 because enemy movement
-and Survival-mode tuning use the movement-based domain model.
+The current format is version 3. Version 3 is not compatible with version 1 because enemy movement
+and Survival-mode tuning use the movement-based domain model. Older saves whose Survival speed cap
+exceeds the current player-speed limit are loaded with that cap reduced to the supported maximum.
 
 The repository persists the active mode, player state (including an in-progress movement),
 enemies (including in-progress movement and teleport state), remaining collectibles, active-effect

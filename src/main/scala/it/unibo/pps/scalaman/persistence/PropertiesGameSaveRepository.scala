@@ -184,7 +184,7 @@ object PropertiesGameSaveRepository:
       case "survival" :: every :: maximumSpeedMultiplier :: Nil =>
         for
           difficultyEvery <- decodePositiveDuration(every, "survival difficulty interval")
-          maximum <- decodePositiveLong(maximumSpeedMultiplier, "survival maximum speed multiplier")
+          maximum <- decodePositiveDouble(maximumSpeedMultiplier, "survival maximum speed multiplier")
         yield GameMode.Survival(difficultyEvery, maximum)
       case _ => invalid("invalid game mode")
 
@@ -364,14 +364,16 @@ object PropertiesGameSaveRepository:
       Either.cond(number >= 0, number, SaveGameError.InvalidSave(s"$field must not be negative"))
     }
 
-  private def decodePositiveLong(value: String, field: String): Either[SaveGameError, Long] =
+  private def decodePositiveDouble(value: String, field: String): Either[SaveGameError, Double] =
     scala.util
-      .Try(value.toLong)
+      .Try(value.toDouble)
       .toOption
       .flatMap { number =>
-        Option.when(number > 0)(number)
+        Option.when(number.isFinite && number >= 1)(
+          number.min(GameMode.MaximumSurvivalSpeedMultiplier)
+        )
       }
-      .toRight(SaveGameError.InvalidSave(s"$field must be positive"))
+      .toRight(SaveGameError.InvalidSave(s"$field must be at least one"))
 
   private def decodeInt(value: String, field: String): Either[SaveGameError, Int] =
     scala.util.Try(value.toInt).toOption.toRight(SaveGameError.InvalidSave(s"invalid $field"))

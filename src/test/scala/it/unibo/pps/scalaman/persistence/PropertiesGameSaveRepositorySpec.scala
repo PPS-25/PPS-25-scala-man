@@ -47,7 +47,7 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
     val original = LevelState
       .from(
         maze,
-        GameMode.Survival(difficultyEvery = 10.seconds, maximumSpeedMultiplier = 4)
+        GameMode.Survival(difficultyEvery = 10.seconds, maximumSpeedMultiplier = 1.25)
       )
       .copy(
         enemies = Vector(

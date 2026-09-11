@@ -4,7 +4,7 @@ import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.score.ScoringEvent.{RemainingLives, RemainingTime, WavesSurvived}
 import it.unibo.pps.scalaman.model.score.{ScoringEvent, ScoringRule}
 
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
 
 /** Rules that determine the current outcome of a game mode from immutable game state. */
 trait GameMode:
@@ -71,14 +71,16 @@ object GameMode:
       Some(RemainingTime(timeLeft(clock).getOrElse(Duration.Zero)))
 
   /** Mode with no collectible-completion objective and progressively faster enemies. */
+  val MaximumSurvivalSpeedMultiplier: Double = 1.25
+
   final case class Survival(
       difficultyEvery: FiniteDuration = 30.seconds,
-      maximumSpeedMultiplier: Long = 5
+      maximumSpeedMultiplier: Double = MaximumSurvivalSpeedMultiplier
   ) extends GameMode:
     require(difficultyEvery > Duration.Zero, "difficulty must increase after a positive duration")
     require(
-      maximumSpeedMultiplier > 0,
-      "the maximum enemy speed multiplier must be positive"
+      maximumSpeedMultiplier >= 1 && maximumSpeedMultiplier <= MaximumSurvivalSpeedMultiplier,
+      "the maximum enemy speed multiplier must keep enemies no faster than the player"
     )
 
     def status(
@@ -101,7 +103,12 @@ object GameMode:
     def wavesSurvived(clock: GameClock): Long =
       clock.elapsed.toNanos / difficultyEvery.toNanos
 
+    /** The gradual speed increase assigned to the wave reached at this point in the game. */
+    def speedMultiplier(clock: GameClock): Double =
+      (1 + wavesSurvived(clock) * SpeedIncreasePerWave).min(maximumSpeedMultiplier)
+
     override def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration =
-      val difficultyLevel = wavesSurvived(clock)
-      val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
-      delta * multiplier
+      (delta.toNanos * speedMultiplier(clock)).round.nanos
+
+  /** Each survival wave raises speed by a noticeable but survivable amount. */
+  private val SpeedIncreasePerWave = 0.2

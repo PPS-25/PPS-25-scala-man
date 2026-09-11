@@ -83,17 +83,26 @@ class GameModeSpec extends AnyFunSuite:
   }
 
   test("a survival mode progressively speeds enemy movement up to its configured maximum") {
-    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
+    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 1.25)
     val accelerated =
       LevelState.from(maze, mode).ticking(1.second).copy(enemies = Vector(movingEnemy))
-    val capped = LevelState.from(maze, mode).ticking(4.seconds).copy(enemies = Vector(movingEnemy))
+    val capped =
+      LevelState.from(maze, mode).ticking(2.seconds).copy(enemies = Vector(movingEnemy))
 
-    assert(!accelerated.movingOn(125.millis).enemies.head.entity.isMoving)
-    assert(!capped.movingOn(50.millis).enemies.head.entity.isMoving)
+    assert(!accelerated.movingOn(210.millis).enemies.head.entity.isMoving)
+    assert(!capped.movingOn(200.millis).enemies.head.entity.isMoving)
+  }
+
+  test("a survival wave raises enemy speed gradually") {
+    val mode = GameMode.Survival(difficultyEvery = 10.seconds)
+
+    assert(mode.speedMultiplier(GameClock()) == 1.0)
+    assert(mode.speedMultiplier(GameClock(10.seconds)) == 1.2)
+    assert(mode.speedMultiplier(GameClock(20.seconds)) == 1.25)
   }
 
   test("slowdown is applied after the survival speed increase") {
-    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
+    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 1.25)
     val advanced = LevelState
       .from(maze, mode)
       .ticking(1.second)
@@ -102,8 +111,8 @@ class GameModeSpec extends AnyFunSuite:
       ActiveEffects.empty.activate(BonusEffect.SlowDown, advanced.clock.elapsed, 1.second)
     )
 
-    assert(slowed.movingOn(125.millis).enemies.head.entity.isMoving)
-    assert(!slowed.movingOn(250.millis).enemies.head.entity.isMoving)
+    assert(slowed.movingOn(210.millis).enemies.head.entity.isMoving)
+    assert(!slowed.movingOn(420.millis).enemies.head.entity.isMoving)
   }
 
   test("a survival mode requires positive difficulty tuning") {
@@ -112,6 +121,9 @@ class GameModeSpec extends AnyFunSuite:
     }
     assertThrows[IllegalArgumentException] {
       GameMode.Survival(maximumSpeedMultiplier = 0)
+    }
+    assertThrows[IllegalArgumentException] {
+      GameMode.Survival(maximumSpeedMultiplier = 1.5)
     }
   }
 
