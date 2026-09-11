@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.model.effects.BonusEffect
+import it.unibo.pps.scalaman.model.Direction
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import scalafx.scene.image.Image
 
@@ -12,7 +13,7 @@ enum Mouth:
 enum Sprite:
   case Wall, Floor, Item
   case Teleport(pair: Int)
-  case Player(mouth: Mouth)
+  case Player(mouth: Mouth, facing: Direction)
   case Bonus(effect: BonusEffect)
   case Enemy(kind: EnemyKind)
 
@@ -25,7 +26,10 @@ object Sprite:
   val All: Set[Sprite] =
     Set(Wall, Floor, Item) ++
       (0 until TeleportLooks).map(Teleport.apply) ++
-      Mouth.values.map(Player.apply) ++
+      (for
+        mouth <- Mouth.values
+        direction <- Direction.values
+      yield Player(mouth, direction)) ++
       BonusEffect.values.map(Bonus.apply) ++
       EnemyKind.values.map(Enemy.apply)
 
@@ -40,8 +44,8 @@ object SpriteImages:
     case Sprite.Floor                => "/floor.png"
     case Sprite.Item                 => "/collectible.png"
     case Sprite.Teleport(pair)       => s"/teleport${pair % Sprite.TeleportLooks + 1}.png"
-    case Sprite.Player(Mouth.Open)   => "/scalaman1.png"
-    case Sprite.Player(Mouth.Closed) => "/scalaman2.png"
+    case Sprite.Player(Mouth.Open, _)   => "/scalaman1.png"
+    case Sprite.Player(Mouth.Closed, _) => "/scalaman2.png"
     case Sprite.Bonus(BonusEffect.Invulnerability) => "/bonus2.png"
     case Sprite.Bonus(BonusEffect.SlowDown)        => "/bonus1.png"
     case Sprite.Enemy(EnemyKind.Hunter)            => "/enemy1.png"

@@ -24,7 +24,11 @@ class FrameTest extends AnyFunSuite:
   private val frame = frameOf(startingLevel)
 
   test("the player is drawn where it stands") {
-    assert(drawnOn(frame, startingLevel.player.currentPos).contains(Sprite.Player(Mouth.Open)))
+    assert(
+      drawnOn(frame, startingLevel.player.currentPos).contains(
+        Sprite.Player(Mouth.Open, Direction.Right)
+      )
+    )
   }
 
   test("an enemy is drawn as the kind it is") {
@@ -33,7 +37,18 @@ class FrameTest extends AnyFunSuite:
 
   test("the mouth of the player opens and closes as it steps") {
     val stepped = Position(0, 1)
-    assert(drawnOn(frameOf(levelWith(stepped)), stepped).contains(Sprite.Player(Mouth.Closed)))
+    assert(
+      drawnOn(frameOf(levelWith(stepped)), stepped).contains(
+        Sprite.Player(Mouth.Closed, Direction.Right)
+      )
+    )
+  }
+
+  test("the player is drawn facing the direction it is moving") {
+    Direction.values.foreach { direction =>
+      val facing = startingLevel.movingPlayer(_.face(direction))
+      assert(frameOf(facing).entities.last.sprite == Sprite.Player(Mouth.Open, direction))
+    }
   }
 
   test("someone crossing between two cells is drawn between them") {
@@ -51,7 +66,9 @@ class FrameTest extends AnyFunSuite:
   }
 
   test("the player is drawn last, so that it covers everyone") {
-    assert(frameOf(levelWith(hunterSpawn)).entities.last.sprite == Sprite.Player(Mouth.Open))
+    assert(
+      frameOf(levelWith(hunterSpawn)).entities.last.sprite == Sprite.Player(Mouth.Open, Direction.Right)
+    )
   }
 
   test("what has been picked up is drawn no more") {
