@@ -82,14 +82,16 @@ class GameModeSpec extends AnyFunSuite:
     assert(survival.copy(progress = LevelProgress(0)).status == Defeat)
   }
 
-  test("a survival mode progressively speeds enemy movement up to its configured maximum") {
+  test("a survival mode speeds enemies up by half as much again at every wave") {
     val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
-    val accelerated =
-      LevelState.from(maze, mode).ticking(1.second).copy(enemies = Vector(movingEnemy))
-    val capped = LevelState.from(maze, mode).ticking(4.seconds).copy(enemies = Vector(movingEnemy))
+    val gained = List(1, 2, 4).map(waves => mode.enemyDelta(100.millis, GameClock(waves.seconds)))
+    assert(gained == List(150.millis, 200.millis, 300.millis))
+  }
 
-    assert(!accelerated.movingOn(125.millis).enemies.head.entity.isMoving)
-    assert(!capped.movingOn(50.millis).enemies.head.entity.isMoving)
+  test("a survival mode never speeds enemies past its maximum") {
+    val mode = GameMode.Survival(difficultyEvery = 1.second, maximumSpeedMultiplier = 5)
+
+    assert(mode.enemyDelta(100.millis, GameClock(1.minute)) == 500.millis)
   }
 
   test("slowdown is applied after the survival speed increase") {
@@ -103,7 +105,7 @@ class GameModeSpec extends AnyFunSuite:
     )
 
     assert(slowed.movingOn(125.millis).enemies.head.entity.isMoving)
-    assert(!slowed.movingOn(250.millis).enemies.head.entity.isMoving)
+    assert(!slowed.movingOn(334.millis).enemies.head.entity.isMoving)
   }
 
   test("a survival mode requires positive difficulty tuning") {
