@@ -1,15 +1,121 @@
 % !TEX root = ../main.tex
 \chapter{Architectural Design}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod, nunc at
-fringilla efficitur, libero dolor tempor lacus, nec iaculis urna leo vitae
-elit.
+
+The architecture follows mainly from two requirements: the non-functional requirements that asks for model updates not
+to depend on anything other than the state they are given and the time elapsed, in order to allow the game behavior
+to be exercised without a window ever being opened, and the implementation requirement that asks that the rules do
+not depend on the chosen graphical library. The obtained architecture is one in which everything that determines what
+happens in a game, such as how far the player and the enemies advance in the time that has passed, which cell an enemy
+goes towards next, what a collected item is worth, is computed from the state of the game together with a duration,
+and yields the state that follows. These actions are pure: none of them opens a file, reads the system clock, or
+touches the screen. The one place in which the model does consult the clock is when a finished game is turned into a
+result, which is stamped with the moment it was achieved, but that is not part of any update.
+The model does not contain any mutable variable at all: the few mutable variables are all in the entry point and the
+interface.
+
+The three things that cannot be computed that way are kept out of that computation altogether: the window and the
+drawing done upon it, the timer that reports when a frame is due together with the keys the player has passed, and
+the reading and writing of mazes, saved games and recorded results. They are confined to a layer that is around the
+computation: the entry point, that owns the window and the timer, and adapters that own the files.
+
+\section{Architectural patterns}
+
+\subsection{Functional core, imperative shell}
+
+The system is divided into a \textbf{core} that is entirely pure and a \textbf{shell} that is not. The core holds
+every rule of the game: given the state of a game and the time that has passed, it computes the next state and
+returns it. It performs no input or output, reads no clock, and holds no mutable variable. The shell is the part
+that must be impire: the graphical library, the frame timer, the file system.
+
+Nearly all mutability in the running application is confined to a single reference at the boundary, which the frame
+timer replaces with the state the core has computed. Everything below it is immutable, and that allows the game to be
+driven from a test at any speed, replayed or even suspended and resumed.
+
+\subsection{Model View Controller}
+
+Within the division into core and shell, the MVC architecture pattern is applied. The \textbf{model} holds the domain
+and its rules, while not concerning itself with the rest. The \textbf{view} draws and collects input, and contains no
+rule of its own. The \textbf{controller} sits between them, translating what the player does into changes of state and
+what the model becomes into something the view can draw. Each update produces a \textbf{level view}, which is a flat
+description of what should appear on screen, that is positions, lives, score, remaining time, effects, and it is what
+the view receives. SO the view cannot reach into the game's state, decoupling it completely from the model.
+
+\subsection{Ports and adapters at the boundary}
+
+Everything that is outside the program, such as the mazes it offers, the mazes a player has written, saved games,
+recorded results, and the remembered player name, is reached only through interfaces that describe what is wanted
+rather than how it is stored, satisfying the implementation requirement that asks that the model be independent of
+the interface and the graphical library.
+
+The knowledge of storage is concentrated: on class knows the layout of the folders, one knows how a saved game is
+written, one knows how a result is encoded. Each of them can be replaced without anything else in the program being
+aware, and each is replaced during testing, where what would normally be outside the game is supplied by a substitute
+that records what was asked of it and can be told to fail on demand. This is what allows the controller to be tested
+with no file ever being written.
+
+The separation is not total. Three of these operations take a file path, because everything the game remembers is kept
+in plain files under a folder of the player, rather than in a database, and because the player picks a maze or a saved
+game through a file dialog, which yields a path.
 
 \section{Main components}
-\begin{itemize}[leftmargin=*]
-  \item Model
-  \item View
-  \item Controller
-  \item Domain entities
-  \item Map loading and validation
-  \item Game loop
-\end{itemize}
+
+\begin{description}
+  \item[Entry point] The \textbf{window}, together with the two sources of activity that drive the program: the keys
+  that are pressed, and a timer that fires once per frame. It builds the window, installs the\textbf{ key filter}
+  and starts the \textbf{timer}, and holds the reference to the current state of the application, replacing it
+  with whatever each of those two events produces.  On a key press, it hands the key to the input mapping and
+  the direction or command that comes back to the application. On a frame, it hands the application that frame's
+  timestamp, and receives the application as it then stands, which it draws. When a game ends, it shows the menu
+  on screen.
+  \item[Application] is the state of the program as a whole: whether a menu is showing or a game is being played,
+  and what the player was last told. It interprets \textbf{commands} that the interface raises, asks for the
+  necessary resources, and decides when a game result is to be recorded in the leaderboard. It exchanges commands and
+  application states with the entry point, and levels with the game session.
+  \item[Game session] is a game in progress, holding everything about it that changes from one frame to the next:
+  the level as it now stands, the rendering through which the interface is notified of it, whether the loop
+  is running or paused, and the moment of the last frame it was advanced to.  Given the moment of a new frame
+  it yields the session as it stands at that moment, and the interval between the two becomes the duration it
+  hands to the model's update pipeline, never negative and never more than fifty milliseconds, so that a frame
+  the machine was slow over cannot carry everyone across the maze at once with every collision along the way.
+  Each advance notifies the interface on the level that resulted. A session that is paused is left untouched.
+  \item[Environment]. Everything outside the program is reached through interfaces owned by the code that needs them
+  rather than by the code that implements them. Two are ports in the strict sens, each naming a single capability
+  with no mention of how it is realised.
+  \item[View] is the graphical interface: the \textbf{menu} for choosing a name, a maze and a mode, the \textbf{board}
+  on which a game is drawn, the \textbf{overlay} shown when a game is paused or has ended, the \textbf{window}
+  listing recorded results. It receives\textbf{ level views} and raises, from its buttons, the choices a player
+  makes, that are starting, loading, pausing, restarting, saving and returning to the menu.
+  \item[Level and update pipeline]. This is the heart of the core. A level is the whole state of a game at one instant.
+  The pipeline is the fixed sequence of stages, each a function from one state to the next, run in a fixed order:
+  input, enemy decisions, movement, collisions and teleports, gathering, effects, and a final reconciliation. It
+  is generic in the state it carries, so the order is fixed once and says nothing about what level it is. A level
+  supplies the stages that give each step its meaning, with the duration to advance by already built into them,
+  leaving a tick a plain function from a level to the level that follows.
+  \item[Entities and movement] The player and the enemies, their positions, the directions they face and the crossings
+  they are part-way through. They are used by the pipeline.
+  \item[Enemy behavior] The strategies by which each kind of enemy chooses where to go, and the stage that applies them
+  to every idle enemy. It receives a level and returns the enemies with their next movements decided.
+  \item[Input mapping] is the single place where a key stands for an action: the arrow keys and W, A, S and D for
+  the four directions, and escape for pausing and resuming. It is consulted by the entry point, which owns the
+  key filter and passes on whatever comes back. Keeping it apart is what lets the controls be changed in one place.
+  \item[Rendering] turns a level into the flat description the interface draws, and tells whoever is listening when
+  that description changes. It holds the projection, the listeners registered against it, and the last
+  description shown. Given a level it computes the new description and passes it on only if it differs from the
+  last, so a frame in which nothing visible changed is not redrawn. It receives levels from the game session and
+  hands \textbf{level views} to the view.
+  \item[Collectibles and effects] is what a maze still has to gather and which temporary effects are in force. Gathering
+  answers three things at once: what remains, the effect the item granted together with the instant it expires,
+  and the points it was worth. The gathering and effect stages of the pipeline work upon it, collision resolution
+  asks it whether invulnerability is is effect before deciding what a meeting costs, and rendering reads from it
+  what is left and what is active.
+  \item[Modes and scoring]  is what distinguishes the different ways of playing. The objective, the increasing
+  difficulty, the points awarded for the various events, together with the score and the result that is left
+  behind after a game is completed. After every update the level asks the mode, given the lives left, what remains
+  to gather and the time elapsed, whether the game is still running, has been won or lost. The application asks
+  for a result once the game is over, and hands it to the environment to record it.
+  \item[Persistence adapters] The adapters behind the ports: saved games written as versioned property files carrying
+  a copy of their maze, and leaderboards written as text through an encoding defined for a result.
+  \item[Map pipeline] Reading a maze from a file, parsing its text into a grid, validating that grid against the rules
+  that make a maze playable, and generating one where required. It receives text and returns either a validated
+  maze or the reasons it was refused.
+\end{description}
