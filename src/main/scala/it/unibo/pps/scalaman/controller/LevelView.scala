@@ -37,7 +37,7 @@ object LevelView:
     lives = level.progress.lives,
     applied = level.effects.active(level.clock.elapsed),
     status = level.status,
-    score = level.score.currentScore,
+    score = level.liveScore,
     elapsed = level.clock.elapsed.toSeconds.seconds,
     timeLeft = level.mode.timeLeft(level.clock).map(wholeSecondsUp),
     mode = LeaderboardMode.of(level.mode)
