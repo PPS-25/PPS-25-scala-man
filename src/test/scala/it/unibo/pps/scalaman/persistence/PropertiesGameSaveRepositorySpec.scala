@@ -71,6 +71,26 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
     finally Files.deleteIfExists(path)
   }
 
+  test("a saved game preserves the corner a patroller is making for") {
+    val path = Files.createTempFile("scala-man-save", ".properties")
+    val original = LevelState
+      .from(maze)
+      .copy(
+        enemies = Vector(
+          Enemy(
+            MovingEntity(Position(3, 2), Direction.Right, 250.millis),
+            EnemyKind.Patroller,
+            heading = Some(Position(3, 5))
+          )
+        )
+      )
+
+    try
+      assert(repository.save(original, Some(mazeName), path) == Right(()))
+      assert(repository.load(path) == Right(SavedGame(original, Some(mazeName))))
+    finally Files.deleteIfExists(path)
+  }
+
   test("a corrupted save is rejected safely") {
     val path = Files.createTempFile("scala-man-save", ".properties")
     Files.writeString(path, "not a save", StandardCharsets.UTF_8)

@@ -24,6 +24,7 @@ class MapCellSpec extends AnyFunSuite:
       Tile.Collectible,
       Tile.Hunter,
       Tile.Anticipator,
+      Tile.Patroller,
       Tile.InvulnerabilityBonus,
       Tile.SlowdownBonus,
       Tile.Teleport(code = 0)

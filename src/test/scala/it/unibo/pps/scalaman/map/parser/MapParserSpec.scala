@@ -46,7 +46,8 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
     assertCell(map, 1, 5, Tile.Anticipator)
     assertCell(map, 1, 6, Tile.InvulnerabilityBonus)
     assertCell(map, 1, 7, Tile.SlowdownBonus)
-    assertCell(map, 1, 8, Tile.Floor)
+    assertCell(map, 1, 8, Tile.Patroller)
+    assertCell(map, 1, 9, Tile.Floor)
   }
 
   test("maps every teleport digit to the matching teleport cell") {

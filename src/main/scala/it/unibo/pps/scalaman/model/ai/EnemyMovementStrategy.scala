@@ -9,9 +9,13 @@ final case class EnemyMovementContext(
     teleportDisabled: Boolean,
     playerPosition: Position,
     playerPreviousPosition: Option[Position],
-    map: ValidatedMap
+    map: ValidatedMap,
+    enemyHeading: Option[Position] = None
 )
 
 /** Strategy abstraction for deterministic enemy movement decisions. */
 trait EnemyMovementStrategy:
   def nextMove(context: EnemyMovementContext): Option[Position]
+
+  /** What the enemy is making for after this decision. Deciding on the spot remembers nothing. */
+  def memoryAfter(context: EnemyMovementContext): Option[Position] = None
