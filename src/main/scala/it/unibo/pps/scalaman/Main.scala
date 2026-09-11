@@ -25,12 +25,13 @@ import it.unibo.pps.scalaman.view.{
   Style
 }
 import scalafx.Includes.*
-import scalafx.animation.AnimationTimer
+import scalafx.animation.{AnimationTimer, PauseTransition}
 import scalafx.application.JFXApp3
 import scalafx.scene.Scene
 import scalafx.scene.control.Alert
 import scalafx.scene.input.KeyEvent
 import scalafx.scene.paint.Color
+import scalafx.util.Duration
 
 /** The name the application is known by, on its window and in its messages. */
 def applicationName: String = "scala-man"
@@ -48,6 +49,7 @@ object Main extends JFXApp3:
 
   private var board: Option[GameBoard] = None
   private var veiled: Option[Screen] = None
+  private var countdown: Option[PauseTransition] = None
 
   override def start(): Unit =
     stage = new JFXApp3.PrimaryStage:
@@ -63,8 +65,9 @@ object Main extends JFXApp3:
   private def asked(command: Command): Unit = became(application.commanded(command))
 
   private def framed(now: Long): Unit =
-    became(application.advancedToFrame(now))
-    application.playing.foreach(covered)
+    if countdown.isEmpty then
+      became(application.advancedToFrame(now))
+      application.playing.foreach(covered)
 
   /** Whatever the application became: a game that ended goes back to the menu, and anything it has
     * to say is said once.
@@ -81,7 +84,20 @@ object Main extends JFXApp3:
     val drawn = GameBoard.fittingScreen(Board.of(maze), asked)
     board = Some(drawn)
     stage.scene().root = drawn.node
+    countDown(drawn, 3)
     view => drawn.draw(Frame.of(view))
+
+  /** Shows the conventional start countdown while the game loop remains frozen. */
+  private def countDown(drawn: GameBoard, seconds: Int): Unit =
+    if seconds == 0 then
+      countdown = None
+      drawn.cover(None)
+    else
+      drawn.cover(Some(Overlay(seconds.toString, Seq.empty, Seq.empty)))
+      val delay = new PauseTransition(Duration(1000)):
+        onFinished = _ => countDown(drawn, seconds - 1)
+      countdown = Some(delay)
+      delay.play()
 
   // The veil is what the loop and the level say together, so it goes on outside the projection.
   // Only when the screen changes: a game that ended would otherwise keep projecting its own score
@@ -104,11 +120,11 @@ object Main extends JFXApp3:
     * them, so a steer is read on the way down and, once taken, consumed in its turn.
     */
   private def steering(event: KeyEvent): Unit =
-    if CommandMapper.isPauseKey(event.code) then asked(Command.Pause)
+    if countdown.isEmpty && CommandMapper.isPauseKey(event.code) then asked(Command.Pause)
     else
       for
         direction <- CommandMapper.toDir(event.code)
-        if application.steerable
+        if countdown.isEmpty && application.steerable
       do
         application = application.steered(direction)
         event.consume()
