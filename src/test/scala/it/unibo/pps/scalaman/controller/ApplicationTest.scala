@@ -68,6 +68,7 @@ class ApplicationTest extends AnyFunSuite:
 
     def mazes: Seq[MapName] = Seq(onMaze)
     def playerName: Option[PlayerName] = remembered.lastOption
+    def savesFolder: Path = Paths.get("/somewhere/saves")
     def remembering(player: PlayerName): Either[String, Unit] =
       remembered += player
       Right(())

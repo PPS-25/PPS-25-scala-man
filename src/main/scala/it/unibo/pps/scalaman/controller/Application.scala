@@ -28,6 +28,9 @@ trait GameEnvironment:
   /** The name most recently used to play a game, if any. */
   def playerName: Option[PlayerName]
 
+  /** The folder the application uses for resumable games. */
+  def savesFolder: Path
+
   /** Keeps the name that will be offered the next time the menu opens. */
   def remembering(player: PlayerName): Either[String, Unit]
 
@@ -86,6 +89,9 @@ final case class Application(
 
   /** The name that is pre-filled in the menu, if one was used before. */
   def playerName: Option[PlayerName] = environment.playerName
+
+  /** The folder the menu should open when a saved game is requested. */
+  def savesFolder: Path = environment.savesFolder
 
   /** The best scores reached on a maze in a mode. */
   def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = environment.bestOn(maze, mode)

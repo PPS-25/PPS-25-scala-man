@@ -38,6 +38,14 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     Files.createDirectories(in)
     Files.writeString(in.resolve(s"${named.value}.txt"), DefaultMaps.textOf(arena).get)
 
+  private def onlySavedFile(in: Path): Path =
+    val saved = Files.list(in)
+    try
+      val files = saved.iterator.asScala.toSeq
+      assert(files.size == 1)
+      files.head
+    finally saved.close()
+
   test("the mazes the game ships with are offered even before anything was added") {
     inItsOwnHome((world, _) => assert(world.mazes == DefaultMaps.All))
   }
@@ -113,17 +121,21 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     }
   }
 
-  test("a game put away is named after the maze and whoever played it") {
+  test("a game put away is named after its maze, player, and local save time") {
     inItsOwnHome { (world, files) =>
       world.saving(anyGame, Played(player, Some(arena)))
-      assert(Files.exists(files.saves.resolve("arena-Matilde-D-Antino.properties")))
+      assert(
+        onlySavedFile(files.saves).getFileName.toString.matches(
+          "arena-Matilde-D-Antino-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d{3}\\.properties"
+        )
+      )
     }
   }
 
   test("a game put away is read back as the game it was") {
     inItsOwnHome { (world, files) =>
       world.saving(anyGame, Played(player, Some(arena)))
-      val read = world.savedGame(files.saves.resolve("arena-Matilde-D-Antino.properties"))
+      val read = world.savedGame(onlySavedFile(files.saves))
       assert(read == Right(SavedGame(anyGame, Some(arena))))
     }
   }
