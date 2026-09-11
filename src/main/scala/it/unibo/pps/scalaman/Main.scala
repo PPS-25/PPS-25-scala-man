@@ -87,7 +87,7 @@ object Main extends JFXApp3:
   // Only when the screen changes: a game that ended would otherwise keep projecting its own score
   // for as long as its veil is read.
   private def covered(playing: Playing): Unit =
-    val screen = Screen.of(playing.loop, playing.status)
+    val screen = Screen.of(playing.loop, playing.status, playing.startingIn)
     if !veiled.contains(screen) then
       veiled = Some(screen)
       board.foreach(

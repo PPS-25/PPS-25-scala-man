@@ -70,6 +70,9 @@ final case class Playing(session: GameSession, by: Played):
   /** How the level is going. */
   def status: GameState = session.level.status
 
+  /** How many seconds are left before the game starts, if it has not started yet. */
+  def startingIn: Option[Int] = session.countdown
+
 /** What the application is doing, and what it has to tell whoever plays. Every command lands here.
   * Not free of effects, but free of the frameworks that carry them: hence tested headless.
   */
