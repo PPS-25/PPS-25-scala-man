@@ -1,17 +1,14 @@
 % !TEX root = ../main.tex
 \chapter{Development Process}
 
-The team adopted a \textbf{SCRUM-inspired process}, adapted to three developers working part-time on a single codebase.
-Alongside development work, two members took on additional roles:
+The team adopted a \textbf{Scrum-inspired process}, adapted to three developers working part-time on a single codebase.
+All members contributed to the design, implementation, and review of the game. In addition, Alex Santini acted as
+\textbf{Product Owner}, maintaining and prioritising the product backlog, while Matilde D'Antino acted as
+\textbf{Client and Domain Expert}, checking completed increments against the expected game behaviour.
 
-\begin{itemize}
-  \item \textbf{Alex Santini --- product owner}: maintained and prioritised the product backlog;
-  \item \textbf{Matilde D'Antino --- client and domain expert}: judged whether a completed item behaved as required.
-\end{itemize}
-
-Development was organised into \textbf{four one-week sprints} of roughly fifteen hours per member, preceded by an
-organisational phase that established the build, repository structure, and initial backlog. Each sprint was expected to
-end with a \textbf{tangible client-facing increment}, rather than an isolated technical layer.
+Development was organised into \textbf{four non-consecutive one-week sprints} of roughly fifteen hours per member,
+preceded by an organisational phase that established the build, repository structure, and initial backlog. Each sprint
+was expected to end with a \textbf{tangible client-facing increment}, rather than an isolated technical layer.
 
 \section{Task breakdown over time}
 
@@ -20,8 +17,10 @@ coherent area of the system, which were then decomposed into smaller \textbf{tas
 Only the highest-priority epics were decomposed immediately, while the rest were refined during later
 sprint plannings.
 
-Fourteen epics were identified, the last four marked optional from the outset and scheduled only once the core game was
-playable.
+Fourteen epics were identified. The first ten formed the \textbf{core backlog}; the last four were marked
+\textbf{optional} from the outset and scheduled only once the core game was playable.
+
+The core epics were:
 
 \begin{enumerate}
     \item Project configuration and CI/CD
@@ -34,14 +33,19 @@ playable.
     \item Enemy AI standard strategies
     \item User interface and system integration
     \item Documentation
-    \item Optional: scoring and leaderboard
-    \item Optional: additional enemy strategy
-    \item Optional: game saving and loading
-    \item Optional: additional game modes
 \end{enumerate}
 
-The backlog is kept on GitHub, with Issues representing epics and tasks and the GitHub Project board tracking their
-state. An item moves through the following workflow:
+The optional epics were:
+
+\begin{enumerate}[resume]
+    \item Scoring and leaderboard
+    \item Additional enemy strategy
+    \item Game saving and loading
+    \item Additional game modes
+\end{enumerate}
+
+The \href{https://github.com/PPS-25/PPS-25-scala-man/issues}{backlog is kept on GitHub}, with Issues representing epics
+and tasks and the GitHub Project board tracking their state. An item moves through the following workflow:
 
 \begin{center}
   \texttt{backlog} $\rightarrow$ \texttt{ready} $\rightarrow$ \texttt{in progress} $\rightarrow$
@@ -63,7 +67,7 @@ Two recurring meetings were planned for each sprint:
 
 Outside these fixed points, the team interacted continuously through pull request reviews.
 
-The four sprints were scheduled as follows:
+The planned sprint windows were:
 \begin{center}
     \begin{tabular}{|l|l|}
         \hline
@@ -102,9 +106,9 @@ Work flows in one direction:
   \texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
 \end{center}
 
-Every merge into \texttt{dev} requires a pull request approved by at least one other member, normally the one whose
-own epics interact most closely with the work under review. This lets \textbf{integration problems surface during review}
-rather than after merging.
+The team used pull requests to integrate work into \texttt{dev}, with reviews performed by another team member before
+merging. This provided an opportunity to discuss changes and identify potential integration issues before they reached
+the shared development branch.
 
 Commit messages follow the Conventional Commits format, \texttt{<type>(<scope>): description}, which keeps the history
 readable.
@@ -122,35 +126,29 @@ An epic is done when all of its tasks are done and its work has been merged into
 
 \section{Testing, build, and CI tools}
 
-The project is written in Scala 3 and targets JDK 21. The build is managed by sbt, which handles compilation, dependency
-resolution, test execution and packaging through a single definition. Two dependencies are declared: ScalaFX 21.0.0-R32
-for the graphical interface, and ScalaTest 3.2.18, scoped to testing only.
+The project is written in Scala 3.3.5 and is built and tested with JDK 21. The build is managed by sbt, which handles
+compilation, dependency resolution, test execution and packaging through a single build definition. Two library dependencies
+are declared: ScalaFX 21.0.0-R32 for the graphical interface, and ScalaTest 3.2.18, scoped to testing only.
 
 \subsection{Code style}
 
-Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}, so that the
-agreed style is enforced mechanically: continuous integration runs \texttt{scalafmtCheckAll} and fails the build on any deviation,
-which keeps formatting out of code review and prevents the style from drifting between developers.
+Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}.
+Continuous integration runs \texttt{scalafmtCheckAll} and fails on formatting deviations, enforcing the agreed style
+mechanically and reducing formatting-related discussion during code review.
 
 \subsection{Testing}
 
-Automated tests are written with ScalaTest and run under sbt. The suite is executed locally before every push and again
-by continuous integration on every push and pull request, so that no branch can be merged while failing.
+Automated tests are written with ScalaTest and run under sbt. Contributors are asked to run the suite locally before
+pushing, following the documented pre-push checklist; continuous integration runs it again on every push and pull request.
 
 \subsection{Continuous integration}
 
-Continuous integration runs on GitHub Actions. The \textbf{Scala Tests} workflow triggers on every push and every pull request,
-provisions a Temurin JDK 21 toolchain with a cached sbt installation, and runs compilation, the test suite and the formatting
-check as a single command. Collapsing the three into one gate means a branch is either wholly accepted or rejected,
-with no partially passing state.
+Continuous integration runs on GitHub Actions on every push and pull request. It uses Temurin JDK 21 and an sbt cache
+to compile the project, run the ScalaTest suite, and enforce formatting with scalafmt; a failing check is reported before
+the change is integrated.
 
 \subsection{Continuous Delivery}
 
-Delivery is automated by the \textbf{Project Delivery} workflow, which runs on every push to \texttt{main} and can also
-be triggered manually. It produces the two artifacts that make a release: an executable fat JAR, assembled by the sbt-assembly
-plugin and the PDF of the report, compiled with latexmk inside a TeX Live container so that the result does not
-depend on any local LaTeX installation.
-The two are packaged together with the sources into a single archive, whose structure is verified programmatically before publication:
-the workflow asserts that the archive contains exactly one JAR, exactly one report, and no unexpected files
-at its root, failing the build otherwise. The verified archive is then published as a GitHub release. Automating the packaging
-in this way means the deliverable is rebuilt and re-checked on every change to \texttt{main}.
+The \textbf{Project Delivery} workflow runs on every push to \texttt{main} and can also be triggered manually. It builds
+an executable fat JAR and compiles the report PDF in a TeX Live container. Both artifacts and the sources are packaged
+into a single archive, whose structure is checked before the archive is published as a GitHub release.
