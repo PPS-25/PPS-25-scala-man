@@ -86,8 +86,8 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
       )
 
     try
-      assert(repository.save(original, path) == Right(()))
-      assert(repository.load(path) == Right(original))
+      assert(repository.save(original, Some(mazeName), path) == Right(()))
+      assert(repository.load(path) == Right(SavedGame(original, Some(mazeName))))
     finally Files.deleteIfExists(path)
   }
 
