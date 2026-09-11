@@ -1,7 +1,8 @@
 # Textual Map Format
 
-This document defines the ASCII format used to describe game maps in `.txt`
-files.
+This document explains how to create a playable game map in a UTF-8 `.txt`
+file. It covers both the ASCII notation and the structural rules checked before
+the game accepts a map.
 
 ## Goals
 
@@ -46,6 +47,7 @@ All other symbols represent walkable cells with an overlay:
 | --- | --- |
 | `H` | Hunter enemy on a walkable cell |
 | `A` | Anticipator enemy on a walkable cell |
+| `P` | Patroller enemy on a walkable cell |
 
 ### Bonuses
 
@@ -61,32 +63,38 @@ All other symbols represent walkable cells with an overlay:
 | `0`-`4` | Teleport cell on a walkable cell |
 | `5`-`9` | Paired teleport cell on a walkable cell |
 
-## Rules
+## Creating a valid map
 
-- Exactly one `S` must be present.
-- At least one `C` must be present.
-- At least one enemy symbol (`H` or `A`) must be present.
-- `I` and `R` are optional and may appear multiple times.
-- Teleports are bidirectional.
-- For each fixed pair, the two paired teleport cells must either both appear
-  or both be absent.
-- Each teleport start symbol (`0`-`4`) may appear at most once.
-- Each teleport destination symbol (`5`-`9`) may appear at most once.
-- Teleport pairings are fixed: `0 <-> 5`, `1 <-> 6`, `2 <-> 7`, `3 <-> 8`,
-  `4 <-> 9`.
-- Any symbol outside the table above is invalid.
-- Empty files are invalid.
-- Ragged maps, where rows have different lengths, are invalid.
+Follow these rules when writing a map:
+
+1. Use a non-empty rectangular grid: every row must have the same length and
+   every character must be one of the documented symbols.
+2. Surround the grid with `#` walls. Every cell on the outer border must be a
+   wall.
+3. Place exactly one player spawn, `S`.
+4. Place at least one standard collectible, `C`, and at least one enemy
+   (`H`, `A`, or `P`). `I` and `R` are optional and may appear multiple times.
+5. If teleports are used, place each fixed pair exactly once or omit it
+   entirely: `0 <-> 5`, `1 <-> 6`, `2 <-> 7`, `3 <-> 8`, and `4 <-> 9`.
+   Teleports are bidirectional.
+6. Ensure that every standard collectible and every enemy can be reached from
+   `S`, walking orthogonally and, where useful, using teleports. Bonus items
+   do not affect whether a map is accepted.
+
+The game rejects empty files, uneven rows, unsupported symbols, open borders,
+missing or multiple spawns, missing collectibles or enemies, invalid teleport
+pairs, and unreachable required cells. Each problem is reported with an
+explanation instead of causing the game to crash.
 
 ## Example
 
 ```text
-########
-#S..0I.#
-#..##..#
-#..C.5H#
-#..R.A.#
-########
+#########
+#S..0I..#
+#..##...#
+#..C.5H.#
+#..R.A.P#
+#########
 ```
 
 In the example above:
@@ -95,16 +103,10 @@ In the example above:
 - `C` is the collectible
 - `H` is a hunter enemy
 - `A` is an anticipator enemy
+- `P` is a patroller enemy
 - `I` is an invulnerability bonus
 - `R` is an enemy slowdown bonus
 - `0` and `5` are a paired teleport couple
-
-## Validation boundary
-
-This format document only defines syntactic rules and symbol meaning.
-Gameplay rules such as reachability, teleport destination validity, and map
-playability are enforced by the validation layer. The validation layer also
-interprets the walkable cell underneath each overlay symbol.
 
 ## Related
 
