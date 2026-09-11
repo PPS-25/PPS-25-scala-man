@@ -12,7 +12,9 @@ class SpriteImagesTest extends AnyFunSuite:
 
   test("each player direction reuses the same source picture before it is rotated on the board") {
     assert(
-      Direction.values.map(direction => SpriteImages.fileOf(Sprite.Player(Mouth.Open, direction))).toSet ==
+      Direction.values
+        .map(direction => SpriteImages.fileOf(Sprite.Player(Mouth.Open, direction)))
+        .toSet ==
         Set("/scalaman1.png")
     )
   }

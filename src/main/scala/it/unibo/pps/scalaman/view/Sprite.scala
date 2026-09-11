@@ -40,10 +40,10 @@ object SpriteImages:
     * so that a maze never holds a door that cannot be drawn.
     */
   def fileOf(sprite: Sprite): String = sprite match
-    case Sprite.Wall                 => "/wall.png"
-    case Sprite.Floor                => "/floor.png"
-    case Sprite.Item                 => "/collectible.png"
-    case Sprite.Teleport(pair)       => s"/teleport${pair % Sprite.TeleportLooks + 1}.png"
+    case Sprite.Wall                    => "/wall.png"
+    case Sprite.Floor                   => "/floor.png"
+    case Sprite.Item                    => "/collectible.png"
+    case Sprite.Teleport(pair)          => s"/teleport${pair % Sprite.TeleportLooks + 1}.png"
     case Sprite.Player(Mouth.Open, _)   => "/scalaman1.png"
     case Sprite.Player(Mouth.Closed, _) => "/scalaman2.png"
     case Sprite.Bonus(BonusEffect.Invulnerability) => "/bonus2.png"

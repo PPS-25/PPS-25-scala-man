@@ -185,7 +185,10 @@ object PropertiesGameSaveRepository:
       case "survival" :: every :: maximumSpeedMultiplier :: Nil =>
         for
           difficultyEvery <- decodePositiveDuration(every, "survival difficulty interval")
-          maximum <- decodePositiveDouble(maximumSpeedMultiplier, "survival maximum speed multiplier")
+          maximum <- decodePositiveDouble(
+            maximumSpeedMultiplier,
+            "survival maximum speed multiplier"
+          )
         yield GameMode.Survival(difficultyEvery, maximum)
       case _ => invalid("invalid game mode")
 

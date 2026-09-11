@@ -67,7 +67,10 @@ class FrameTest extends AnyFunSuite:
 
   test("the player is drawn last, so that it covers everyone") {
     assert(
-      frameOf(levelWith(hunterSpawn)).entities.last.sprite == Sprite.Player(Mouth.Open, Direction.Right)
+      frameOf(levelWith(hunterSpawn)).entities.last.sprite == Sprite.Player(
+        Mouth.Open,
+        Direction.Right
+      )
     )
   }
 
