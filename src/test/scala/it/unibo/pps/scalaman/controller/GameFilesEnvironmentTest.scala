@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
 class GameFilesEnvironmentTest extends AnyFunSuite:
 
   private val player = PlayerName("Matilde D'Antino")
-  private val arena = MapName("arena")
+  private val medium = MapName("medium")
   private val mine = MapName("spirale")
   private val anyGame = LevelState.from(LevelTestSupport.maze)
 
@@ -36,7 +36,7 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   /** A maze written under a name, in the folder it is asked for. */
   private def maze(named: MapName, in: Path): Path =
     Files.createDirectories(in)
-    Files.writeString(in.resolve(s"${named.value}.txt"), DefaultMaps.textOf(arena).get)
+    Files.writeString(in.resolve(s"${named.value}.txt"), DefaultMaps.textOf(medium).get)
 
   private def onlySavedFile(in: Path): Path =
     val saved = Files.list(in)
@@ -58,7 +58,7 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   }
 
   test("a maze the game ships with is read without looking for a file") {
-    inItsOwnHome((world, _) => assert(world.maze(arena).isRight))
+    inItsOwnHome((world, _) => assert(world.maze(medium).isRight))
   }
 
   test("a maze added to the files of whoever plays is read from there") {
@@ -89,7 +89,7 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   test("a maze read from elsewhere is kept among the files of whoever plays") {
     inItsOwnHome { (world, files) =>
       val elsewhere =
-        Files.writeString(files.home.resolve("spirale.txt"), DefaultMaps.textOf(arena).get)
+        Files.writeString(files.home.resolve("spirale.txt"), DefaultMaps.textOf(medium).get)
       world.keeping(elsewhere)
       assert(Files.exists(files.mazes.resolve("spirale.txt")))
     }
@@ -115,18 +115,18 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   test("a maze named after one the game ships with is not kept") {
     inItsOwnHome { (world, files) =>
       val elsewhere =
-        Files.writeString(files.home.resolve("arena.txt"), DefaultMaps.textOf(arena).get)
+        Files.writeString(files.home.resolve("medium.txt"), DefaultMaps.textOf(medium).get)
       world.keeping(elsewhere)
-      assert(!Files.exists(files.mazes.resolve("arena.txt")))
+      assert(!Files.exists(files.mazes.resolve("medium.txt")))
     }
   }
 
   test("a game put away is named after its maze, player, and local save time") {
     inItsOwnHome { (world, files) =>
-      world.saving(anyGame, Played(player, Some(arena)))
+      world.saving(anyGame, Played(player, Some(medium)))
       assert(
         onlySavedFile(files.saves).getFileName.toString.matches(
-          "arena-Matilde-D-Antino-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d{3}\\.properties"
+          "medium-Matilde-D-Antino-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d{3}\\.properties"
         )
       )
     }
@@ -134,9 +134,9 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
 
   test("a game put away is read back as the game it was") {
     inItsOwnHome { (world, files) =>
-      world.saving(anyGame, Played(player, Some(arena)))
+      world.saving(anyGame, Played(player, Some(medium)))
       val read = world.savedGame(onlySavedFile(files.saves))
-      assert(read == Right(SavedGame(anyGame, Some(arena))))
+      assert(read == Right(SavedGame(anyGame, Some(medium))))
     }
   }
 
@@ -172,20 +172,22 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   }
 
   test("a maze nobody played in a mode has no best scores") {
-    inItsOwnHome((world, _) => assert(world.bestOn(arena, LeaderboardMode.Classic).entries.isEmpty))
+    inItsOwnHome((world, _) =>
+      assert(world.bestOn(medium, LeaderboardMode.Classic).entries.isEmpty)
+    )
   }
 
   test("a score recorded on a maze is among the best scores of that map and mode") {
     inItsOwnHome { (world, _) =>
       val result = GameResult(player.value, 100, Instant.parse("2026-01-01T00:00:00Z"))
-      world.recording(result, arena, LeaderboardMode.Timed)
-      assert(world.bestOn(arena, LeaderboardMode.Timed).entries == List(result))
+      world.recording(result, medium, LeaderboardMode.Timed)
+      assert(world.bestOn(medium, LeaderboardMode.Timed).entries == List(result))
     }
   }
 
   test("scores for different modes on a maze are kept apart") {
     inItsOwnHome { (world, _) =>
-      world.recording(GameResult(player.value, 100, Instant.now()), arena, LeaderboardMode.Classic)
-      assert(world.bestOn(arena, LeaderboardMode.Survival).entries.isEmpty)
+      world.recording(GameResult(player.value, 100, Instant.now()), medium, LeaderboardMode.Classic)
+      assert(world.bestOn(medium, LeaderboardMode.Survival).entries.isEmpty)
     }
   }

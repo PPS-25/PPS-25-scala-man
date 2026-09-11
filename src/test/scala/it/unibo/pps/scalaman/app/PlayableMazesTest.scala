@@ -36,7 +36,7 @@ class PlayableMazesTest extends AnyFunSuite:
   }
 
   test("a maze of whoever plays named after a shipped one is left out") {
-    assert(PlayableMazes.offered(found("arena.txt")) == DefaultMaps.All)
+    assert(PlayableMazes.offered(found("medium.txt")) == DefaultMaps.All)
   }
 
   test("a maze is offered once, however many files are found for it") {
@@ -48,7 +48,7 @@ class PlayableMazesTest extends AnyFunSuite:
   }
 
   test("a maze the game ships with is read from inside the application, not from a file") {
-    assert(PlayableMazes.fileOf(MapName("arena"), folder).isEmpty)
+    assert(PlayableMazes.fileOf(MapName("medium"), folder).isEmpty)
   }
 
   test("a maze of whoever plays is read from their own folder") {

@@ -104,11 +104,16 @@ class ApplicationTest extends AnyFunSuite:
     val seen = ListBuffer.empty[LevelView]
     (seen, _ => seen.addOne)
 
-  /** The application after a number of frames, each as long as a frame is allowed to be. */
+  /** The application after a number of frames, each as long as a frame is allowed to be, counted
+    * from the frame a game goes on: the wait before it starts is not what these tests are about.
+    */
   private def played(from: Application, frames: Int): Application =
-    (1 to frames).foldLeft(from)((application, frame) =>
-      application.advancedToFrame(frame * aFrameApart)
+    (1 to frames).foldLeft(started(from))((application, frame) =>
+      application.advancedToFrame(GameSession.LeadIn.toNanos + frame * aFrameApart)
     )
+
+  private def started(from: Application): Application =
+    from.advancedToFrame(0L).advancedToFrame(GameSession.LeadIn.toNanos)
 
   test("a game asked for from the menu is played") {
     assert(application().commanded(start).playing.isDefined)
@@ -136,7 +141,7 @@ class ApplicationTest extends AnyFunSuite:
 
   test("whoever draws is shown the level again once a frame has changed it") {
     val (seen, showing) = watching()
-    played(application(showing = showing).commanded(start), 2)
+    played(application(showing = showing).commanded(start), 1)
     assert(seen.size == 2 && seen.head != seen.last)
   }
 
