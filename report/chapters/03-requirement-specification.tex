@@ -63,12 +63,12 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   \item \textbf{Movement strategy}: the rule an enemy of a given kind follows in order to decide its next move.
   The \textbf{Hunter} takes the shortest path to the cell the player occupies, the \textbf{Anticipator} takes the shortest path to the cell the player is predicted to reach, so as to cut the player off, and the \textbf{Patroller} ignores the player, and simply walks around the corners of the maze instead.
   \item \textbf{Game mode}: the rules that decide, at any moment, whether a game is still running, won or lost,
-  given the lives the player has left, what is left to gather, and the time eleapsed. A mode also
+  given the lives the player has left, what is left to gather, and the time elapsed. A mode also
   determines how the pace changes as a game goes on, whether a game runs against a limit, and what each scoring
   event is worth. Three modes exist: \textbf{Classic} is won by gathering every standard item and lost on running
   out of lives. \textbf{Timed} keeps that objective but is lost as soon as its time limit expires. \textbf{Survival}
   has no gathering objective and admits no victory at all: enemies become faster every thirty seconds, and
-  the game ends onlu when the player runs out of lives.
+  the game ends only when the player runs out of lives.
   \item \textbf{Scoring event}: an act that is worth points. Scoring events are gathering standard items, gathering bonus
   items, defeating enemies or reaching the end of the game with remaining lives.
   \item \textbf{Scoring rule}: what each scoring event is worth in points. A standard item is worth 50 points, a
@@ -88,13 +88,13 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   crosses a cell in 200 milliseconds, and an enemy in 250 milliseconds.
   \item \textbf{Player}: a moving entity that the person playing controls, by asking it to turn. A turn that cannot
   be taken at once is remembered and taken at the first cell where it becomes possible. The player occupies
-  exactly one cell, faces one direction, and may be part-way through a movement towards and adjacent cell.
+  exactly one cell, faces one direction, and may be part-way through a movement towards an adjacent cell.
   It changes the cell it occupies only on completing a movement, never in between.
   \item \textbf{Enemy}: an entity that can move and also is of a certain kind. An enemy consults its strategy only
   while standing on a cell with no movement underway. An enemy occupies exactly one cell, faces one direction,
   and may be part-way through a movement towards an adjacent cell. It changes the cell it occupies only on
   completing a movement, never in between.
-  \item \textbf{Fame clock}: the time elapsed since the game began, advanced by the time passed between one updated
+  \item \textbf{Game clock}: the time elapsed since the game began, advanced by the time passed between one update
   and the next. It is the only notion of time the rules consult.
   \item \textbf{Effects}: the effects in force at this moment, each with the instant it expires. An effect that has
   expired ceases to apply.
@@ -125,7 +125,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   \item \textbf{Give a name}: the player must choose a name before playing. The name cannot be empty or longer
   than 24 characters.
   \item \textbf{Choose a maze}: the player must be able to play on any of the mazes supplied with the game,
-  or to opne one thay have written themselves from a file of their own.
+  or to open one they have written themselves from a file of their own.
   \item \textbf{Choose a mode}: the player must be able to decide, before a game begins, which of the modes
   it is played in.
   \item \textbf{Move through the maze}: The player must be able to move their character using the arrow keys.
@@ -146,7 +146,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 
 \begin{itemize}
   \item \textbf{Read a maze}: the system must read a maze from text, accepting only the symbols the format defines,
-  and only the files whore rows are all of the same, non-zero length.
+  and only files whose rows are all of the same, non-zero length.
   \item \textbf{Judge whether a maze is playable}: a maze must be refused unless it complies with the following
   requirements: it has exactly one player spawn, at least one collectible, at least one enemy, a border that is
   closed by walls, teleports appearing in complete pairs, and every collectible and every enemy is reachable
@@ -162,7 +162,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   after the entity has stepped off the teleport and then on again.
   \item \textbf{Resolve a meeting}: when a meeting occurs while the player is invulnerable, the enemy met is defeated,
   otherwise the player loses a life and every entity is brought back to its spawn point.
-  \item \textbf{Grand and expire effects}: gathering a bonus item must grant its effect for a fixed time. An effect
+  \item \textbf{Grant and expire effects}: gathering a bonus item must grant its effect for a fixed time. An effect
   must cease to apply once its duration has expired.
   \item \textbf{Award points}: the system must award the correct amount of points for each event.
   \item \textbf{Judge game status}: the system must decide, on every update, whether the game is still running, has
@@ -176,7 +176,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 The qualities set out below are stated in terms that can be checked. The most demanding non-functional
 requirement for the system is \textbf{responsiveness}. The game must redraw sixty times a second, which leaves
 sixteen milliseconds to perform a complete update of the game model. This requirement is upheld, and it's verified
-through a test, that shows that a full update takes about 350 microseconds, that leaver abundant margin.
+through a test, that shows that a full update takes about 350 microseconds, leaving abundant margin.
 
 \textbf{Robustness against malformed input} is needed in order to allow the game to read files presented by
 the user, so that malformed files cannot lead to game crashes. For this reason, operations that read from
@@ -202,7 +202,7 @@ labels and have no need to read the game documentation to start playing.
   \item \textbf{Extensibility}: it must be possible to add a game mode, an enemy behavior or a bonus effect by
   writing the new behavior on its own, without altering the behavior of any existing one.
   \item  \textbf{Replaceable storage}: the location in which the game keeps saves and recorded results must be
-  reachable through an interface describing what is stored rather than though the direct use of the file
+  reachable through an interface describing what is stored rather than through the direct use of the file
   system, so that the storage can be exchanged without the rest of the game being aware of it.
   \item \textbf{Model is independent of its interface}: the rules of the game must not depend on the graphical
   library, so that game behavior can be checked through tests that do not rely on windows or graphics.
