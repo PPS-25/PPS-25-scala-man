@@ -19,20 +19,21 @@ object EnemyAiStage:
   ): Enemy =
     if enemy.entity.isMoving then enemy
     else
-      selection
-        .strategyFor(enemy.kind)
-        .nextMove(
-          EnemyMovementContext(
-            enemyPosition = enemy.currentPos,
-            teleportDisabled = enemy.previousPos.isDefined,
-            playerPosition = level.player.currentPos,
-            playerPreviousPosition = level.playerPreviousPos,
-            map = level.maze
-          )
-        )
+      val strategy = selection.strategyFor(enemy.kind)
+      val context = EnemyMovementContext(
+        enemyPosition = enemy.currentPos,
+        teleportDisabled = enemy.previousPos.isDefined,
+        playerPosition = level.player.currentPos,
+        playerPreviousPosition = level.playerPreviousPos,
+        map = level.maze,
+        enemyHeading = enemy.heading
+      )
+      val remembering = enemy.copy(heading = strategy.memoryAfter(context))
+      strategy
+        .nextMove(context)
         .flatMap(directionTo(enemy.currentPos, _))
-        .fold(enemy) { direction =>
-          enemy.copy(previousPos = None).moving(_.move(direction, level.maze.isWalkable))
+        .fold(remembering) { direction =>
+          remembering.copy(previousPos = None).moving(_.move(direction, level.maze.isWalkable))
         }
 
   private def directionTo(from: Position, to: Position): Option[Direction] =

@@ -8,7 +8,8 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
   startingLevel,
   timePerPos
 }
-import it.unibo.pps.scalaman.model.{Direction, GameClock, GameMode, LevelState}
+import it.unibo.pps.scalaman.model.collectibles.Collectibles
+import it.unibo.pps.scalaman.model.{Direction, GameClock, GameMode, LevelProgress, LevelState}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
@@ -96,4 +97,10 @@ class LevelViewTest extends AnyFunSuite:
     val nearlyOut =
       startingLevel.copy(mode = GameMode.Timed(30.seconds), clock = GameClock(29500.millis))
     assert(LevelView.of(nearlyOut).timeLeft.contains(1.second))
+  }
+
+  test("the view is shown the game score") {
+    val ended =
+      startingLevel.copy(collectibles = Collectibles(Set.empty), progress = LevelProgress(2))
+    assert(LevelView.of(ended).score == ended.liveScore)
   }
