@@ -1,5 +1,6 @@
 package it.unibo.pps.scalaman.persistence
 
+import it.unibo.pps.scalaman.app.MapName
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
@@ -19,8 +20,8 @@ import scala.util.Using
 
 /** A persistence boundary for complete, resumable game states. */
 trait GameSaveRepository:
-  def save(level: LevelState, path: Path): Either[SaveGameError, Unit]
-  def load(path: Path): Either[SaveGameError, LevelState]
+  def save(level: LevelState, maze: Option[MapName], path: Path): Either[SaveGameError, Unit]
+  def load(path: Path): Either[SaveGameError, SavedGame]
 
 sealed trait SaveGameError
 object SaveGameError:
@@ -29,14 +30,17 @@ object SaveGameError:
   final case class WriteFailed(path: Path, message: String) extends SaveGameError
   final case class InvalidSave(reason: String) extends SaveGameError
 
+/** A game read back from a file, together with the maze it was played on. */
+final case class SavedGame(level: LevelState, maze: Option[MapName])
+
 /** A versioned textual save format. It stores a map copy, so a save remains usable even if the
   * source map file is moved or changed between application runs.
   */
 final class PropertiesGameSaveRepository private () extends GameSaveRepository:
   import PropertiesGameSaveRepository.*
 
-  def save(level: LevelState, path: Path): Either[SaveGameError, Unit] =
-    val properties = encode(level)
+  def save(level: LevelState, maze: Option[MapName], path: Path): Either[SaveGameError, Unit] =
+    val properties = encode(level, maze)
     try
       Using.resource(Files.newBufferedWriter(path, StandardCharsets.UTF_8)) { writer =>
         properties.store(writer, "scala-man save game")
@@ -44,7 +48,7 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
       Right(())
     catch case exception: IOException => Left(SaveGameError.WriteFailed(path, exception.getMessage))
 
-  def load(path: Path): Either[SaveGameError, LevelState] =
+  def load(path: Path): Either[SaveGameError, SavedGame] =
     if !Files.exists(path) then Left(SaveGameError.FileNotFound(path))
     else
       try
@@ -52,16 +56,17 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
         Using.resource(Files.newBufferedReader(path, StandardCharsets.UTF_8)) { reader =>
           properties.load(reader)
         }
-        decode(properties)
+        decode(properties).map(SavedGame(_, mazeNameIn(properties)))
       catch
         case exception: IOException => Left(SaveGameError.ReadFailed(path, exception.getMessage))
         case exception: IllegalArgumentException =>
           Left(SaveGameError.InvalidSave(exception.getMessage))
 
-  private def encode(level: LevelState): Properties =
+  private def encode(level: LevelState, maze: Option[MapName]): Properties =
     val properties = new Properties()
     properties.setProperty(VersionKey, CurrentVersion)
     properties.setProperty("map", encodeMap(level.maze))
+    maze.foreach(name => properties.setProperty(MazeKey, name.value))
     properties.setProperty("mode", encodeMode(level.mode))
     properties.setProperty("player", encodeEntity(level.player))
     properties.setProperty("enemies", level.enemies.map(encodeEnemy).mkString(";"))
@@ -113,8 +118,12 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
 object PropertiesGameSaveRepository:
   private val VersionKey = "format-version"
   private val CurrentVersion = "2"
+  private val MazeKey = "maze"
 
   def apply(): GameSaveRepository = new PropertiesGameSaveRepository()
+
+  private def mazeNameIn(properties: Properties): Option[MapName] =
+    Option(properties.getProperty(MazeKey)).map(_.trim).filter(_.nonEmpty).map(MapName(_))
 
   private def required(properties: Properties, key: String): Either[SaveGameError, String] =
     Option(properties.getProperty(key)).toRight(SaveGameError.InvalidSave(s"missing '$key'"))

@@ -1,34 +1,209 @@
 % !TEX root = ../main.tex
 \chapter{Requirement Specification}
 
+This chapter focuses on the application's requirements, which have been dictated by both the business requirements
+and the desired behavior of the application. The project consists on building a Pac-Man style game, that is dynamic,
+scalable and testable.
+
 \section{Business requirements}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque at
-vehicula ipsum. Nullam et tellus vitae mauris semper ullamcorper.
+
+Scala-Man must be a single-player arcade maze game, distributed as a runnable executable and played locally on one
+computer. It must be recognizable to anyone who knows the arcade game it takes after: the mechanics that define the
+game, that is a maze to be cleared of items, enemies that hunt the player through it, and power-ups, must all be present
+and behave as expected.
+
+The player must be able to start playing almost immediately, with little or no need for documentation, choosing a name,
+a maze and a game mode before each game. The game must therefore offer several modes, each setting a different objective,
+so that the same maze can be played in more than one way.
+
+A game in progress must not be lost when the player stops playing: it must be possible to set a game aside and
+take it up again later.
+
+The outcome of a completed game must be recorded, and results achieved on the same maze in the same mode must be
+comparable with one another, so that a player can measure a run against their earlier ones.
+
+Players must be able to play on mazes they have written themselves, as well as on the mazes supplied with the game.
+
+The game must be able to grow further after delivery, with new game modes, new enemy behaviors and new bonus effects
+that can be added to the system.
+
+The project itself carries two further constraints: it must be completed within four one-week sprints of roughly
+fifteen hours of work per member, and it must employ functional programming techniques, systematic automated testing,
+and an agile development process.
 
 \section{Domain model}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam at mauris ac urna
-interdum interdum. Etiam in lectus at sem pulvinar aliquet.
+
+The domain of Scala-Man is that of an arcade maze game: a player moving through a maze, gathering what is scattered in
+it while enemies pursue them. It can be described from two points of view.
+The \textbf{static} view covers what is known of a game before it's played: the shape of a maze and the rules of the
+game. The \textbf{dynamic} view covers what constitutes the state of a game at a given instant while it is being played.
+
+\subsection{Static view: the game definition}
+
+\begin{itemize}
+  \item \textbf{Maze}: a rectangular grid of cells, written as a text file with one line per row and every row
+  of equal length. A maze fixes where the player and the enemies start, what there is to collect, and where the walls are.
+  \item \textbf{Cell}: one place in the maze, identified by its \textbf{position}, a row and a column. Every cell is
+  of exactly one kind. One kind is the \textbf{wall}, which nothing can occupy. Every other kind is walkable and says
+  what stands on that cell when the game begins: plain floor, the player's spawn, an enemy spawn, a collectible, a
+  bonus or one end of a teleport. A maze records only where moving entities start, never where they are.
+  \item \textbf{Direction}: one of the four ways an entity may face and move: up, down, left or right. Movement
+  is orthogonal only, so diagonal movement is not supported.
+  \item \textbf{Spawn}: the cell an entity starts on. A maze has exactly one player spawn and can have multiple enemy
+  spawns, each naming what kind of enemy spawns on them.
+  \item \textbf{Collectible}: an object placed on a walkable cell for the player to collect. A \textbf{standard item}
+  is worth points alone, a \textbf{bonus item} is worth points while also granting a special effect.
+  \item \textbf{Effect}: a temporary change to the rules, granted by a bonus item. \textbf{Invulnerability} lasts 8
+  seconds and makes contact with an enemy defeat the enemy rather than cost a life, while \textbf{slowdown}
+  lasts 5 seconds and halves the speed of every enemy.
+  \item \textbf{Teleport}: a pair of linked cells, that carry an entity stepping on them from one end of the teleport
+  to the other.
+  \item \textbf{Enemy kind}: what distinguishes one enemy from another. The kind alone determines the strategy the
+  enemy follows, meaning that two enemies of the same kind behave in the same way.
+  \item \textbf{Movement strategy}: the rule an enemy of a given kind follows in order to decide its next move.
+  The \textbf{Hunter} takes the shortest path to the cell the player occupies, the \textbf{Anticipator} takes the shortest path to the cell the player is predicted to reach, so as to cut the player off, and the \textbf{Patroller} ignores the player, and simply walks around the corners of the maze instead.
+  \item \textbf{Game mode}: the rules that decide, at any moment, whether a game is still running, won or lost,
+  given the lives the player has left, what is left to gather, and the time elapsed. A mode also
+  determines how the pace changes as a game goes on, whether a game runs against a limit, and what each scoring
+  event is worth. Three modes exist: \textbf{Classic} is won by gathering every standard item and lost on running
+  out of lives. \textbf{Timed} keeps that objective but is lost as soon as its time limit expires. \textbf{Survival}
+  has no gathering objective and admits no victory at all: enemies become faster every thirty seconds, and
+  the game ends only when the player runs out of lives.
+  \item \textbf{Scoring event}: an act that is worth points. Scoring events are gathering standard items, gathering bonus
+  items, defeating enemies or reaching the end of the game with remaining lives.
+  \item \textbf{Scoring rule}: what each scoring event is worth in points. A standard item is worth 50 points, a
+  bonus item is worth 100 points, each life left at the end of a game is worth 500 points. Defeating an enemy
+  is worth 200 points, and that amount is doubled for each enemy defeated consecutively within a single
+  invulnerability bonus. The scoring rule depends on the game mode.
+  \item \textbf{Maze validity}: the conditions a maze must satisfy to be playable, such as rows of equal and non-zero
+  length, exactly one player spawn, at least one collectible, at least one enemy, every collectible being reachable,
+  teleports correctly paired, and every enemy reachable from the player's spawn. A maze that does not uphold
+  these characteristics is refused and cannot be played.
+\end{itemize}
+
+\subsection{Dynamic view: the state of a game being played}
+
+\begin{itemize}
+  \item \textbf{Movement}: a passage from one cell to an adjacent one, taking a fixed time to complete. The player
+  crosses a cell in 200 milliseconds, and an enemy in 250 milliseconds.
+  \item \textbf{Player}: a moving entity that the person playing controls, by asking it to turn. A turn that cannot
+  be taken at once is remembered and taken at the first cell where it becomes possible. The player occupies
+  exactly one cell, faces one direction, and may be part-way through a movement towards an adjacent cell.
+  It changes the cell it occupies only on completing a movement, never in between.
+  \item \textbf{Enemy}: an entity that can move and also is of a certain kind. An enemy consults its strategy only
+  while standing on a cell with no movement underway. An enemy occupies exactly one cell, faces one direction,
+  and may be part-way through a movement towards an adjacent cell. It changes the cell it occupies only on
+  completing a movement, never in between.
+  \item \textbf{Game clock}: the time elapsed since the game began, advanced by the time passed between one update
+  and the next. It is the only notion of time the rules consult.
+  \item \textbf{Effects}: the effects in force at this moment, each with the instant it expires. An effect that has
+  expired ceases to apply.
+  \item \textbf{Remaining collectibles}: what is still to be gathered. Classic and timed games are won when nothing
+  is left.
+  \item \textbf{Lives}: How many lives the player has. At the start of the game, the player is given 3 lives. When
+  caught by an enemy, a life is lost.
+  \item \textbf{Meeting}: the player and an enemy occupying the same cell, or exchanging cells within a single
+  update. If invulnerability is in force, the enemy is defeated, otherwise a life is lost.
+  \item \textbf{Score}: the points gathered so far, together with the kill \textbf{combo}, which is the number
+  of enemies defeated consecutively within a single invulnerability bonus.
+  \item \textbf{Game State}: what the match is doing, that is \textbf{running}, \textbf{paused}, \textbf{victory}
+  or \textbf{defeat}. The last two are terminal states, and are thus final: no play is possible from them.
+  \item \textbf{Game in progress}: the entirety of a game at one instant: its maze, its player and enemies, what
+  is left to gather, the effects in force, the clock, the progress, the score and the mode being played. It is
+  the unit that is saved when a game is set aside and restored when it is taken up again.
+  \item \textbf{Result}: what a finished game leaves behind: the score reached, the name of whoever played, and the
+  instant it was achieved.
+  \item \textbf{Leaderboard}: the results gathered on one maze in one mode, ordered by descending score. Results
+  from different mazes or different modes are kept apart, since they are not comparable.
+\end{itemize}
 
 \section{Functional requirements}
 
 \subsection{User}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer semper dolor
-at malesuada bibendum.
+
+\begin{enumerate}
+  \item \textbf{Give a name}: the player must choose a name before playing. The name cannot be empty or longer
+  than 24 characters.
+  \item \textbf{Choose a maze}: the player must be able to play on any of the mazes supplied with the game,
+  or to open one they have written themselves from a file of their own.
+  \item \textbf{Choose a mode}: the player must be able to decide, before a game begins, which of the modes
+  it is played in.
+  \item \textbf{Move through the maze}: The player must be able to move their character using the arrow keys.
+  A turn that cannot happen due to the presence of a wall must be remembered and taken at the first cell that allows it.
+  \item \textbf{Follow the game as it is played}: the player must be able to see their score, the lives they have
+  left, the mode being played, how much time has passed or how much there is still left, as well as the number
+  of the remaining items to collect and the effects that are in force.
+  \item \textbf{Pause, resume and load}: the player must be able to suspend a game and resume it where they have
+  left it, and to open it again afterwards, finding it exactly as it was. A result is recorded only when a game
+  reaches its end, so a game merely set aside leaves nothing behind.
+  \item \textbf{Restart}: the player must be able to abandon a game in progress and begin again on the same maze
+  in the same mode, without having to return to the main menu.
+  \item \textbf{See the leaderboard}: the player must be able to see the best results recorded for a maze in a mode,
+  ordered from best to worst based on the score.
+\end{enumerate}
 
 \subsection{System}
-\begin{itemize}[leftmargin=*]
-  \item ASCII map loading.
-  \item Player and enemy management.
-  \item Collecting items and bonuses.
-  \item Lives, victory, and defeat handling.
+
+\begin{itemize}
+  \item \textbf{Read a maze}: the system must read a maze from text, accepting only the symbols the format defines,
+  and only files whose rows are all of the same, non-zero length.
+  \item \textbf{Judge whether a maze is playable}: a maze must be refused unless it complies with the following
+  requirements: it has exactly one player spawn, at least one collectible, at least one enemy, a border that is
+  closed by walls, teleports appearing in complete pairs, and every collectible and every enemy is reachable
+  from the player's spawn, either straight by walking or by using a teleport.
+  \item \textbf{Explain a refusal}: every maze or save the system declines to read must be reported in words that a
+  player can act on, naming what went wrong.
+  \item \textbf{Movement}: the system must move the player and the enemies between adjacent walkable cells, each
+  crossing taking a fixed time, that is 200 milliseconds for the player and 250 milliseconds for the enemies.
+  \item \textbf{Decide where enemies go}: the system must choose each enemy's next cell using the corresponding
+  strategy, and must pick a move only when the enemy is still.
+  \item \textbf{Carry entities through teleports}: an entity standing on one end of a teleport must be carried to
+  the other end. Whoever just arrived through a teleport must not be sent back right away, that can only happen
+  after the entity has stepped off the teleport and then on again.
+  \item \textbf{Resolve a meeting}: when a meeting occurs while the player is invulnerable, the enemy met is defeated,
+  otherwise the player loses a life and every entity is brought back to its spawn point.
+  \item \textbf{Grant and expire effects}: gathering a bonus item must grant its effect for a fixed time. An effect
+  must cease to apply once its duration has expired.
+  \item \textbf{Award points}: the system must award the correct amount of points for each event.
+  \item \textbf{Judge game status}: the system must decide, on every update, whether the game is still running, has
+  been won or has been lost.
+  \item \textbf{Keep the best results only}: the system must record the result of every finished game against the
+  maze and the mode it was played in, keeping at most one hundred results for each combination.
 \end{itemize}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce finibus urna
-sed nulla faucibus, at dictum dui volutpat.
 
 \section{Non-functional requirements}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed in dui tempor,
-feugiat sapien nec, feugiat arcu. Duis a justo ut ipsum gravida pretium.
+
+The qualities set out below are stated in terms that can be checked. The most demanding non-functional
+requirement for the system is \textbf{responsiveness}. The game must redraw sixty times a second, which leaves
+sixteen milliseconds to perform a complete update of the game model. This requirement is upheld, and it's verified
+through a test, that shows that a full update takes about 350 microseconds, leaving abundant margin.
+
+\textbf{Robustness against malformed input} is needed in order to allow the game to read files presented by
+the user, so that malformed files cannot lead to game crashes. For this reason, operations that read from
+outside the game report their outcome as a value rather than by raising exceptions.
+
+\textbf{Determinism} requires that an update of the model depends only on the state it is given and on the
+time elapsed since the previous update. Therefore, the same sequence of updates always produces the same
+result, and can be reproduced with no graphical interface present.
+
+\textbf{Portability} requires the game to run, without modification or recompilation, on any system providing a
+Java 21 virtual machine.
+
+Finally, the game must be \textbf{easy to understand} for a player, that should be able to play from the menu
+labels and have no need to read the game documentation to start playing.
 
 \section{Implementation requirements}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed eget mauris at
-magna rhoncus aliquam. Phasellus posuere facilisis neque, nec dictum nibh.
+
+\begin{enumerate}
+  \item \textbf{Language and platform}: the game must be written in Scala 3 and run on the Java Virtual Machine
+  version 21, with a graphical interface.
+  \item \textbf{A single artifact}: the build must produce one self-contained executable archive, so that the
+  game can be delivered and run without the recipient installing or resolving anything beyond a virtual machine.
+  \item \textbf{Extensibility}: it must be possible to add a game mode, an enemy behavior or a bonus effect by
+  writing the new behavior on its own, without altering the behavior of any existing one.
+  \item  \textbf{Replaceable storage}: the location in which the game keeps saves and recorded results must be
+  reachable through an interface describing what is stored rather than through the direct use of the file
+  system, so that the storage can be exchanged without the rest of the game being aware of it.
+  \item \textbf{Model is independent of its interface}: the rules of the game must not depend on the graphical
+  library, so that game behavior can be checked through tests that do not rely on windows or graphics.
+\end{enumerate}
