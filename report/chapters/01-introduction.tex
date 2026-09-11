@@ -1,42 +1,71 @@
 % !TEX root = ../main.tex
 \chapter{Introduction}
 
-\textbf{Scala-Man} is an arcade game inspired by the classic Pac-Man.
+\textbf{Scala-Man} is a single-player arcade maze game inspired by Pac-Man. Players navigate a
+closed maze, collect standard items, and avoid enemies to complete the selected game mode. The game
+supports configurable maps, distinct enemy behaviours, and persistent results.
 
-The player moves inside a maze filled with collectible items and enemies. The game combines the following
-core mechanics:
+Each game starts with \textbf{three lives}. The player moves orthogonally between walkable cells,
+while each enemy follows its own strategy. Clearing every \textbf{standard collectible} wins a
+classic or timed game; survival has no collection objective and ends only when the player runs out of lives.
+Meeting an enemy normally costs a life and returns the moving entities to their spawn positions.
+Teleports create shortcuts by carrying an entity to the paired endpoint.
 
-\begin{itemize}
-  \item \textbf{Collection and survival}: the player clears the maze while avoiding enemies; being caught costs a
-  life, and the game ends once no life remains.
-  \item \textbf{Enemy strategies}: the \textbf{Hunter} follows the player, the \textbf{Anticipator} tries to cut off
-  their path, and the \textbf{Patroller} follows a set path.
-  \item \textbf{Mobility and bonuses}: teleports instantly carry whoever steps on them to their paired endpoint,
-  while special items grant temporary invulnerability or slow enemies down.
-\end{itemize}
+\section{Modes, score, and competition}
 
-Three \textbf{game modes} offer distinct objectives and ranking criteria:
+The same maze can be played in three modes, each with its own objective and ranking criterion:
 
 \begin{itemize}
-  \item \textbf{Classic}: collect every standard item; bonuses, defeated enemies, and remaining lives add points.
-  \item \textbf{Timed}: complete the same objective as quickly as possible.
-  \item \textbf{Survival}: survive increasingly fast enemies; the score grows with each difficulty increase.
+  \item \textbf{Classic} rewards items, bonuses, defeated enemies, and lives left at the end; an
+  invulnerability combo makes consecutive enemy defeats progressively more valuable.
+  \item \textbf{Timed} applies the classic objective under a time limit and ranks runs by the seconds
+  remaining at the end; reaching the limit yields no time bonus.
+  \item \textbf{Survival} has no victory condition. Every \textbf{thirty seconds} raises enemy speed, up to
+  five times the initial speed, and the score records the difficulty waves survived.
 \end{itemize}
 
-Players can provide their own maps as plain-text files using the documented ASCII format. Each map is
-\textbf{validated before play} to guarantee that it is well formed and that all collectibles are reachable.
+Results are stored in a \textbf{leaderboard for each map--mode combination}, ordered by descending score.
+Only comparable runs are therefore ranked together.
 
-The game also supports the following player-facing features:
+\section{Bonuses}
+
+In addition to standard collectibles, mazes can contain any number of bonus items of two \textbf{types}:
+\textbf{Invulnerability} and \textbf{Slowdown}.
 
 \begin{itemize}
-  \item a \textbf{leaderboard} for each map--mode combination, ordered by descending score;
-  \item \textbf{saving and loading}, so a paused game can be resumed later from the start menu.
+  \item \textbf{Invulnerability} lasts \textbf{eight seconds}. During this interval, meeting an enemy does not
+  cost a life; instead, the enemy is defeated. Consecutive enemy defeats during the same effect also build
+  the score combo in Classic mode.
+  \item \textbf{Slowdown} lasts \textbf{five seconds}. It halves the speed of every enemy while leaving the
+  player at normal speed, creating time to escape, collect an item, or choose a safer route.
 \end{itemize}
 
-Beyond being playable, the project is designed around three quality goals:
+The player can use either effect defensively to survive a dangerous crossing or offensively to improve a score.
+
+\section{Enemy tactics}
+
+The maze contains three kinds of enemy:
 
 \begin{itemize}
-  \item \textbf{Extensible enemy behaviour}, through new strategies;
-  \item \textbf{Extensible game modes}, without changing the application core;
-  \item \textbf{Independent model testing}, without a graphical interface.
+  \item the \textbf{Hunter}, which follows a shortest path towards the player's current position;
+  \item the \textbf{Anticipator}, which predicts where the player is heading and attempts to intercept them;
+  \item the \textbf{Patroller}, which ignores the player and repeatedly follows a cyclic route through the
+  walkable cells nearest the maze corners.
 \end{itemize}
+
+\section{Maps, persistence, and project goals}
+
+Players can choose a supplied maze or provide their own through the
+\href{https://github.com/PPS-25/PPS-25-scala-man/blob/dev/docs/map-format.md}{ASCII map-format document in the project repository}.
+Before play, a map is
+parsed and validated: it must be non-empty and rectangular, use only supported symbols, have a closed border,
+exactly one player spawn, at least one standard collectible and one enemy, correctly paired teleports, and every
+standard collectible and enemy reachable from the spawn. Invalid maps are rejected with a clear explanation rather
+than causing the game to crash.
+
+A paused game can be saved from the in-game menu and resumed later with its maze, positions, remaining items,
+effects, score, clock, and mode restored. A result is recorded only when a game reaches a terminal outcome.
+
+Beyond the playable application, Scala-Man pursues three design goals developed in the following chapters:
+\textbf{extensible enemy behaviour}, \textbf{extensible game modes}, and a \textbf{testable domain model}
+that remains independent from the graphical interface.
