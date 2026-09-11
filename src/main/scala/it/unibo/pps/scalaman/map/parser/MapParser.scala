@@ -57,6 +57,7 @@ object MapParser:
       case 'C'                    => Some(Tile.Collectible)
       case 'H'                    => Some(Tile.Hunter)
       case 'A'                    => Some(Tile.Anticipator)
+      case 'P'                    => Some(Tile.Patroller)
       case 'I'                    => Some(Tile.InvulnerabilityBonus)
       case 'R'                    => Some(Tile.SlowdownBonus)
       case digit if digit.isDigit => Some(Tile.Teleport(digit.asDigit))

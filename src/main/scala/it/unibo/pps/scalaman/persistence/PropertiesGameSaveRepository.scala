@@ -117,7 +117,7 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
 
 object PropertiesGameSaveRepository:
   private val VersionKey = "format-version"
-  private val CurrentVersion = "2"
+  private val CurrentVersion = "3"
   private val MazeKey = "maze"
 
   def apply(): GameSaveRepository = new PropertiesGameSaveRepository()
@@ -166,6 +166,7 @@ object PropertiesGameSaveRepository:
     case Tile.Collectible          => 'C'
     case Tile.Hunter               => 'H'
     case Tile.Anticipator          => 'A'
+    case Tile.Patroller            => 'P'
     case Tile.InvulnerabilityBonus => 'I'
     case Tile.SlowdownBonus        => 'R'
     case Tile.Teleport(code)       => code.toString.head
@@ -223,16 +224,18 @@ object PropertiesGameSaveRepository:
 
   private def encodeEnemy(enemy: Enemy): String =
     val previous = enemy.previousPos.map(encodePosition).getOrElse("")
-    s"${encodeEntity(enemy.entity)}|${enemy.kind}|$previous"
+    val heading = enemy.heading.map(encodePosition).getOrElse("")
+    s"${encodeEntity(enemy.entity)}|${enemy.kind}|$previous|$heading"
 
   private def decodeEnemy(value: String): Either[SaveGameError, Enemy] =
     value.split("\\|", -1).toList match
-      case entity :: kind :: previous :: Nil =>
+      case entity :: kind :: previous :: heading :: Nil =>
         for
           movingEntity <- decodeEntity(entity)
           enemyKind <- decodeEnemyKind(kind)
           previousPosition <- decodeOptionalPosition(previous)
-        yield Enemy(movingEntity, enemyKind, previousPosition)
+          makingFor <- decodeOptionalPosition(heading)
+        yield Enemy(movingEntity, enemyKind, previousPosition, makingFor)
       case _ => invalid("invalid enemy")
 
   private def encodeCollectible(
@@ -399,7 +402,7 @@ object PropertiesGameSaveRepository:
         collectibles.map(_.position) ++ previous ++ entityPositions(player) ++
         enemies.flatMap(enemy =>
           Vector(enemy.currentPos) ++ enemy.previousPos ++ enemy.entity.previousPos ++
-            entityPositions(enemy.entity)
+            enemy.heading ++ entityPositions(enemy.entity)
         )
     Either.cond(
       positions.forall(position => maze.raw.cellAt(position).exists(_.isWalkable)),

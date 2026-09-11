@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 enum Tile:
   case Wall, Floor, Spawn, Collectible
-  case Hunter, Anticipator
+  case Hunter, Anticipator, Patroller
   case InvulnerabilityBonus, SlowdownBonus
   case Teleport(code: Int)
 
@@ -14,7 +14,7 @@ final case class MapCell(position: Position, tile: Tile):
   def isWalkable: Boolean = tile != Tile.Wall
 
 enum EnemyKind:
-  case Hunter, Anticipator
+  case Hunter, Anticipator, Patroller
 
 final case class EnemySpawn(position: Position, kind: EnemyKind)
 
