@@ -4,7 +4,7 @@ import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.score.ScoringEvent.{RemainingLives, RemainingTime, WavesSurvived}
 import it.unibo.pps.scalaman.model.score.{ScoringEvent, ScoringRule}
 
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
+import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
 
 /** Rules that determine the current outcome of a game mode from immutable game state. */
 trait GameMode:
@@ -102,6 +102,11 @@ object GameMode:
       clock.elapsed.toNanos / difficultyEvery.toNanos
 
     override def enemyDelta(delta: FiniteDuration, clock: GameClock): FiniteDuration =
-      val difficultyLevel = wavesSurvived(clock)
-      val multiplier = (difficultyLevel + 1).min(maximumSpeedMultiplier)
-      delta * multiplier
+      val multiplier = (1 + wavesSurvived(clock) * Survival.SpeedGainPerWave)
+        .min(maximumSpeedMultiplier.toDouble)
+      (delta.toNanos * multiplier).round.nanos
+
+  object Survival:
+
+    /** How much faster enemies get at every wave they survive. */
+    val SpeedGainPerWave: Double = 0.5

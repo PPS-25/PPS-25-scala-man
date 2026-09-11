@@ -46,7 +46,13 @@ object GameFiles:
 object DefaultMaps:
 
   /** Every maze that can be chosen without looking for a file. */
-  val All: Seq[MapName] = Seq("classic", "crossroads", "arena").map(MapName.apply)
+  val All: Seq[MapName] = Seq(
+    "easy-hunter",
+    "easy-anticipator",
+    "easy-patroller",
+    "medium",
+    "hard"
+  ).map(MapName.apply)
 
   /** The file a shipped maze is read from. */
   def resourceOf(map: MapName): String = s"/maps/${map.value}.txt"
