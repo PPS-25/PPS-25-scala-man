@@ -28,6 +28,14 @@ class MapValidationSpec extends AnyFunSuite, MapTestSupport:
     assert(map.teleports.contains(0))
   }
 
+  test("turns a patroller cell into a patroller spawn") {
+    val parsed = MapParser.parse(resourceText("valid/symbol-mapping.txt")).toOption.get
+
+    val enemies = MapValidator.validate(parsed).toOption.toSet.flatMap(_.enemies)
+
+    assert(enemies.exists(enemy => enemy.kind == EnemyKind.Patroller))
+  }
+
   test("accepts a valid playable map without teleports") {
     val parsed = MapParser.parse(resourceText("valid/no-teleports.txt")).toOption.get
     val validated = MapValidator.validate(parsed)

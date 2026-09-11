@@ -50,6 +50,7 @@ object SpriteImages:
     case Sprite.Bonus(BonusEffect.SlowDown)        => "/bonus1.png"
     case Sprite.Enemy(EnemyKind.Hunter)            => "/enemy1.png"
     case Sprite.Enemy(EnemyKind.Anticipator)       => "/enemy2.png"
+    case Sprite.Enemy(EnemyKind.Patroller)         => "/enemy3.png"
 
   /** The picture of a sprite, read the first time that very sprite is asked for and kept from then
     * on: a screen showing two of them does not pay for all the others.

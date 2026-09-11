@@ -3,7 +3,9 @@ package it.unibo.pps.scalaman.model.ai
 import it.unibo.pps.scalaman.model.Direction.Right
 import it.unibo.pps.scalaman.model.LevelTestSupport.levelWith
 import it.unibo.pps.scalaman.model.{LevelState, Position}
-import it.unibo.pps.scalaman.model.entities.Enemy
+import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
+import it.unibo.pps.scalaman.model.map.EnemyKind
+import it.unibo.pps.scalaman.model.LevelTestSupport.{maze, timePerPos}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.DurationInt
@@ -29,6 +31,16 @@ class EnemyAiStageSpec extends AnyFunSuite:
     val updated = EnemyAiStage.stage(level.copy(enemies = Vector(inProgress)))
 
     assert(updated.enemies == Vector(inProgress))
+  }
+
+  test("the AI stage sets a patroller on its way and remembers the corner it makes for") {
+    val patroller =
+      Enemy(MovingEntity(Position(2, 3), Right, timePerPos), EnemyKind.Patroller)
+
+    val updated = EnemyAiStage.stage(level.copy(enemies = Vector(patroller))).enemies.head
+
+    assert(updated.heading == PatrolRoute.acrossCorners(maze).map(_.corners.head))
+    assert(updated.entity.isMoving)
   }
 
   test("the AI stage accepts a replacement strategy selection") {

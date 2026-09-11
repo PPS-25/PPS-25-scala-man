@@ -183,6 +183,8 @@ object MapValidator:
         case Tile.Hunter => copy(enemies = enemies :+ EnemySpawn(cell.position, EnemyKind.Hunter))
         case Tile.Anticipator =>
           copy(enemies = enemies :+ EnemySpawn(cell.position, EnemyKind.Anticipator))
+        case Tile.Patroller =>
+          copy(enemies = enemies :+ EnemySpawn(cell.position, EnemyKind.Patroller))
         case Tile.Teleport(code) =>
           copy(teleportPositions =
             teleportPositions.updatedWith(code)(appendPosition(cell.position))
