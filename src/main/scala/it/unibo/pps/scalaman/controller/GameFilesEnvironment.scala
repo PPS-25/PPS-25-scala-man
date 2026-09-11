@@ -4,8 +4,8 @@ import it.unibo.pps.scalaman.app.{
   DefaultMaps,
   GameFiles,
   MapName,
-  Played,
   PlayableMazes,
+  Played,
   PlayerName
 }
 import it.unibo.pps.scalaman.leaderboard.io.FileLeaderboardStorage
@@ -20,7 +20,7 @@ import it.unibo.pps.scalaman.model.map.{
   ValidatedMap
 }
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard, LeaderboardError}
-import it.unibo.pps.scalaman.persistence.{GameSaveRepository, SaveGameError}
+import it.unibo.pps.scalaman.persistence.{GameSaveRepository, SaveGameError, SavedGame}
 
 import java.io.IOException
 import java.nio.file.{Files, Path}
@@ -67,12 +67,12 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
       .filterNot(Files.exists(_))
       .fold(Right(()))(copying(path))
 
-  def savedGame(path: Path): Either[String, LevelState] = saves.load(path).left.map(described)
+  def savedGame(path: Path): Either[String, SavedGame] = saves.load(path).left.map(described)
 
   def saving(level: LevelState, by: Played): Either[String, Unit] =
     for
       folder <- made(files.saves)
-      _ <- saves.save(level, folder.resolve(fileFor(by))).left.map(described)
+      _ <- saves.save(level, by.maze, folder.resolve(fileFor(by))).left.map(described)
     yield ()
 
   def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit] =

@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.app.{Command, MapName, Played, PlayableMazes, PlayerName}
+import it.unibo.pps.scalaman.app.{Command, MapName, PlayableMazes, Played, PlayerName}
 import it.unibo.pps.scalaman.model.effects.{BonusDuration, Slowdown}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
@@ -13,6 +13,7 @@ import it.unibo.pps.scalaman.model.{
   LoopState,
   ModeTuning
 }
+import it.unibo.pps.scalaman.persistence.SavedGame
 
 import java.nio.file.Path
 
@@ -40,7 +41,7 @@ trait GameEnvironment:
   def keeping(path: Path): Either[String, Unit]
 
   /** A game put away earlier, read back whole. */
-  def savedGame(path: Path): Either[String, LevelState]
+  def savedGame(path: Path): Either[String, SavedGame]
 
   /** Puts a game away, under the name of whoever was playing it and where. */
   def saving(level: LevelState, by: Played): Either[String, Unit]
@@ -103,7 +104,11 @@ final case class Application(
         begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
       }
     case Command.LoadSave(path, player) =>
-      remembering(player)(environment.savedGame(path).fold(told, resumed(_, Played(player, None))))
+      remembering(player)(
+        environment
+          .savedGame(path)
+          .fold(told, saved => resumed(saved.level, Played(player, saved.maze)))
+      )
     case Command.Pause | Command.Resume => onHold
     case Command.Restart                => again
     case Command.BackToMenu             => putAway

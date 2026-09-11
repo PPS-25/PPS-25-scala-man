@@ -3,7 +3,7 @@ package it.unibo.pps.scalaman.controller
 import it.unibo.pps.scalaman.app.{DefaultMaps, GameFiles, MapName, Played, PlayerName}
 import it.unibo.pps.scalaman.model.{LeaderboardMode, LevelState, LevelTestSupport}
 import it.unibo.pps.scalaman.model.score.GameResult
-import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
+import it.unibo.pps.scalaman.persistence.{PropertiesGameSaveRepository, SavedGame}
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.attribute.FileTime
@@ -124,7 +124,7 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     inItsOwnHome { (world, files) =>
       world.saving(anyGame, Played(player, Some(arena)))
       val read = world.savedGame(files.saves.resolve("arena-Matilde-D-Antino.properties"))
-      assert(read == Right(anyGame))
+      assert(read == Right(SavedGame(anyGame, Some(arena))))
     }
   }
 

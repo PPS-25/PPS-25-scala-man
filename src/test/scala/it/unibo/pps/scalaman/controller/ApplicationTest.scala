@@ -15,6 +15,7 @@ import it.unibo.pps.scalaman.model.{
   ModeChoice,
   ModeTuning
 }
+import it.unibo.pps.scalaman.persistence.SavedGame
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.{Path, Paths}
@@ -54,7 +55,8 @@ class ApplicationTest extends AnyFunSuite:
   private class Outside(
       unreadable: Boolean = false,
       unwritable: Boolean = false,
-      resumable: Option[LevelState] = None
+      resumable: Option[LevelState] = None,
+      resumedOn: Option[MapName] = None
   ) extends GameEnvironment:
     val saved: ListBuffer[(LevelState, Played)] = ListBuffer.empty
     val recorded: ListBuffer[(GameResult, MapName, LeaderboardMode)] = ListBuffer.empty
@@ -75,8 +77,8 @@ class ApplicationTest extends AnyFunSuite:
     def mazeAt(path: Path): Either[String, ValidatedMap] =
       refusing(LevelTestSupport.maze, unreadable)
     def keeping(path: Path): Either[String, Unit] = { kept += path; Right(()) }
-    def savedGame(path: Path): Either[String, LevelState] =
-      resumable.toRight("there is no game to resume")
+    def savedGame(path: Path): Either[String, SavedGame] =
+      resumable.map(SavedGame(_, resumedOn)).toRight("there is no game to resume")
     def saving(level: LevelState, by: Played): Either[String, Unit] =
       saved += ((level, by))
       refusing((), unwritable)
