@@ -131,11 +131,11 @@ object Main extends JFXApp3:
 
   // Shown rather than waited on: a frame is being drawn, and a modal wait would refuse to open.
   private def announced(notice: ApplicationNotice): Unit =
-    val (kind, header) = notice match
-      case ApplicationNotice.Error(_) => (Alert.AlertType.Error, "scala-man could not do that")
-      case ApplicationNotice.Information(_) => (Alert.AlertType.Information, "Result recorded")
-    new Alert(kind):
-      title = applicationName
-      headerText = header
-      contentText = notice.message
-    .show()
+    notice match
+      case ApplicationNotice.Error(message) =>
+        new Alert(Alert.AlertType.Error):
+          title = applicationName
+          headerText = "scala-man could not do that"
+          contentText = message
+        .show()
+      case ApplicationNotice.Information(_) => ()
