@@ -6,9 +6,10 @@ import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
 import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.EnemyKind
+import it.unibo.pps.scalaman.model.score.{ScoringEvent, ScoringRule}
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class GameModeSpec extends AnyFunSuite:
 
@@ -18,6 +19,19 @@ class GameModeSpec extends AnyFunSuite:
         .move(Direction.Right, _ => true),
       EnemyKind.Hunter
     )
+
+  test("a mode without a clock has no time to run out") {
+    assert(GameMode.Normal.timeLeft(GameClock(10.seconds)).isEmpty)
+    assert(GameMode.Survival().timeLeft(GameClock(10.seconds)).isEmpty)
+  }
+
+  test("a timed mode tells how much of its limit is left") {
+    assert(GameMode.Timed(30.seconds).timeLeft(GameClock(10.seconds)).contains(20.seconds))
+  }
+
+  test("a timed mode that ran out has no time left rather than time owed") {
+    assert(GameMode.Timed(30.seconds).timeLeft(GameClock(40.seconds)).contains(Duration.Zero))
+  }
 
   test("normal mode preserves the standard victory and defeat rules") {
     val won = startingLevel.copy(collectibles = Collectibles(Set.empty))
@@ -99,4 +113,43 @@ class GameModeSpec extends AnyFunSuite:
     assertThrows[IllegalArgumentException] {
       GameMode.Survival(maximumSpeedMultiplier = 0)
     }
+  }
+
+  test("each mode scores by its own rule") {
+    assert(GameMode.Normal.scoringRule == ScoringRule.standardScoring)
+    assert(GameMode.Timed(1.second).scoringRule == ScoringRule.timedScoring)
+    assert(GameMode.Survival().scoringRule == ScoringRule.survivalScoring)
+  }
+
+  test("a classic game awards nothing until it is over") {
+    assert(GameMode.Normal.bonus(LevelProgress(2), GameClock(), false).isEmpty)
+    assert(
+      GameMode.Normal
+        .bonus(LevelProgress(2), GameClock(), true)
+        .contains(ScoringEvent.RemainingLives(2))
+    )
+  }
+
+  test("a timed game awards the time it has left") {
+    assert(
+      GameMode
+        .Timed(60.seconds)
+        .bonus(LevelProgress(3), GameClock(20.seconds), false)
+        .contains(ScoringEvent.RemainingTime(40.seconds))
+    )
+  }
+
+  test("a survival game awards the waves it has survived") {
+    assert(
+      GameMode
+        .Survival(difficultyEvery = 10.seconds)
+        .bonus(LevelProgress(3), GameClock(35.seconds), false)
+        .contains(ScoringEvent.WavesSurvived(3))
+    )
+  }
+
+  test("in survival, a wave is counted when the difficulty increases") {
+    val survival = GameMode.Survival(difficultyEvery = 10.seconds)
+    assert(survival.wavesSurvived(GameClock(9.seconds)) == 0)
+    assert(survival.wavesSurvived(GameClock(10.seconds)) == 1)
   }

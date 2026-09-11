@@ -1,10 +1,19 @@
 package it.unibo.pps.scalaman.controller
 
-import it.unibo.pps.scalaman.app.{Command, MapName, Played, PlayableMazes, PlayerName}
+import it.unibo.pps.scalaman.app.{Command, MapName, PlayableMazes, Played, PlayerName}
 import it.unibo.pps.scalaman.model.effects.{BonusDuration, Slowdown}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
-import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, LoopState}
+import it.unibo.pps.scalaman.model.{
+  Direction,
+  GameMode,
+  GameState,
+  LeaderboardMode,
+  LevelState,
+  LoopState,
+  ModeTuning
+}
+import it.unibo.pps.scalaman.persistence.SavedGame
 
 import java.nio.file.Path
 
@@ -16,6 +25,12 @@ trait GameEnvironment:
   /** Every maze that can be chosen right now. */
   def mazes: Seq[MapName]
 
+  /** The name most recently used to play a game, if any. */
+  def playerName: Option[PlayerName]
+
+  /** Keeps the name that will be offered the next time the menu opens. */
+  def remembering(player: PlayerName): Either[String, Unit]
+
   /** A maze the game offers under a name. */
   def maze(name: MapName): Either[String, ValidatedMap]
 
@@ -26,16 +41,25 @@ trait GameEnvironment:
   def keeping(path: Path): Either[String, Unit]
 
   /** A game put away earlier, read back whole. */
-  def savedGame(path: Path): Either[String, LevelState]
+  def savedGame(path: Path): Either[String, SavedGame]
 
   /** Puts a game away, under the name of whoever was playing it and where. */
   def saving(level: LevelState, by: Played): Either[String, Unit]
 
-  /** Writes a result among the best scores reached on a maze. */
-  def recording(result: GameResult, on: MapName): Either[String, Unit]
+  /** Writes a result among the best scores reached on a maze in a mode. */
+  def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit]
 
-  /** The best scores reached on a maze, as they are kept. */
-  def bestOn(maze: MapName): Leaderboard
+  /** The best scores reached on a maze in a mode, as they are kept. */
+  def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard
+
+/** A message the application asks the interface to show. */
+enum ApplicationNotice:
+  case Error(override val message: String)
+  case Information(override val message: String)
+
+  def message: String = this match
+    case Error(message)       => message
+    case Information(message) => message
 
 /** A game in progress: what advances it, and who is playing it where. */
 final case class Playing(session: GameSession, by: Played):
@@ -52,27 +76,39 @@ final case class Playing(session: GameSession, by: Played):
 final case class Application(
     environment: GameEnvironment,
     showing: ValidatedMap => RenderListener[LevelView],
+    tuning: ModeTuning,
     playing: Option[Playing] = None,
-    notice: Option[String] = None
+    notice: Option[ApplicationNotice] = None
 ):
 
   /** Every maze that can be chosen right now. */
   def mazes: Seq[MapName] = environment.mazes
 
-  /** The best scores reached on a maze. */
-  def bestOn(maze: MapName): Leaderboard = environment.bestOn(maze)
+  /** The name that is pre-filled in the menu, if one was used before. */
+  def playerName: Option[PlayerName] = environment.playerName
+
+  /** The best scores reached on a maze in a mode. */
+  def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = environment.bestOn(maze, mode)
 
   /** The application after whoever plays asked for something. */
   def commanded(command: Command): Application = command match
-    case Command.StartGame(maze, player) =>
-      begun(environment.maze(maze), Played(player, Some(maze)))
-    case Command.LoadMap(path, player) =>
-      val read = environment.mazeAt(path)
-      // Only a maze that reads is kept, and a maze that cannot be kept is played all the same.
-      read.foreach(_ => environment.keeping(path))
-      begun(read, Played(player, PlayableMazes.named(path)))
+    case Command.StartGame(maze, player, mode) =>
+      remembering(player)(
+        begun(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
+      )
+    case Command.LoadMap(path, player, mode) =>
+      remembering(player) {
+        val read = environment.mazeAt(path)
+        // Only a maze that reads is kept, and a maze that cannot be kept is played all the same.
+        read.foreach(_ => environment.keeping(path))
+        begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
+      }
     case Command.LoadSave(path, player) =>
-      environment.savedGame(path).fold(told, resumed(_, Played(player, None)))
+      remembering(player)(
+        environment
+          .savedGame(path)
+          .fold(told, saved => resumed(saved.level, Played(player, saved.maze)))
+      )
     case Command.Pause | Command.Resume => onHold
     case Command.Restart                => again
     case Command.BackToMenu             => putAway
@@ -105,8 +141,14 @@ final case class Application(
   /** The same application, with what it had to say taken as said. */
   def noticed: Application = copy(notice = None)
 
-  private def begun(maze: Either[String, ValidatedMap], by: Played): Application =
-    maze.fold(told, read => resumed(LevelState.from(read), by))
+  private def begun(
+      maze: Either[String, ValidatedMap],
+      by: Played,
+      mode: GameMode
+  ): Application = maze.fold(told, read => resumed(LevelState.from(read, mode), by))
+
+  private def remembering(player: PlayerName)(next: => Application): Application =
+    environment.remembering(player).fold(told, _ => next)
 
   private def resumed(level: LevelState, by: Played): Application = copy(
     playing = Some(Playing(GameSession.starting(level, showing(level.maze)), by)),
@@ -136,10 +178,23 @@ final case class Application(
   // A game whose maze has no name of its own, which is any game resumed from a file, has no
   // leaderboard to be recorded in.
   private def recorded(level: LevelState, by: Played): Application =
-    val written = for
+    val result = for
       maze <- by.maze
       result <- level.result(by.player.value)
-    yield environment.recording(result, maze)
-    written.fold(this)(_.fold(told, _ => this))
+    yield (maze, result)
+    result.fold(this) { case (maze, score) =>
+      environment
+        .recording(score, maze, LeaderboardMode.of(level.mode))
+        .fold(told, _ => informed(maze, level.mode))
+    }
 
-  private def told(message: String): Application = copy(notice = Some(message))
+  private def informed(maze: MapName, mode: GameMode): Application = copy(
+    notice = Some(
+      ApplicationNotice.Information(
+        s"Result recorded in the ${LeaderboardMode.of(mode).label} leaderboard for ${maze.value}."
+      )
+    )
+  )
+
+  private def told(message: String): Application =
+    copy(notice = Some(ApplicationNotice.Error(message)))

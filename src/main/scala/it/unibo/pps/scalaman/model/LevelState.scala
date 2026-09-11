@@ -53,7 +53,7 @@ final case class LevelState(
   private def defeatingEnemies: LevelState =
     val (defeated, survivors) = enemies.partition(enemy => player.meets(enemy.entity))
     defeated.foldLeft(copy(enemies = survivors)): (level, _) =>
-      level.copy(score = level.score.increaseScore(EnemyKill))
+      level.copy(score = level.score.increaseScore(EnemyKill)(using mode.scoringRule))
 
   /** The level after a player was carried by a teleport it stepped on. A teleport does not send
     * back a player that just arrived through it. To be sent back, the player needs to step off the
@@ -84,8 +84,19 @@ final case class LevelState(
     */
   def status: GameState = mode.status(progress, collectibles, clock)
 
+  /** The score of the game as it is, made up of the points scored so far plus whatever the mode is
+    * awarding at the moment.
+    */
+  def liveScore: Int =
+    score.currentScore + mode
+      .bonus(progress, clock, status.isTerminal)
+      .fold(0)(mode.scoringRule.awardedPoints(_))
+
+  /** The result of the game, if the game is over. */
   def result(playerName: String): Option[GameResult] =
-    Option.when(status.isTerminal)(score.toResult(playerName, progress.lives, Instant.now()))
+    Option.when(status.isTerminal)(
+      GameResult(playerName, liveScore, Instant.now())
+    )
 
   /** The level after some time has passed. A level that ended stands still. */
   def ticking(delta: FiniteDuration): LevelState =
@@ -136,7 +147,7 @@ final case class LevelState(
     copy(
       collectibles = picked.left,
       effects = effects.grantedBy(picked.element, clock.elapsed),
-      score = score.awardedFor(picked.element)
+      score = score.awardedFor(picked.element)(using mode.scoringRule)
     )
 
   /** The level with the effects that expired dropped. Manages the combo as well, because a combo

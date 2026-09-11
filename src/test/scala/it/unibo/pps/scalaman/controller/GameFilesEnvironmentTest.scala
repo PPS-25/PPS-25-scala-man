@@ -1,11 +1,12 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.app.{DefaultMaps, GameFiles, MapName, Played, PlayerName}
-import it.unibo.pps.scalaman.model.{LevelState, LevelTestSupport}
+import it.unibo.pps.scalaman.model.{LeaderboardMode, LevelState, LevelTestSupport}
 import it.unibo.pps.scalaman.model.score.GameResult
-import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
+import it.unibo.pps.scalaman.persistence.{PropertiesGameSaveRepository, SavedGame}
 import org.scalatest.funsuite.AnyFunSuite
 
+import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path}
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
@@ -123,7 +124,7 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     inItsOwnHome { (world, files) =>
       world.saving(anyGame, Played(player, Some(arena)))
       val read = world.savedGame(files.saves.resolve("arena-Matilde-D-Antino.properties"))
-      assert(read == Right(anyGame))
+      assert(read == Right(SavedGame(anyGame, Some(arena))))
     }
   }
 
@@ -131,21 +132,48 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     inItsOwnHome((world, files) => assert(world.savedGame(files.saves.resolve("none")).isLeft))
   }
 
-  test("a maze nobody played has no best scores") {
-    inItsOwnHome((world, _) => assert(world.bestOn(arena).entries.isEmpty))
-  }
-
-  test("a score recorded on a maze is among the best scores of that maze") {
+  test("a remembered player name is offered again") {
     inItsOwnHome { (world, _) =>
-      val result = GameResult(player.value, 100, Instant.parse("2026-01-01T00:00:00Z"))
-      world.recording(result, arena)
-      assert(world.bestOn(arena).entries == List(result))
+      assert(world.remembering(player) == Right(()))
+      assert(world.playerName.contains(player))
     }
   }
 
-  test("a score recorded on a maze is not among the best scores of another") {
+  test("remembering the same player name does not rewrite it") {
+    inItsOwnHome { (world, files) =>
+      world.remembering(player)
+      val firstWritten = FileTime.fromMillis(1)
+      Files.setLastModifiedTime(files.playerName, firstWritten)
+
+      assert(world.remembering(player) == Right(()))
+      assert(Files.getLastModifiedTime(files.playerName) == firstWritten)
+    }
+  }
+
+  test("a changed player name replaces the remembered one") {
     inItsOwnHome { (world, _) =>
-      world.recording(GameResult(player.value, 100, Instant.now()), arena)
-      assert(world.bestOn(mine).entries.isEmpty)
+      val changed = PlayerName("Gaia")
+      world.remembering(player)
+      assert(world.remembering(changed) == Right(()))
+      assert(world.playerName.contains(changed))
+    }
+  }
+
+  test("a maze nobody played in a mode has no best scores") {
+    inItsOwnHome((world, _) => assert(world.bestOn(arena, LeaderboardMode.Classic).entries.isEmpty))
+  }
+
+  test("a score recorded on a maze is among the best scores of that map and mode") {
+    inItsOwnHome { (world, _) =>
+      val result = GameResult(player.value, 100, Instant.parse("2026-01-01T00:00:00Z"))
+      world.recording(result, arena, LeaderboardMode.Timed)
+      assert(world.bestOn(arena, LeaderboardMode.Timed).entries == List(result))
+    }
+  }
+
+  test("scores for different modes on a maze are kept apart") {
+    inItsOwnHome { (world, _) =>
+      world.recording(GameResult(player.value, 100, Instant.now()), arena, LeaderboardMode.Classic)
+      assert(world.bestOn(arena, LeaderboardMode.Survival).entries.isEmpty)
     }
   }

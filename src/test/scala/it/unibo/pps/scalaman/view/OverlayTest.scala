@@ -8,10 +8,22 @@ import scala.concurrent.duration.DurationInt
 
 class OverlayTest extends AnyFunSuite:
 
-  private val status =
-    StatusBar(lives = 2, remaining = 4, applied = Set.empty, GameState.Running, 1200, 95.seconds)
+  private val status = StatusBar(
+    lives = 2,
+    remaining = 4,
+    applied = Set.empty,
+    GameState.Running,
+    1200,
+    95.seconds,
+    timeLeft = None
+  )
 
   private def over(screen: Screen): Option[Overlay] = Overlay.of(screen, status)
+
+  test("a game that ran out of time is read by how long it was played") {
+    val ranOut = status.copy(timeLeft = Some(scala.concurrent.duration.Duration.Zero))
+    assert(Overlay.of(Screen.Over(Outcome.Defeat), ranOut).exists(_.lines.contains("Time 01:35")))
+  }
 
   test("a board nothing covers is not even told how the level is doing") {
     var asked = 0

@@ -1,5 +1,6 @@
 package it.unibo.pps.scalaman.persistence
 
+import it.unibo.pps.scalaman.app.MapName
 import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.model.LevelTestSupport.maze
 import it.unibo.pps.scalaman.model.effects.BonusEffect.SlowDown
@@ -15,6 +16,7 @@ import scala.concurrent.duration.DurationInt
 
 class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
   private val repository = PropertiesGameSaveRepository()
+  private val mazeName = MapName("arena")
 
   test("a saved game can be loaded with all its progress") {
     val path = Files.createTempFile("scala-man-save", ".properties")
@@ -35,8 +37,8 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
       )
 
     try
-      assert(repository.save(original, path) == Right(()))
-      assert(repository.load(path) == Right(original))
+      assert(repository.save(original, Some(mazeName), path) == Right(()))
+      assert(repository.load(path) == Right(SavedGame(original, Some(mazeName))))
     finally Files.deleteIfExists(path)
   }
 
@@ -64,8 +66,8 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
       )
 
     try
-      assert(repository.save(original, path) == Right(()))
-      assert(repository.load(path) == Right(original))
+      assert(repository.save(original, None, path) == Right(()))
+      assert(repository.load(path) == Right(SavedGame(original, None)))
     finally Files.deleteIfExists(path)
   }
 

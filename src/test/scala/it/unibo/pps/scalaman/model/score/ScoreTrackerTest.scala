@@ -8,12 +8,10 @@ import it.unibo.pps.scalaman.model.score.ScoringEvent.{
 }
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.time.Instant
-
 class ScoreTrackerTest extends AnyFunSuite:
 
+  private given ScoringRule = ScoringRule.standardScoring
   private val emptyTracker = ScoreTracker()
-  private val time = Instant.parse("2026-01-01T00:00:00Z")
 
   test("a new tracker starts with 0 points and a combo of 0") {
     assert(emptyTracker.currentScore == 0)
@@ -85,29 +83,5 @@ class ScoreTrackerTest extends AnyFunSuite:
       ScoreTracker(combo = 3).resetCombo
         .increaseScore(EnemyKill)
         .currentScore == 200
-    )
-  }
-
-  test("the game result keeps the name of the player") {
-    assert(
-      emptyTracker
-        .toResult("PlayerName", 0, time)
-        .playerName == "PlayerName"
-    )
-  }
-
-  test("the game result considers the remaining lives to increase the final score") {
-    assert(
-      emptyTracker
-        .toResult("PlayerName", 2, time)
-        .score == 500 + 500
-    )
-  }
-
-  test("the game result keeps the score of the game") {
-    assert(
-      ScoreTracker(500, 0)
-        .toResult("PlayerName", 0, time)
-        .score == 500
     )
   }

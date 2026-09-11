@@ -3,7 +3,7 @@ package it.unibo.pps.scalaman.view
 import it.unibo.pps.scalaman.controller.{LevelView, RenderedMovement}
 import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
-import it.unibo.pps.scalaman.model.{GameState, Position}
+import it.unibo.pps.scalaman.model.{GameState, LeaderboardMode, Position}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -36,7 +36,9 @@ final case class StatusBar(
     applied: Set[BonusEffect],
     state: GameState,
     score: Int,
-    elapsed: FiniteDuration
+    elapsed: FiniteDuration,
+    timeLeft: Option[FiniteDuration],
+    mode: LeaderboardMode = LeaderboardMode.Classic
 ):
 
   /** How the player is doing. */
@@ -44,11 +46,21 @@ final case class StatusBar(
 
   /** How far the level has got, how long it took, and what is in effect. */
   def levelDescribed: String =
-    (Seq(timeDescribed, s"Left $remaining") ++ effects).mkString(" | ")
+    (Seq(mode.label, timeDescribed, s"Left $remaining") ++ effects).mkString(" | ")
 
-  /** How long the level has been played. */
-  def timeDescribed: String =
-    f"${elapsed.toSeconds / SecondsPerMinute}%02d:${elapsed.toSeconds % SecondsPerMinute}%02d"
+  /** The clock the level is read by while it is played: what is left of it when it runs against
+    * one, otherwise how long it has been going.
+    */
+  def timeDescribed: String = spelled(timeLeft.getOrElse(elapsed))
+
+  /** How long the level was played, which is what a game already over is read by: what was left of
+    * a clock that ran out says nothing.
+    */
+  def timePlayed: String = spelled(elapsed)
+
+  private def spelled(duration: FiniteDuration): String =
+    val told = duration.toSeconds
+    f"${told / SecondsPerMinute}%02d:${told % SecondsPerMinute}%02d"
 
   private def effects: Option[String] =
     Option.when(applied.nonEmpty)(applied.map(_.toString).toSeq.sorted.mkString(", "))
@@ -56,8 +68,16 @@ final case class StatusBar(
 object StatusBar:
 
   /** The half of a frame that is read rather than drawn. */
-  def of(view: LevelView): StatusBar =
-    StatusBar(view.lives, view.remaining, view.applied, view.status, view.score, view.elapsed)
+  def of(view: LevelView): StatusBar = StatusBar(
+    view.lives,
+    view.remaining,
+    view.applied,
+    view.status,
+    view.score,
+    view.elapsed,
+    view.timeLeft,
+    view.mode
+  )
 
 private val SecondsPerMinute = 60
 

@@ -4,7 +4,7 @@ import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.EnemyKind
-import it.unibo.pps.scalaman.model.{Direction, GameState, LevelState, Position}
+import it.unibo.pps.scalaman.model.{Direction, GameState, LeaderboardMode, LevelState, Position}
 
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
@@ -19,7 +19,9 @@ final case class LevelView(
     applied: Set[BonusEffect],
     status: GameState,
     score: Int,
-    elapsed: FiniteDuration
+    elapsed: FiniteDuration,
+    timeLeft: Option[FiniteDuration],
+    mode: LeaderboardMode = LeaderboardMode.Classic
 )
 
 object LevelView:
@@ -35,12 +37,21 @@ object LevelView:
     lives = level.progress.lives,
     applied = level.effects.active(level.clock.elapsed),
     status = level.status,
-    score = level.score.currentScore,
-    elapsed = level.clock.elapsed.toSeconds.seconds
+    score = level.liveScore,
+    elapsed = level.clock.elapsed.toSeconds.seconds,
+    timeLeft = level.mode.timeLeft(level.clock).map(wholeSecondsUp),
+    mode = LeaderboardMode.of(level.mode)
   )
 
   /** Notifies whoever draws a level, whenever a tick changes what it is shown. */
   def rendering: Rendering[LevelState, LevelView] = Rendering(of)
+
+// Rounded up: a countdown that truncated would read zero for a whole second before the game is
+// over. Whole seconds because that is all the bar shows.
+private def wholeSecondsUp(left: FiniteDuration): FiniteDuration =
+  ((left.toMillis + MillisPerSecond - 1) / MillisPerSecond).seconds
+
+private val MillisPerSecond = 1000
 
 /** Where a MovingEntity is drawn. Contains the cell the entity is leaving, the one it is reaching,
   * and how far along the movement it is. A still entity is leaving and reaching the same cell.

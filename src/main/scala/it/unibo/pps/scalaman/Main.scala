@@ -3,12 +3,14 @@ package it.unibo.pps.scalaman
 import it.unibo.pps.scalaman.app.Command
 import it.unibo.pps.scalaman.controller.{
   Application,
+  ApplicationNotice,
   CommandMapper,
   GameFilesEnvironment,
   LevelView,
   Playing,
   RenderListener
 }
+import it.unibo.pps.scalaman.model.ModeTuning
 import it.unibo.pps.scalaman.model.effects.given
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.persistence.PropertiesGameSaveRepository
@@ -38,8 +40,11 @@ def applicationName: String = "scala-man"
   */
 object Main extends JFXApp3:
 
-  private var application =
-    Application(GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()), showing)
+  private var application = Application(
+    GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()),
+    showing,
+    ModeTuning.standardModes
+  )
 
   private var board: Option[GameBoard] = None
   private var veiled: Option[Screen] = None
@@ -67,7 +72,7 @@ object Main extends JFXApp3:
   private def became(next: Application): Unit =
     if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = menu
     application = next.noticed
-    next.notice.foreach(failed)
+    next.notice.foreach(announced)
 
   /** How a level of a maze is drawn: the board shown here, and the brush handed back to whoever
     * advances the game.
@@ -93,7 +98,7 @@ object Main extends JFXApp3:
     * the menu comes back.
     */
   private def menu: scalafx.scene.Parent =
-    MenuScreen(application.mazes, application.bestOn, asked).node
+    MenuScreen(application.mazes, application.bestOn, application.playerName, asked).node
 
   /** What a key press asks for. Every control claims the arrows to move the focus and consumes
     * them, so a steer is read on the way down and, once taken, consumed in its turn.
@@ -109,9 +114,12 @@ object Main extends JFXApp3:
         event.consume()
 
   // Shown rather than waited on: a frame is being drawn, and a modal wait would refuse to open.
-  private def failed(message: String): Unit =
-    new Alert(Alert.AlertType.Error):
+  private def announced(notice: ApplicationNotice): Unit =
+    val (kind, header) = notice match
+      case ApplicationNotice.Error(_) => (Alert.AlertType.Error, "scala-man could not do that")
+      case ApplicationNotice.Information(_) => (Alert.AlertType.Information, "Result recorded")
+    new Alert(kind):
       title = applicationName
-      headerText = "scala-man could not do that"
-      contentText = message
+      headerText = header
+      contentText = notice.message
     .show()
