@@ -3,7 +3,6 @@ package it.unibo.pps.scalaman.model.ai
 import it.unibo.pps.scalaman.model.entities.Enemy
 import it.unibo.pps.scalaman.model.{Direction, LevelState, Position}
 
-/** Assigns the next movement to every idle enemy using its selected strategy. */
 object EnemyAiStage:
 
   def stage(

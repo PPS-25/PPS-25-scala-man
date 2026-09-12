@@ -5,7 +5,6 @@ import it.unibo.pps.scalaman.model.map.{MapGenerationError, MapGenerationSpec, R
 
 import scala.util.Random
 
-/** Test-only generator for maps used to exercise validation and map construction. */
 object MapGenerator:
   private val teleportCodePairs: Vector[(Int, Int)] = Vector(0 -> 5, 1 -> 6, 2 -> 7, 3 -> 8, 4 -> 9)
 

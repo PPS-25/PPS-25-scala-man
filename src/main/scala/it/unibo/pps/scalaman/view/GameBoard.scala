@@ -10,9 +10,6 @@ import scalafx.scene.control.Button
 import scalafx.scene.layout.{BorderPane, StackPane, VBox}
 import scalafx.stage.Screen
 
-/** Draws a level on two layers: the maze once, because it stands still, and whoever moves over it
-  * at every frame.
-  */
 final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 
   import GameBoard.*
@@ -32,7 +29,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 
   drawMaze()
 
-  /** What to put on a scene to see the level. */
   val node: Parent = new BorderPane:
     top = new BorderPane:
       left = lives
@@ -43,7 +39,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
     center = new StackPane:
       children = Seq(maze, entities, veil)
 
-  /** Draws a frame over the maze, which is left untouched. */
   def draw(frame: Frame): Unit =
     val gc = entities.graphicsContext2D
     gc.clearRect(0, 0, entities.width.value, entities.height.value)
@@ -54,7 +49,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
   // Rebuilding the veil at every frame would replace a button before its click is over.
   private var covered: Option[Overlay] = None
 
-  /** Covers the board with what is read while the game is not being played, or uncovers it. */
   def cover(overlay: Option[Overlay]): Unit =
     if overlay != covered then
       covered = overlay
@@ -87,7 +81,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
     padding = Insets(SpacedBy)
     style = Style.text(Style.Reading)
 
-  // Walls and doors are transparent at the corners, so floor goes under every position.
   private def drawMaze(): Unit =
     val gc = maze.graphicsContext2D
     for
@@ -117,7 +110,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
           cellSize
         )
 
-  // Player pictures face right. Left is mirrored rather than rotated, so the character stays upright.
   private def transformOf(direction: Direction): (Double, Boolean) = direction match
     case Direction.Right => (0, false)
     case Direction.Down  => (90, false)
@@ -126,7 +118,6 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 
 object GameBoard:
 
-  /** A board drawn as large as the screen it is played on allows. */
   def fittingScreen(board: Board, chosen: Command => Unit): GameBoard =
     val bounds = Screen.primary.visualBounds
     GameBoard(board, CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)), chosen)

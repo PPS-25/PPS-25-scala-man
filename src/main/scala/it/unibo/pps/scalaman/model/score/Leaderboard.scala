@@ -8,11 +8,9 @@ trait LeaderboardStorage:
   def load(): Either[LeaderboardError, Leaderboard]
 
 final case class Leaderboard private (entries: List[GameResult]):
-  /** Record the result after the game ended. */
   def recordEntry(result: GameResult): Leaderboard =
     combine(Leaderboard.of(List(result)))
 
-  /** Combines two leaderboards, ordering them and capping them. */
   def combine(other: Leaderboard): Leaderboard =
     Leaderboard.of(entries ++ other.entries)
 
@@ -23,7 +21,6 @@ object Leaderboard:
   val empty: Leaderboard = Leaderboard(Nil)
   val Cap: Int = 100
 
-  /** A leaderboard holding the best of the given results, ordered. */
   def of(results: List[GameResult]): Leaderboard =
     Leaderboard(results.sorted.take(Cap))
 

@@ -3,8 +3,6 @@ package it.unibo.pps.scalaman.model.score
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
-/** Types of events that award points.
-  */
 enum ScoringEvent:
   case BasicItem
   case BonusItem
@@ -16,8 +14,6 @@ enum ScoringEvent:
 trait ScoringRule:
   def awardedPoints(event: ScoringEvent, combo: Int = 1): Int
 
-/** The amount of points that are awarded for each scoring event.
-  */
 object ScoringRule:
   private val BasicItemPoints = 50
   private val BonusItemPoints = 100
@@ -53,12 +49,8 @@ object ScoringRule:
     List.fill(combo - 1)(ComboFactor).product
   }
 
-/** A tracker to store the score of the game.
-  */
 final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
 
-  /** Increase the score. If the event was an enemy kill, increase the combo as well.
-    */
   def increaseScore(event: ScoringEvent)(using rule: ScoringRule): ScoreTracker =
     val newCombo = increaseCombo(event, combo)
     ScoreTracker(currentScore + rule.awardedPoints(event, newCombo), newCombo)

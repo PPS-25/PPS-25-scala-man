@@ -18,7 +18,6 @@ import java.util.{Base64, Properties}
 import scala.concurrent.duration.{Duration, FiniteDuration, NANOSECONDS}
 import scala.util.Using
 
-/** A persistence boundary for complete, resumable game states. */
 trait GameSaveRepository:
   def save(level: LevelState, maze: Option[MapName], path: Path): Either[SaveGameError, Unit]
   def load(path: Path): Either[SaveGameError, SavedGame]
@@ -30,12 +29,8 @@ object SaveGameError:
   final case class WriteFailed(path: Path, message: String) extends SaveGameError
   final case class InvalidSave(reason: String) extends SaveGameError
 
-/** A game read back from a file, together with the maze it was played on. */
 final case class SavedGame(level: LevelState, maze: Option[MapName])
 
-/** A versioned textual save format. It stores a map copy, so a save remains usable even if the
-  * source map file is moved or changed between application runs.
-  */
 final class PropertiesGameSaveRepository private () extends GameSaveRepository:
   import PropertiesGameSaveRepository.*
 

@@ -15,7 +15,6 @@ class GameSessionTest extends AnyFunSuite:
   private def sessionOn(level: LevelState): GameSession =
     GameSession.starting(level, drawNothing)
 
-  /** A session at the frame the countdown ends on, so that the next frame is played. */
   private def readyOn(level: LevelState): GameSession =
     sessionOn(level).advancedToFrame(0L).advancedToFrame(GameSession.LeadIn.toNanos)
 

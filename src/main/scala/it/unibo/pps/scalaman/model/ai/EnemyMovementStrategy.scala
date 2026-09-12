@@ -3,7 +3,6 @@ package it.unibo.pps.scalaman.model.ai
 import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 
-/** Immutable data needed by an enemy strategy to choose its next movement. */
 final case class EnemyMovementContext(
     enemyPosition: Position,
     teleportDisabled: Boolean,
@@ -13,9 +12,7 @@ final case class EnemyMovementContext(
     enemyHeading: Option[Position] = None
 )
 
-/** Strategy abstraction for deterministic enemy movement decisions. */
 trait EnemyMovementStrategy:
   def nextMove(context: EnemyMovementContext): Option[Position]
 
-  /** What the enemy is making for after this decision. Deciding on the spot remembers nothing. */
   def memoryAfter(context: EnemyMovementContext): Option[Position] = None

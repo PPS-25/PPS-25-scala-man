@@ -19,7 +19,6 @@ class BoardTest extends AnyFunSuite:
 
   private val board = Board.of(maze)
 
-  /** The furthest teleport pair a map may hold, the last one to be given a look of its own. */
   private def furthestTeleports: ValidatedMap =
     val text = Files.readString(
       Paths.get(getClass.getResource("/maps/valid/teleport-pairs/4-9.txt").toURI),

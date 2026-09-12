@@ -8,7 +8,6 @@ class LevelMovementTest extends AnyFunSuite:
   private def ticks(level: LevelState, n: Int): LevelState =
     (1 to n).foldLeft(level)((l, _) => LevelState.pipeline(timePerPos).tick(l))
 
-  /** A level with no enemies. */
   private def alone(at: Position): LevelState = levelWith(at).copy(enemies = Vector.empty)
 
   test("the player keeps going the way it faces") {

@@ -1,9 +1,7 @@
 package it.unibo.pps.scalaman.presentation
 
-/** Notified with what the view needs to draw. */
 type RenderListener[V] = V => Unit
 
-/** Projects state for rendering and notifies listeners only after a visible change. */
 final case class Rendering[S, V](
     project: S => V,
     listeners: Seq[RenderListener[V]] = Seq.empty,

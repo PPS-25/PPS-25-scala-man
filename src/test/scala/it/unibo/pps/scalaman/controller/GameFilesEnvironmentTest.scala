@@ -18,7 +18,6 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   private val mine = MapName("spirale")
   private val anyGame = LevelState.from(LevelTestSupport.maze)
 
-  /** A world of its own for one test, thrown away afterwards. */
   private def inItsOwnHome(check: (GameFilesEnvironment, GameFiles) => Unit): Unit =
     val home = Files.createTempDirectory("scalaManTest")
     try
@@ -33,7 +32,6 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
       finally within.close()
     Files.deleteIfExists(path)
 
-  /** A maze written under a name, in the folder it is asked for. */
   private def maze(named: MapName, in: Path): Path =
     Files.createDirectories(in)
     Files.writeString(in.resolve(s"${named.value}.txt"), DefaultMaps.textOf(medium).get)
@@ -80,8 +78,6 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     inItsOwnHome { (world, files) =>
       val open = Files.writeString(files.home.resolve("open.txt"), "S.C\n...\n..H")
       val refused = world.mazeAt(open).swap.getOrElse("")
-      // Brackets and the word Error are the shape a case class prints in, not the shape of a
-      // sentence: whoever reads this is playing a game.
       assert(refused.nonEmpty && !refused.contains("(") && !refused.contains("Error"))
     }
   }
@@ -103,8 +99,6 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     }
   }
 
-  // Keeping is asked for on every maze read from elsewhere, so a maze already kept must be a quiet
-  // no-op: reported as a failure, it would put an error in front of whoever just chose it.
   test("a maze already kept is nothing to complain about") {
     inItsOwnHome { (world, files) =>
       maze(mine, files.mazes)

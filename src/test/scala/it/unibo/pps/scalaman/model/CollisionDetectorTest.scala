@@ -28,16 +28,16 @@ class CollisionDetectorTest extends AnyFunSuite, MapTestSupport:
   test("finds no collision on plain floor or spawn points of any kind") {
     assert(
       CollisionDetector.checkForCollision(Position(1, 2), validatedMap, Seq.empty) == Set.empty
-    ) // floor
+    )
     assert(
       CollisionDetector.checkForCollision(Position(1, 1), validatedMap, Seq.empty) == Set.empty
-    ) // Spawn of player
+    )
     assert(
       CollisionDetector.checkForCollision(Position(3, 4), validatedMap, Seq.empty) == Set.empty
-    ) // Spawn of hunter enemy
+    )
     assert(
       CollisionDetector.checkForCollision(Position(3, 5), validatedMap, Seq.empty) == Set.empty
-    ) // Spawn of anticipator enemy
+    )
   }
 
   test("finds a teleport start cell") {

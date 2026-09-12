@@ -8,7 +8,6 @@ import it.unibo.pps.scalaman.model.{Direction, GameState, LeaderboardMode, Level
 
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
-/** Immutable read model shared by the controller and graphical view. */
 final case class LevelView(
     player: RenderedMovement,
     enemies: Vector[RenderedEnemyMovement],

@@ -2,55 +2,31 @@ package it.unibo.pps.scalaman.model.effects
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-/** The temporary effects currently applied to the game. Time is taken as a parameter rather than
-  * read from a clock, so that the whole abstraction stays pure.
-  */
 trait ActiveEffects:
-
-  /** The effects still applied at a given instant. */
   def active(now: FiniteDuration): Set[BonusEffect]
-
-  /** Whether an effect is still applied at a given instant. */
   def isActive(effect: BonusEffect, now: FiniteDuration): Boolean =
     active(now).contains(effect)
 
-  /** The time the enemies experience. The player is never slowed down, so it only applies to
-    * enemies
-    */
   def enemyDelta(delta: FiniteDuration, now: FiniteDuration)(using
       slowdown: Slowdown
   ): FiniteDuration =
     if isActive(BonusEffect.SlowDown, now) then slowdown.slowed(delta)
     else delta
 
-  /** Grants an effect, postponing its expiration by the full duration when it is already applied.
-    * @throws IllegalArgumentException
-    *   if the duration is not positive.
-    */
   def activate(
       effect: BonusEffect,
       now: FiniteDuration,
       duration: FiniteDuration
   ): ActiveEffects
 
-  /** The effects left once the ones that expired are dropped. */
   def updated(now: FiniteDuration): ActiveEffects
 
-  /** The time left for each active effect at a given instant. This is a domain snapshot, not a
-    * storage representation, so persistence adapters can restore effects without knowing their
-    * internal expiration model.
-    */
   def remaining(now: FiniteDuration): Map[BonusEffect, FiniteDuration]
 
 object ActiveEffects:
 
-  /** No effect applied. */
   def empty: ActiveEffects = UntilExpiration(Map.empty)
 
-  /** Restores effects from the time they have left at `now`.
-    * @throws IllegalArgumentException
-    *   if a duration is not positive.
-    */
   def fromRemaining(
       now: FiniteDuration,
       remaining: Map[BonusEffect, FiniteDuration]
