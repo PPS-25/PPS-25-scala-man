@@ -208,7 +208,8 @@ class LevelStateTest extends AnyFunSuite:
     val enemy = startingLevel.enemies.head.copy(
       entity = startingLevel.enemies.head.entity.copy(currentPos = teleportStart)
     )
-    val carried = teleportLevelWith(teleportStart).copy(enemies = Vector(enemy)).afterEnemiesTeleporting
+    val carried =
+      teleportLevelWith(teleportStart).copy(enemies = Vector(enemy)).afterEnemiesTeleporting
 
     assert(carried.enemies.head.currentPos == teleportDestination)
     assert(carried.afterEnemiesTeleporting.enemies.head.currentPos == teleportDestination)

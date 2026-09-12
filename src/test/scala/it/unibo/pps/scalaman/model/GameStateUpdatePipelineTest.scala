@@ -17,7 +17,6 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
 
   test("A pipeline should execute stages in the declared order") {
     val pipeline = GameStateUpdatePipeline[TraceState](
-      processInput = state => state.copy(events = state.events :+ "input"),
       updateAi = state => state.copy(events = state.events :+ "ai"),
       updateMovement = state => state.copy(events = state.events :+ "movement"),
       resolveCollisions = state => state.copy(events = state.events :+ "collisions"),
@@ -30,7 +29,6 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
 
     assert(
       result.events == Vector(
-        "input",
         "ai",
         "movement",
         "collisions",
@@ -45,7 +43,6 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
     "A pipeline should feed each stage with the result of the previous one"
   ) {
     val pipeline = GameStateUpdatePipeline[Int](
-      processInput = _ + 1,
       updateAi = _ * 2,
       updateMovement = _ - 3,
       resolveCollisions = _ + 10,
@@ -54,11 +51,5 @@ class GameStateUpdatePipelineTest extends AnyFunSuite:
       updateState = _ * 3
     )
 
-    assert(pipeline.tick(5) == 39)
-  }
-
-  test("Run should remain a backward-compatible alias of tick") {
-    val pipeline = GameStateUpdatePipeline[Int](updateState = _ + 1)
-
-    assert(pipeline.run(0) == pipeline.tick(0))
+    assert(pipeline.tick(5) == 36)
   }
