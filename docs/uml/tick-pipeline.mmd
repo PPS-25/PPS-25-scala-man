@@ -1,0 +1,24 @@
+sequenceDiagram
+  participant Main
+  participant Application
+  participant Session as GameSession
+  participant Level as LevelState pipeline
+  participant Rendering
+  participant Board as GameBoard
+
+  Main->>Application: advancedToFrame(now)
+  Application->>Session: advancedToFrame(now)
+  alt paused or lead-in active
+    Session-->>Application: unchanged session
+  else running
+    Session->>Level: tick(delta <= 50 ms)
+    Level->>Level: choose enemy moves
+    Level->>Level: advance movement
+    Level->>Level: resolve collisions and teleports
+    Level->>Level: collect items and update effects
+    Level-->>Session: updated state
+    Session->>Rendering: notify if changed
+    Rendering->>Board: LevelView
+  end
+  Session-->>Application: updated session
+  Application-->>Main: updated application
