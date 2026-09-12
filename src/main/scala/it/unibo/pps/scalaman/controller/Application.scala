@@ -16,6 +16,7 @@ import it.unibo.pps.scalaman.model.{
 import it.unibo.pps.scalaman.persistence.SavedGame
 
 import java.nio.file.Path
+import java.time.Instant
 
 /** What the application needs of the world outside it. Every answer is either what was asked for or
   * a sentence telling whoever plays why not.
@@ -84,7 +85,8 @@ final case class Application(
     showing: ValidatedMap => RenderListener[LevelView],
     tuning: ModeTuning,
     playing: Option[Playing] = None,
-    notice: Option[ApplicationNotice] = None
+    notice: Option[ApplicationNotice] = None,
+    now: () => Instant = () => Instant.now()
 ):
 
   /** Every maze that can be chosen right now. */
@@ -189,7 +191,7 @@ final case class Application(
   private def recorded(level: LevelState, by: Played): Application =
     val result = for
       maze <- by.maze
-      result <- level.result(by.player.value)
+      result <- level.result(by.player.value, now())
     yield (maze, result)
     result.fold(this) { case (maze, score) =>
       environment

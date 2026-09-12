@@ -18,3 +18,9 @@ collectibles, active-effect durations, lives, score, elapsed time, and game-mode
 through `MapParser` and `MapValidator`, validates the remaining fields, and returns a
 `SaveGameError` for malformed, unsupported, missing, or unreadable data. The View is not involved
 in this process.
+
+## Deliberate limitation
+
+A pending turn request is not persisted. It is transient input intent rather than progress: after loading,
+the player remains at the saved position and may choose a direction again. If input buffering becomes part
+of the save contract, the format version must be incremented and the requested direction validated on load.

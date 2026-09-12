@@ -110,10 +110,10 @@ object Main extends JFXApp3:
     * them, so a steer is read on the way down and, once taken, consumed in its turn.
     */
   private def steering(event: KeyEvent): Unit =
-    if CommandMapper.isPauseKey(event.code) then asked(Command.Pause)
+    if CommandMapper.isPauseKey(event.code.toString) then asked(Command.Pause)
     else
       for
-        direction <- CommandMapper.toDir(event.code)
+        direction <- CommandMapper.toDir(event.code.toString)
         if application.steerable
       do
         application = application.steered(direction)

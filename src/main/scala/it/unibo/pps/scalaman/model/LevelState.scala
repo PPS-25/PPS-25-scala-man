@@ -93,9 +93,9 @@ final case class LevelState(
       .fold(0)(mode.scoringRule.awardedPoints(_))
 
   /** The result of the game, if the game is over. */
-  def result(playerName: String): Option[GameResult] =
+  def result(playerName: String, achievedAt: Instant): Option[GameResult] =
     Option.when(status.isTerminal)(
-      GameResult(playerName, liveScore, Instant.now())
+      GameResult(playerName, liveScore, achievedAt)
     )
 
   /** The level after some time has passed. A level that ended stands still. */
