@@ -1,0 +1,67 @@
+/*
+ * scala-man MVC architecture.
+ * Render with: dot -Tsvg docs/uml/mvc-architecture.dot -o docs/uml/mvc-architecture.svg
+ */
+digraph MvcArchitecture {
+  graph [rankdir=LR, fontname="Helvetica", labelloc=t,
+         label="scala-man — MVC architecture and boundaries", fontsize=18, nodesep=0.55]
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.16,0.1"]
+  edge [fontname="Helvetica", fontsize=9]
+
+  subgraph cluster_model {
+    label="Model — deterministic game rules"
+    color="#5b7db1"
+    style="rounded"
+    Domain [label="LevelState\nmovement · collisions · AI · bonuses\noutcomes · scoring", fillcolor="#e8eef7"]
+    Maps [label="ValidatedMap\nRawMap · map domain types", fillcolor="#e8eef7"]
+    Modes [label="GameMode\nClassic · Timed · Survival", fillcolor="#e8eef7"]
+    Domain -> { Maps Modes } [dir=both, arrowtail=none, arrowhead=vee]
+  }
+
+  subgraph cluster_controller {
+    label="Controller — application orchestration"
+    color="#6e9e6d"
+    style="rounded"
+    Application [label="Application\ncommands · sessions · result recording", fillcolor="#e9f5e8"]
+    Session [label="GameSession\nframe time · pause · countdown", fillcolor="#e9f5e8"]
+    Environment [label="GameEnvironment\nports for maps, saves, results", fillcolor="#e9f5e8"]
+    Application -> { Session Environment } [arrowhead=vee]
+  }
+
+  subgraph cluster_presentation {
+    label="Presentation contract — framework independent"
+    color="#a2764d"
+    style="rounded"
+    Snapshot [label="LevelView\nimmutable rendering snapshot", fillcolor="#fbf0df"]
+    Rendering [label="Rendering · RenderListener\nTicked notifications", fillcolor="#fbf0df"]
+    Snapshot -> Rendering [arrowhead=vee]
+  }
+
+  subgraph cluster_view {
+    label="View and composition root"
+    color="#a95f7d"
+    style="rounded"
+    Main [label="Main\nScalaFX composition root", fillcolor="#f9e8ef"]
+    View [label="MenuScreen · GameBoard · Frame\ninput widgets and drawing", fillcolor="#f9e8ef"]
+    Main -> View [arrowhead=vee]
+  }
+
+  subgraph cluster_adapters {
+    label="Infrastructure adapters"
+    color="#777777"
+    style="rounded,dashed"
+    MapAdapter [label="MapLoader · MapParser · MapValidator", fillcolor="#f4f4f4"]
+    Storage [label="PropertiesGameSaveRepository\nFileLeaderboardStorage", fillcolor="#f4f4f4"]
+    Files [label="GameFilesEnvironment", fillcolor="#f4f4f4"]
+    Files -> { MapAdapter Storage } [arrowhead=vee]
+  }
+
+  View -> Application [label="commands", arrowhead=vee]
+  Main -> Application [label="wires dependencies", arrowhead=vee]
+  Application -> Domain [label="updates", arrowhead=vee]
+  Session -> Domain [label="tick pipeline", arrowhead=vee]
+  Domain -> Snapshot [label="projects", arrowhead=vee]
+  Rendering -> View [label="snapshots", arrowhead=vee]
+  Application -> Environment [label="uses ports", arrowhead=vee]
+  Files -> Environment [label="implements", style=dashed, arrowhead=empty]
+}
