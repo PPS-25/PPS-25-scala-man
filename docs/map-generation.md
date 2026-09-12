@@ -1,39 +1,36 @@
 # Map Generation
 
-This document describes the contract of the map generator.
+This document describes how scala-man constructs a playable map from its textual configuration.
 
 ## Purpose
 
-The generator builds a `RawMap` from a `MapGenerationSpec` without depending on
-parser or gameplay logic. The generated map is meant to be fed into the parser
-and validation pipeline.
+Map generation means translating an ASCII map file into the domain map used by a
+level. It is deliberately not procedural random-map generation.
 
 ## Current use
 
-`MapGenerator` is currently used only by automated tests. It is not exposed through
-the application or menu, and shipped and player-selected maps continue to come from
-ASCII files. It remains a tested internal utility for exercising map construction and
-the parser-validation pipeline.
+Shipped and player-selected maps are read from UTF-8 ASCII files. `MapParser`
+creates a `RawMap`; `MapValidator` checks its structural and gameplay invariants
+and returns a `ValidatedMap` only when the map is playable. The application and
+the game domain consume only validated maps.
 
 ## Output properties
 
 - the grid is rectangular
-- the outer border is made of walls
-- the interior is filled with walkable floor cells before overlays are placed
-- exactly one spawn is generated
-- collectibles, enemies, and teleports are placed according to the requested
-  counts
+- every character maps to a documented tile or overlay
 - teleport cells follow the documented code pairs
+- a successful validation returns a `ValidatedMap`
 
 ## Constraints
 
-- width and height must be large enough to host the border and the requested
-  entities
-- at least one collectible and one enemy are required
-- teleport count is limited to the documented code pairs
-- generation can be deterministic when a seed is provided
+- the outer border must be made of walls
+- there must be exactly one player spawn, at least one collectible and at least
+  one enemy
+- collectibles and enemies must be reachable from the spawn, including through
+  valid teleports
+- every teleport pair must be complete and use a documented code
 
 ## Notes
 
-The generator intentionally produces structural maps only. Reachability and
-playability are verified later by the validation layer.
+Parsing and validation are deterministic and side-effect free. File access is
+kept in the loading boundary; gameplay receives only the resulting validated map.

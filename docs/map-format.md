@@ -7,7 +7,7 @@ the game accepts a map.
 ## Goals
 
 The format is intentionally small and deterministic so that loading, parsing,
-validation, and generation can be tested independently.
+validation, and map construction can be tested independently.
 
 ## File structure
 
@@ -110,5 +110,5 @@ In the example above:
 
 ## Related
 
-- [`docs/map-generation.md`](map-generation.md) describes how valid maps are
-  generated from a specification.
+- [`docs/map-generation.md`](map-generation.md) describes how ASCII files become
+  validated maps.
