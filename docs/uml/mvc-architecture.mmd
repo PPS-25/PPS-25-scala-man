@@ -1,36 +1,36 @@
 flowchart LR
-  subgraph V[View]
+  subgraph V[View — ScalaFX boundary]
     Menu[MenuScreen]
-    Board[GameBoard and Frame]
+    Board[GameBoard / Frame]
   end
-  subgraph C[Controller]
+  subgraph C[Controller — application orchestration]
     App[Application]
     Session[GameSession]
     Port[GameEnvironment]
   end
-  subgraph P[Presentation]
-    Snapshot[LevelView]
-    Render[Rendering]
+  subgraph P[Presentation — framework-independent read model]
+    Snapshot[LevelView projection]
+    Render[Rendering / RenderListener]
   end
-  subgraph M[Model]
-    State[LevelState]
-    Rules[GameMode]
-    Map[ValidatedMap]
+  subgraph M[Model — pure domain]
+    State[LevelState aggregate]
+    Rules[GameMode policies]
+    Map[ValidatedMap value object]
   end
-  subgraph I[Infrastructure]
+  subgraph I[Infrastructure — adapters]
     Files[GameFilesEnvironment]
     Storage[Maps, saves, leaderboards]
   end
 
   Menu -->|commands| App
   Board -->|commands| App
-  App --> Session
-  App -->|uses| Port
-  Session -->|updates| State
-  State --> Rules
-  State --> Map
-  State -->|projection| Snapshot
-  Render -->|publishes| Snapshot
-  Snapshot -->|draws| Board
+  App -->|creates / controls| Session
+  App -->|depends on port| Port
+  Session -->|applies pipeline| State
+  State -->|delegates outcome / score| Rules
+  State -->|queries walkability| Map
+  State -->|is projected as| Snapshot
+  Render -->|notifies| Snapshot
+  Snapshot -->|rendered by| Board
   Files -. implements .-> Port
-  Files --> Storage
+  Files -->|uses| Storage
