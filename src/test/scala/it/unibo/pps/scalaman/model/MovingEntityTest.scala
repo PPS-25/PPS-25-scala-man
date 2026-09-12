@@ -4,7 +4,7 @@ import it.unibo.pps.scalaman.model.Direction.{Down, Left, Right, Up}
 import it.unibo.pps.scalaman.model.entities.MovingEntity
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class MovingEntityTest extends AnyFunSuite:
   private val millis = 100.millis
@@ -77,6 +77,24 @@ class MovingEntityTest extends AnyFunSuite:
     assert(
       basicEntity.update(basicEntity.movement.get.remaining).movement.isEmpty
     )
+  }
+
+  test("movement rejects a negative remaining duration") {
+    assertThrows[IllegalArgumentException] {
+      Movement(startingPos, startingPos + Right, (-1).millis)
+    }
+  }
+
+  test("an entity requires a positive time per position") {
+    assertThrows[IllegalArgumentException] {
+      MovingEntity(startingPos, Right, Duration.Zero)
+    }
+  }
+
+  test("movement updates reject negative elapsed time") {
+    assertThrows[IllegalArgumentException] {
+      basicEntity.update((-1).millis)
+    }
   }
 
   test("two entities on the same cell meet") {
