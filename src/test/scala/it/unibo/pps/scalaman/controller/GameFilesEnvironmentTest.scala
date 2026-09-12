@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Path}
-import java.time.Instant
+import java.time.{Instant, LocalDateTime}
 import scala.jdk.CollectionConverters.*
 
 class GameFilesEnvironmentTest extends AnyFunSuite:
@@ -19,10 +19,15 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
   private val anyGame = LevelState.from(LevelTestSupport.maze)
 
   private def inItsOwnHome(check: (GameFilesEnvironment, GameFiles) => Unit): Unit =
+    inItsOwnHomeAt(() => LocalDateTime.now())(check)
+
+  private def inItsOwnHomeAt(now: () => LocalDateTime)(
+      check: (GameFilesEnvironment, GameFiles) => Unit
+  ): Unit =
     val home = Files.createTempDirectory("scalaManTest")
     try
       val files = GameFiles(home)
-      check(GameFilesEnvironment(files, PropertiesGameSaveRepository()), files)
+      check(GameFilesEnvironment(files, PropertiesGameSaveRepository(), now), files)
     finally deleting(home)
 
   private def deleting(path: Path): Unit =
@@ -66,19 +71,18 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     }
   }
 
-  test("a file that is not there is told apart from a file that is not a maze") {
+  test("a missing maze tells where its file was expected") {
     inItsOwnHome { (world, files) =>
       val missing = world.mazeAt(files.home.resolve("nowhere.txt"))
-      val nonsense = Files.writeString(files.home.resolve("nonsense.txt"), "not a maze at all")
-      assert(missing != world.mazeAt(nonsense))
+      assert(missing == Left(s"there is no file at ${files.home.resolve("nowhere.txt")}"))
     }
   }
 
-  test("a maze the game refuses is told in words, and not in the shape of an error") {
+  test("an invalid maze tells why it cannot be played") {
     inItsOwnHome { (world, files) =>
       val open = Files.writeString(files.home.resolve("open.txt"), "S.C\n...\n..H")
       val refused = world.mazeAt(open).swap.getOrElse("")
-      assert(refused.nonEmpty && !refused.contains("(") && !refused.contains("Error"))
+      assert(refused == "the maze is open at 8 places along its border")
     }
   }
 
@@ -134,6 +138,23 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
     }
   }
 
+  test("games saved at the same instant keep separate files") {
+    val instant = LocalDateTime.of(2026, 1, 2, 3, 4, 5, 6_000_000)
+    inItsOwnHomeAt(() => instant) { (world, files) =>
+      world.saving(anyGame, Played(player, Some(medium)))
+      world.saving(anyGame, Played(player, Some(medium)))
+      val saved = Files.list(files.saves)
+      try
+        assert(
+          saved.iterator.asScala.map(_.getFileName.toString).toSet == Set(
+            "medium-Matilde-D-Antino-2026-01-02_03-04-05-006.properties",
+            "medium-Matilde-D-Antino-2026-01-02_03-04-05-006-1.properties"
+          )
+        )
+      finally saved.close()
+    }
+  }
+
   test("a game that was never put away cannot be read back") {
     inItsOwnHome((world, files) => assert(world.savedGame(files.saves.resolve("none")).isLeft))
   }
@@ -181,7 +202,11 @@ class GameFilesEnvironmentTest extends AnyFunSuite:
 
   test("scores for different modes on a maze are kept apart") {
     inItsOwnHome { (world, _) =>
-      world.recording(GameResult(player.value, 100, Instant.now()), medium, LeaderboardMode.Classic)
+      world.recording(
+        GameResult(player.value, 100, Instant.parse("2026-01-01T00:00:00Z")),
+        medium,
+        LeaderboardMode.Classic
+      )
       assert(world.bestOn(medium, LeaderboardMode.Survival).entries.isEmpty)
     }
   }

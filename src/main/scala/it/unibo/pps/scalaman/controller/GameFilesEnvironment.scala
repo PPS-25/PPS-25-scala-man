@@ -29,8 +29,11 @@ import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
-    extends GameEnvironment:
+final class GameFilesEnvironment(
+    files: GameFiles,
+    saves: GameSaveRepository,
+    now: () => LocalDateTime = () => LocalDateTime.now()
+) extends GameEnvironment:
 
   import GameFilesEnvironment.*
 
@@ -72,7 +75,7 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
   def saving(level: LevelState, by: Played): Either[String, Unit] =
     for
       folder <- made(files.saves)
-      _ <- saves.save(level, by.maze, nextSavePath(folder, by)).left.map(described)
+      _ <- saves.save(level, by.maze, nextSavePath(folder, by, now())).left.map(described)
     yield ()
 
   def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit] =
@@ -113,8 +116,8 @@ object GameFilesEnvironment:
 
   private val Unnamed = "game"
 
-  private def nextSavePath(folder: Path, by: Played): Path =
-    val timestamp = LocalDateTime.now().format(SaveTimestamp)
+  private def nextSavePath(folder: Path, by: Played, now: LocalDateTime): Path =
+    val timestamp = now.format(SaveTimestamp)
     val stem = s"${by.maze.map(_.value).getOrElse(Unnamed)}-${plainly(by.player.value)}-$timestamp"
     Iterator
       .from(0)
