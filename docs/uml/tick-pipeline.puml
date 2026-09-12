@@ -1,0 +1,31 @@
+@startuml
+title scala-man — Game tick
+hide footbox
+
+participant Main
+participant Application
+participant GameSession
+participant "LevelState pipeline" as Level
+participant Rendering
+participant GameBoard
+
+Main -> Application : advancedToFrame(now)
+Application -> GameSession : advancedToFrame(now)
+alt paused or lead-in active
+  GameSession --> Application : unchanged session
+else running level
+  GameSession -> Level : tick(delta <= 50 ms)
+  activate Level
+  Level -> Level : choose idle-enemy moves
+  Level -> Level : advance clock and entities
+  Level -> Level : resolve meetings and teleports
+  Level -> Level : collect items and grant effects
+  Level -> Level : expire effects; start player step
+  Level --> GameSession : updated LevelState
+  deactivate Level
+  GameSession -> Rendering : notify if snapshot changed
+  Rendering -> GameBoard : LevelView
+end
+GameSession --> Application : updated session
+Application --> Main : updated application
+@enduml
