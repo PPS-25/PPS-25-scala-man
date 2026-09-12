@@ -40,19 +40,43 @@ class Enemy {
 
 interface Collectibles
 interface ActiveEffects
-class LevelProgress { + lives: Int }
-class ScoreTracker { + currentScore: Int\n+ combo: Int }
-class GameClock { + elapsed: FiniteDuration }
+class LevelProgress {
+  + lives: Int
+}
+class ScoreTracker {
+  + currentScore: Int
+  + combo: Int
+}
+class GameClock {
+  + elapsed: FiniteDuration
+}
 
 interface GameMode
 class Normal
 class Timed
 class Survival
 
-enum GameState { Running; Paused; Victory; Defeat }
-enum EnemyKind { Hunter; Anticipator; Patroller }
-enum BonusEffect { Invulnerability; SlowDown }
-enum Direction { Up; Down; Left; Right }
+enum GameState {
+  Running
+  Paused
+  Victory
+  Defeat
+}
+enum EnemyKind {
+  Hunter
+  Anticipator
+  Patroller
+}
+enum BonusEffect {
+  Invulnerability
+  SlowDown
+}
+enum Direction {
+  Up
+  Down
+  Left
+  Right
+}
 class Position
 
 LevelState *-- ValidatedMap
