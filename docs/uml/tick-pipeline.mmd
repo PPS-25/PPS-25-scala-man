@@ -1,5 +1,6 @@
 %%{init: {"theme": "neutral"}}%%
 sequenceDiagram
+  autonumber
   participant Main
   participant Application
   participant Session as GameSession
@@ -14,11 +15,14 @@ sequenceDiagram
   else running
     Session->>Level: LevelState.pipeline(delta).tick(level)
     Note over Session,Level: delta is clamped to LongestStep = 50 ms
-    Level->>Level: EnemyAiStage.stage
-    Level->>Level: ticking(delta).movingOn(delta)
-    Level->>Level: afterMeetingEnemies / afterTeleporting
-    Level->>Level: collecting / withoutExpiredEffects
-    Level->>Level: playerStartingNextStep
+    rect rgb(245, 245, 245)
+      Level->>Level: EnemyAiStage.stage
+      Level->>Level: ticking(delta).movingOn(delta)
+      Level->>Level: afterMeetingEnemies.afterTeleporting.afterEnemiesTeleporting
+      Level->>Level: collecting
+      Level->>Level: withoutExpiredEffects
+      Level->>Level: playerStartingNextStep
+    end
     Level-->>Session: updated state
     Session->>Rendering: notifying(updated LevelState)
     Rendering->>Board: LevelView snapshot

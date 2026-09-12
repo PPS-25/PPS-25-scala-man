@@ -13,11 +13,15 @@ class GameBoard {
 }
 class Application {
   <<controller>>
+  - environment: GameEnvironment
+  - playing: Option~Playing~
   + commanded(command) Application
   + advancedToFrame(now) Application
 }
 class GameSession {
   <<controller>>
+  - ticked: Ticked~LevelState, LevelView~
+  - loop: GameLoop
   + advancedToFrame(now) GameSession
   + requestingDirection(direction) GameSession
 }
@@ -48,26 +52,37 @@ class ValidatedMap {
 class GameFilesEnvironment {
   <<infrastructure adapter>>
 }
+class GameSaveRepository {
+  <<interface>>
+  + save(level, maze, path)
+  + load(path)
+}
 class PropertiesGameSaveRepository {
   <<infrastructure adapter>>
 }
 class MapLoader {
   <<infrastructure adapter>>
 }
+class MapParser
+class MapValidator
 
 Main --> Application : creates
 Main --> MenuScreen : shows
 Main --> GameBoard : shows
 MenuScreen --> Application : commands
 GameBoard --> Application : commands
-Application *-- GameSession : current game
+Application *-- "0..1" GameSession : current session
 Application --> GameEnvironment : uses
-GameSession *-- LevelState : current level
+GameSession --> LevelState : updates through pipeline
+GameSession --> Rendering : uses
 LevelState --> GameMode : applies
 LevelState --> ValidatedMap : reads
-LevelState --> LevelView : projects to
-Rendering --> LevelView : publishes
+LevelView --> LevelState : projects
+Rendering --> LevelView : notifies
 GameBoard --> LevelView : renders
 GameFilesEnvironment ..|> GameEnvironment : implements
-GameFilesEnvironment --> PropertiesGameSaveRepository : saves
+GameFilesEnvironment --> GameSaveRepository : uses
+PropertiesGameSaveRepository ..|> GameSaveRepository : implements
 GameFilesEnvironment --> MapLoader : loads maps
+MapLoader --> MapParser
+MapLoader --> MapValidator
