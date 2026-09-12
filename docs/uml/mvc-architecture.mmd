@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph V[View]
+    Menu[MenuScreen]
+    Board[GameBoard and Frame]
+  end
+  subgraph C[Controller]
+    App[Application]
+    Session[GameSession]
+    Port[GameEnvironment]
+  end
+  subgraph P[Presentation]
+    Snapshot[LevelView]
+    Render[Rendering]
+  end
+  subgraph M[Model]
+    State[LevelState]
+    Rules[GameMode]
+    Map[ValidatedMap]
+  end
+  subgraph I[Infrastructure]
+    Files[GameFilesEnvironment]
+    Storage[Maps, saves, leaderboards]
+  end
+
+  Menu -->|commands| App
+  Board -->|commands| App
+  App --> Session
+  App -->|uses| Port
+  Session -->|updates| State
+  State --> Rules
+  State --> Map
+  State -->|projection| Snapshot
+  Render -->|publishes| Snapshot
+  Snapshot -->|draws| Board
+  Files -. implements .-> Port
+  Files --> Storage
