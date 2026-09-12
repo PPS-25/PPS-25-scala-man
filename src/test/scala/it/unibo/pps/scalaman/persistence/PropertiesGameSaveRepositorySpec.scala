@@ -126,6 +126,15 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
     finally Files.deleteIfExists(path.getParent)
   }
 
+  test("saving to a directory fails as a write error") {
+    val path = Files.createTempDirectory("scala-man-save")
+    try
+      repository.save(LevelState.from(maze), Some(mazeName), path) match
+        case Left(_: SaveGameError.WriteFailed) => succeed
+        case other                              => fail(s"expected a write error, got $other")
+    finally Files.deleteIfExists(path)
+  }
+
   test("a save with an unsupported format version is rejected") {
     val path = changedSave("format-version", "999")
     try
