@@ -1,20 +1,14 @@
 package it.unibo.pps.scalaman.map.generator
 
 import it.unibo.pps.scalaman.model.Position
-import scala.util.Random
-import it.unibo.pps.scalaman.model.map.Tile
-import it.unibo.pps.scalaman.model.map.MapGenerationError
-import it.unibo.pps.scalaman.model.map.MapGenerationSpec
-import it.unibo.pps.scalaman.model.map.RawMap
+import it.unibo.pps.scalaman.model.map.{MapGenerationError, MapGenerationSpec, RawMap, Tile}
 
+import scala.util.Random
+
+/** Test-only generator for maps used to exercise validation and map construction. */
 object MapGenerator:
   private val teleportCodePairs: Vector[(Int, Int)] = Vector(0 -> 5, 1 -> 6, 2 -> 7, 3 -> 8, 4 -> 9)
 
-  /** Generates a random-but-valid raw map from a generation specification.
-    *
-    * The map is always rectangular, framed by walls, and populated only with cells that can later
-    * be parsed and validated by the map pipeline.
-    */
   def generate(spec: MapGenerationSpec): Either[List[MapGenerationError], RawMap] =
     val errors = specificationErrors(spec)
 
