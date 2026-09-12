@@ -1,79 +1,69 @@
 %%{init: {"theme": "neutral"}}%%
 classDiagram
-direction LR
+direction TB
 
 class LevelState {
-  <<aggregate root>>
-  +maze: ValidatedMap
-  +player: MovingEntity
-  +enemies: Vector~Enemy~
-  +collectibles: Collectibles
-  +effects: ActiveEffects
-  +progress: LevelProgress
-  +mode: GameMode
-  +score: ScoreTracker
-  +clock: GameClock
-  +status()
-  +liveScore: Int
-  +pipeline()
+  + status() GameState
+  + liveScore Int
+  + ticking(delta) LevelState
+  + collecting() LevelState
 }
+
 class ValidatedMap {
-  <<value object>>
-  +raw: RawMap
-  +spawn: Position
-  +teleports: Map~Int, PositionPair~
-  +isWalkable(position: Position) Boolean
+  + spawn Position
+  + isWalkable(position) Boolean
 }
+
 class MovingEntity {
-  <<value object>>
-  +currentPos: Position
-  +facing: Direction
-  +movement: Option~Movement~
+  + currentPos Position
+  + facing Direction
+  + movement Option~Movement~
 }
+
 class Enemy {
-  <<entity>>
-  +entity: MovingEntity
-  +kind: EnemyKind
-  +heading: Option~Position~
+  + kind EnemyKind
 }
+
+class Collectibles {
+  <<interface>>
+  + remaining Int
+  + collect(position) Collected
+}
+
+class ActiveEffects {
+  <<interface>>
+  + active(now) Set~BonusEffect~
+}
+
 class LevelProgress {
-  +lives
-}
-class ScoreTracker {
-  +currentScore
-  +combo
-}
-class GameClock {
-  +elapsed
+  + lives Int
 }
 
 class GameMode {
   <<interface>>
-  +status(progress, collectibles, clock) GameState
-  +enemyDelta(delta, clock) FiniteDuration
+  + status(progress, collectibles, clock) GameState
 }
-class Collectibles {
-  <<interface>>
-  +remaining: Int
-  +collect(position) Collected
+
+class ScoreTracker {
+  + currentScore Int
+  + combo Int
 }
-class ActiveEffects {
-  <<interface>>
-  +active(now) Set~BonusEffect~
-  +updated(now) ActiveEffects
+
+class GameClock {
+  + elapsed FiniteDuration
 }
 
 LevelState "1" *-- "1" ValidatedMap : maze
 LevelState "1" *-- "1" MovingEntity : player
 LevelState "1" *-- "0..*" Enemy : enemies
-LevelState "1" *-- "1" Collectibles
-LevelState "1" *-- "1" ActiveEffects
-LevelState "1" *-- "1" LevelProgress
-LevelState "1" *-- "1" ScoreTracker
-LevelState "1" *-- "1" GameClock
-LevelState "1" --> "1" GameMode
+LevelState "1" *-- "1" Collectibles : items left
+LevelState "1" *-- "1" ActiveEffects : active bonuses
+LevelState "1" *-- "1" LevelProgress : lives
+LevelState "1" *-- "1" ScoreTracker : score
+LevelState "1" *-- "1" GameClock : elapsed time
+LevelState "1" --> "1" GameMode : rules
 
-Enemy *-- MovingEntity
+Enemy "1" *-- "1" MovingEntity : movement
 GameMode <|.. Normal
 GameMode <|.. Timed
 GameMode <|.. Survival
