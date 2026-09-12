@@ -2,23 +2,38 @@ classDiagram
 direction LR
 
 class LevelState {
+  <<aggregate root>>
+  +maze: ValidatedMap
+  +player: MovingEntity
+  +enemies: Vector~Enemy~
+  +collectibles: Collectibles
+  +effects: ActiveEffects
+  +progress: LevelProgress
+  +mode: GameMode
+  +score: ScoreTracker
+  +clock: GameClock
   +status()
-  +liveScore
+  +liveScore: Int
   +pipeline()
 }
 class ValidatedMap {
-  +spawn
-  +teleports
-  +isWalkable()
+  <<value object>>
+  +raw: RawMap
+  +spawn: Position
+  +teleports: Map~Int, PositionPair~
+  +isWalkable(position: Position) Boolean
 }
 class MovingEntity {
-  +currentPos
-  +facing
-  +movement
+  <<value object>>
+  +currentPos: Position
+  +facing: Direction
+  +movement: Option~Movement~
 }
 class Enemy {
-  +kind
-  +heading
+  <<entity>>
+  +entity: MovingEntity
+  +kind: EnemyKind
+  +heading: Option~Position~
 }
 class LevelProgress {
   +lives
@@ -33,26 +48,29 @@ class GameClock {
 
 class GameMode {
   <<interface>>
-  +status()
+  +status(progress, collectibles, clock) GameState
+  +enemyDelta(delta, clock) FiniteDuration
 }
 class Collectibles {
   <<interface>>
-  +remaining
+  +remaining: Int
+  +collect(position) Collected
 }
 class ActiveEffects {
   <<interface>>
-  +active()
+  +active(now) Set~BonusEffect~
+  +updated(now) ActiveEffects
 }
 
-LevelState *-- ValidatedMap : maze
-LevelState *-- MovingEntity : player
-LevelState *-- Enemy : enemies
-LevelState *-- Collectibles
-LevelState *-- ActiveEffects
-LevelState *-- LevelProgress
-LevelState *-- ScoreTracker
-LevelState *-- GameClock
-LevelState --> GameMode
+LevelState "1" *-- "1" ValidatedMap : maze
+LevelState "1" *-- "1" MovingEntity : player
+LevelState "1" *-- "0..*" Enemy : enemies
+LevelState "1" *-- "1" Collectibles
+LevelState "1" *-- "1" ActiveEffects
+LevelState "1" *-- "1" LevelProgress
+LevelState "1" *-- "1" ScoreTracker
+LevelState "1" *-- "1" GameClock
+LevelState "1" --> "1" GameMode
 
 Enemy *-- MovingEntity
 GameMode <|.. Normal
