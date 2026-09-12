@@ -106,4 +106,10 @@ class MapParserSpec extends AnyFunSuite, MapTestSupport:
       )
     )
   }
+
+  test("rejects non-ASCII digits as teleport symbols") {
+    val parsed = MapParser.parse("###\n#١#\n###")
+
+    assert(parsed == Left(List(MapParseError.UnsupportedSymbol('١', 1, 1))))
+  }
 end MapParserSpec

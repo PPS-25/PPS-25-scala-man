@@ -51,7 +51,7 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
         Using.resource(Files.newBufferedReader(path, StandardCharsets.UTF_8)) { reader =>
           properties.load(reader)
         }
-        decode(properties).map(SavedGame(_, mazeNameIn(properties)))
+        decode(properties).flatMap(level => mazeNameIn(properties).map(SavedGame(level, _)))
       catch
         case exception: IOException => Left(SaveGameError.ReadFailed(path, exception.getMessage))
         case exception: IllegalArgumentException =>
@@ -117,8 +117,14 @@ object PropertiesGameSaveRepository:
 
   def apply(): GameSaveRepository = new PropertiesGameSaveRepository()
 
-  private def mazeNameIn(properties: Properties): Option[MapName] =
-    Option(properties.getProperty(MazeKey)).map(_.trim).filter(_.nonEmpty).map(MapName(_))
+  private def mazeNameIn(properties: Properties): Either[SaveGameError, Option[MapName]] =
+    Option(properties.getProperty(MazeKey)).map(_.trim).filter(_.nonEmpty) match
+      case None       => Right(None)
+      case Some(name) =>
+        MapName
+          .from(name)
+          .map(Some.apply)
+          .toRight(SaveGameError.InvalidSave("a map name must be a safe file name"))
 
   private def required(properties: Properties, key: String): Either[SaveGameError, String] =
     Option(properties.getProperty(key)).toRight(SaveGameError.InvalidSave(s"missing '$key'"))
@@ -319,12 +325,6 @@ object PropertiesGameSaveRepository:
     BonusEffect.values
       .find(_.toString == value)
       .toRight(SaveGameError.InvalidSave("invalid bonus effect"))
-
-  private def decodeBoolean(value: String, field: String): Either[SaveGameError, Boolean] =
-    value match
-      case "true"  => Right(true)
-      case "false" => Right(false)
-      case _       => invalid(s"invalid $field")
 
   private def encodeDuration(duration: FiniteDuration): String = duration.toNanos.toString
 

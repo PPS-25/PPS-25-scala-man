@@ -150,6 +150,17 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
     finally Files.deleteIfExists(path)
   }
 
+  test("a save with an unsafe maze name is rejected") {
+    val path = changedSave("maze", "../../outside")
+    try
+      assert(
+        repository.load(path) == Left(
+          SaveGameError.InvalidSave("a map name must be a safe file name")
+        )
+      )
+    finally Files.deleteIfExists(path)
+  }
+
   test("a save with a negative number of lives is rejected") {
     val path = changedSave("lives", "-1")
     try

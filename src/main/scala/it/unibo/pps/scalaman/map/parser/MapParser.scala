@@ -46,14 +46,14 @@ object MapParser:
 
   private def supportedCell(char: Char): Option[Tile] =
     char match
-      case '#'                    => Some(Tile.Wall)
-      case '.'                    => Some(Tile.Floor)
-      case 'S'                    => Some(Tile.Spawn)
-      case 'C'                    => Some(Tile.Collectible)
-      case 'H'                    => Some(Tile.Hunter)
-      case 'A'                    => Some(Tile.Anticipator)
-      case 'P'                    => Some(Tile.Patroller)
-      case 'I'                    => Some(Tile.InvulnerabilityBonus)
-      case 'R'                    => Some(Tile.SlowdownBonus)
-      case digit if digit.isDigit => Some(Tile.Teleport(digit.asDigit))
-      case _                      => None
+      case '#'                                   => Some(Tile.Wall)
+      case '.'                                   => Some(Tile.Floor)
+      case 'S'                                   => Some(Tile.Spawn)
+      case 'C'                                   => Some(Tile.Collectible)
+      case 'H'                                   => Some(Tile.Hunter)
+      case 'A'                                   => Some(Tile.Anticipator)
+      case 'P'                                   => Some(Tile.Patroller)
+      case 'I'                                   => Some(Tile.InvulnerabilityBonus)
+      case 'R'                                   => Some(Tile.SlowdownBonus)
+      case digit if digit >= '0' && digit <= '9' => Some(Tile.Teleport(digit.asDigit))
+      case _                                     => None

@@ -50,8 +50,7 @@ object PlayableMazes:
   def named(path: Path): Option[MapName] =
     Option(path.getFileName)
       .map(file => withoutExtension(file.toString))
-      .filter(_.nonEmpty)
-      .map(MapName.apply)
+      .flatMap(MapName.from)
 
   def offered(found: Seq[Path]): Seq[MapName] =
     DefaultMaps.All ++ found

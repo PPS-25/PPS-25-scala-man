@@ -5,7 +5,17 @@ import it.unibo.pps.scalaman.model.ModeChoice
 import java.nio.file.Path
 
 final case class MapName(value: String):
-  require(value.nonEmpty, "a map must have a name")
+  require(MapName.isSafe(value), "a map name must be a safe file name")
+
+object MapName:
+  def from(value: String): Option[MapName] =
+    Option.when(isSafe(value))(MapName(value))
+
+  private def isSafe(value: String): Boolean =
+    value.nonEmpty &&
+      value != "." &&
+      value != ".." &&
+      value.forall(char => char.isLetterOrDigit || ".-_ ".contains(char))
 
 final case class PlayerName(value: String):
   require(value.trim.nonEmpty, "a player must have a name")
