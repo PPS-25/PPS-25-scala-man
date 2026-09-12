@@ -4,6 +4,7 @@ import it.unibo.pps.scalaman.model.{Direction, LevelState, Position}
 import it.unibo.pps.scalaman.model.LevelTestSupport.{levelWith, startingLevel, timePerPos}
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import org.scalatest.funsuite.AnyFunSuite
+import it.unibo.pps.scalaman.presentation.LevelView
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 

@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.controller.LevelView
+import it.unibo.pps.scalaman.presentation.LevelView
 import it.unibo.pps.scalaman.model.LevelTestSupport.{
   bonus,
   item,
