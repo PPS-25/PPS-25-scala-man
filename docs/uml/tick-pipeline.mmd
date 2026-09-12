@@ -6,19 +6,21 @@ sequenceDiagram
   participant Rendering
   participant Board as GameBoard
 
-  Main->>Application: advancedToFrame(now)
+  Main->>Application: advancedToFrame(now: Long)
   Application->>Session: advancedToFrame(now)
   alt paused or lead-in active
     Session-->>Application: unchanged session
   else running
-    Session->>Level: tick(delta <= 50 ms)
-    Level->>Level: choose enemy moves
-    Level->>Level: advance movement
-    Level->>Level: resolve collisions and teleports
-    Level->>Level: collect items and update effects
+    Session->>Level: LevelState.pipeline(delta).tick(level)
+    Note over Session,Level: delta is clamped to LongestStep = 50 ms
+    Level->>Level: EnemyAiStage.stage
+    Level->>Level: ticking(delta).movingOn(delta)
+    Level->>Level: afterMeetingEnemies / afterTeleporting
+    Level->>Level: collecting / withoutExpiredEffects
+    Level->>Level: playerStartingNextStep
     Level-->>Session: updated state
-    Session->>Rendering: notify if changed
-    Rendering->>Board: LevelView
+    Session->>Rendering: notifying(updated LevelState)
+    Rendering->>Board: LevelView snapshot
   end
   Session-->>Application: updated session
   Application-->>Main: updated application
