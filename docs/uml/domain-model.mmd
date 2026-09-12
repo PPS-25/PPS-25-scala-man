@@ -1,0 +1,60 @@
+classDiagram
+direction LR
+
+class LevelState {
+  +status()
+  +liveScore
+  +pipeline()
+}
+class ValidatedMap {
+  +spawn
+  +teleports
+  +isWalkable()
+}
+class MovingEntity {
+  +currentPos
+  +facing
+  +movement
+}
+class Enemy {
+  +kind
+  +heading
+}
+class LevelProgress {
+  +lives
+}
+class ScoreTracker {
+  +currentScore
+  +combo
+}
+class GameClock {
+  +elapsed
+}
+
+class GameMode {
+  <<interface>>
+  +status()
+}
+class Collectibles {
+  <<interface>>
+  +remaining
+}
+class ActiveEffects {
+  <<interface>>
+  +active()
+}
+
+LevelState *-- ValidatedMap : maze
+LevelState *-- MovingEntity : player
+LevelState *-- Enemy : enemies
+LevelState *-- Collectibles
+LevelState *-- ActiveEffects
+LevelState *-- LevelProgress
+LevelState *-- ScoreTracker
+LevelState *-- GameClock
+LevelState --> GameMode
+
+Enemy *-- MovingEntity
+GameMode <|.. Normal
+GameMode <|.. Timed
+GameMode <|.. Survival
