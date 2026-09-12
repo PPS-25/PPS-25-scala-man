@@ -1,0 +1,73 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+direction LR
+
+class Main {
+  <<composition root>>
+}
+class MenuScreen {
+  <<view>>
+}
+class GameBoard {
+  <<view>>
+}
+class Application {
+  <<controller>>
+  + commanded(command) Application
+  + advancedToFrame(now) Application
+}
+class GameSession {
+  <<controller>>
+  + advancedToFrame(now) GameSession
+  + requestingDirection(direction) GameSession
+}
+class GameEnvironment {
+  <<interface>>
+  + maze(name)
+  + saving(level, player)
+  + recording(result, map, mode)
+}
+class LevelView {
+  <<presentation model>>
+}
+class Rendering {
+  <<presentation>>
+  + notifying(state)
+}
+class LevelState {
+  <<domain aggregate>>
+  + status() GameState
+  + pipeline(delta)
+}
+class GameMode {
+  <<domain policy>>
+}
+class ValidatedMap {
+  <<domain value>>
+}
+class GameFilesEnvironment {
+  <<infrastructure adapter>>
+}
+class PropertiesGameSaveRepository {
+  <<infrastructure adapter>>
+}
+class MapLoader {
+  <<infrastructure adapter>>
+}
+
+Main --> Application : creates
+Main --> MenuScreen : shows
+Main --> GameBoard : shows
+MenuScreen --> Application : commands
+GameBoard --> Application : commands
+Application *-- GameSession : current game
+Application --> GameEnvironment : uses
+GameSession *-- LevelState : current level
+LevelState --> GameMode : applies
+LevelState --> ValidatedMap : reads
+LevelState --> LevelView : projects to
+Rendering --> LevelView : publishes
+GameBoard --> LevelView : renders
+GameFilesEnvironment ..|> GameEnvironment : implements
+GameFilesEnvironment --> PropertiesGameSaveRepository : saves
+GameFilesEnvironment --> MapLoader : loads maps
