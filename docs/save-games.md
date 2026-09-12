@@ -1,7 +1,7 @@
 # Save games
 
-`GameSaveRepository` is the persistence boundary for a complete `LevelState`. The domain model
-does not know the storage format or perform file I/O.
+`GameSaveRepository` is the persistence boundary for the persistable gameplay progress of a
+`LevelState`. The domain model does not know the storage format or perform file I/O.
 
 `PropertiesGameSaveRepository` writes a versioned UTF-8 `.properties` file. A save contains a
 copy of the ASCII map, rather than a reference to its original file, so it can be resumed after
