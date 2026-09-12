@@ -8,6 +8,13 @@ The generator builds a `RawMap` from a `MapGenerationSpec` without depending on
 parser or gameplay logic. The generated map is meant to be fed into the parser
 and validation pipeline.
 
+## Current use
+
+`MapGenerator` is currently used only by automated tests. It is not exposed through
+the application or menu, and shipped and player-selected maps continue to come from
+ASCII files. It remains a tested internal utility for exercising map construction and
+the parser-validation pipeline.
+
 ## Output properties
 
 - the grid is rectangular
