@@ -1,0 +1,55 @@
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+
+  subgraph shell["Shell: where side effects live"]
+    main["Main<br/>composition root"]
+    controller["controller"]
+    view["view<br/>ScalaFX"]
+    persistence["persistence"]
+    mapio["map.io"]
+    lbio["leaderboard.io"]
+  end
+
+  subgraph boundary["Boundary: pure but speaks to the outside world"]
+    app["app<br/>names and paths"]
+    mapparser["map.parser"]
+    mapvalidation["map.validation"]
+    lbparser["leaderboard.parser"]
+  end
+
+  subgraph core["Core: pure domain (no framework, no I/O)"]
+    model["model<br/>space · entities · collectibles · effects<br/>collisions · loop · modes · ai · score · map"]
+    utils["utils"]
+  end
+
+  main --> controller
+  main --> view
+  main --> persistence
+  main --> app
+
+  controller --> view
+  controller --> persistence
+  controller --> mapio
+  controller --> lbio
+  controller --> mapparser
+  controller --> mapvalidation
+  controller --> app
+
+  view --> app
+
+  persistence --> app
+  persistence --> mapparser
+  persistence --> mapvalidation
+
+  lbio --> lbparser
+  lbio --> utils
+  lbparser --> utils
+  model --> utils
+
+  %% every package of a band depends on the domain model
+  shell ==> model
+  boundary ==> model
+
+  %% packages holding both pure and effectful code
+  classDef mixed stroke-dasharray: 5 3
+  class controller,view mixed
