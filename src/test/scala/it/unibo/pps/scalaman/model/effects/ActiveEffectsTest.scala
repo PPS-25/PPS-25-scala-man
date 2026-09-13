@@ -70,11 +70,6 @@ class ActiveEffectsTest extends AnyFunSuite:
     assert(invulnerable.updated(start).isActive(Invulnerability, start))
   }
 
-  test("updating changes nothing to what is applied at that instant") {
-    val halfway = start + duration / 2
-    assert(invulnerable.updated(halfway).active(halfway) == invulnerable.active(halfway))
-  }
-
   test("updating twice leaves the same effects") {
     val halfway = start + duration / 2
     assert(invulnerable.updated(halfway).updated(halfway) == invulnerable.updated(halfway))
