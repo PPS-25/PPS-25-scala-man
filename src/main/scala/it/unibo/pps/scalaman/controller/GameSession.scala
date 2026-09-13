@@ -62,7 +62,7 @@ object GameSession:
   /** Final countdown interval displayed as “Go!”. */
   val GoesFor: FiniteDuration = 500.millis
 
-  /** Maximum gameplay delta, preventing a slow frame from skipping collisions. */
+  /** Maximum gameplay delta, preventing a stalled frame from advancing too much. */
   val LongestStep: FiniteDuration = 50.millis
 
   def starting(level: LevelState, draw: RenderListener[LevelView]): GameSession =
