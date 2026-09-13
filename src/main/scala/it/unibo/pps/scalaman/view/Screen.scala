@@ -26,7 +26,6 @@ object Screen:
       case (_, GameState.Victory)    => Over(Outcome.Victory)
       case (_, GameState.Defeat)     => Over(Outcome.Defeat)
       case (LoopState.Paused, _)     => Paused
-      case (LoopState.Stopped, _)    => Menu
       case (LoopState.Running, _)    => startingIn.fold(Playing)(Starting.apply)
 
 /** What is read over the board while the game is not being played. */
