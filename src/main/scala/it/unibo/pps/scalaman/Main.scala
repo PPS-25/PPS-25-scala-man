@@ -31,12 +31,9 @@ import scalafx.scene.control.Alert
 import scalafx.scene.input.KeyEvent
 import scalafx.scene.paint.Color
 
-/** The name the application is known by, on its window and in its messages. */
 def applicationName: String = "scala-man"
 
-/** The window: it draws what the application became, and hands it whatever whoever plays asks for.
-  * Nothing is decided here, which is why nothing here is tested — see `Application`.
-  */
+/** JavaFX entry point and imperative UI shell. */
 object Main extends JFXApp3:
 
   private var application = Application(
@@ -61,21 +58,16 @@ object Main extends JFXApp3:
 
   private def asked(command: Command): Unit = became(application.commanded(command))
 
+  /** Drives the application with the animation clock. */
   private def framed(now: Long): Unit =
     became(application.advancedToFrame(now))
     application.playing.foreach(covered)
 
-  /** Whatever the application became: a game that ended goes back to the menu, and anything it has
-    * to say is said once.
-    */
   private def became(next: Application): Unit =
     if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = menu
     application = next.noticed
     next.notice.foreach(announced)
 
-  /** How a level of a maze is drawn: the board shown here, and the brush handed back to whoever
-    * advances the game.
-    */
   private def showing(maze: ValidatedMap): RenderListener[LevelView] =
     val drawn = GameBoard.fittingScreen(Board.of(maze), asked)
     board = Some(drawn)
@@ -93,9 +85,6 @@ object Main extends JFXApp3:
         _.cover(Overlay.of(screen, StatusBar.of(LevelView.of(playing.session.level))))
       )
 
-  /** The menu as it is right now, so that a maze added while the game is open is offered as soon as
-    * the menu comes back.
-    */
   private def menu: scalafx.scene.Parent =
     MenuScreen(
       application.mazes,
@@ -105,8 +94,8 @@ object Main extends JFXApp3:
       asked
     ).node
 
-  /** What a key press asks for. Every control claims the arrows to move the focus and consumes
-    * them, so a steer is read on the way down and, once taken, consumed in its turn.
+  /** Every control claims the arrows to move the focus and consumes them, so a steer is read on the
+    * way down and, once taken, consumed in its turn.
     */
   private def steering(event: KeyEvent): Unit =
     if CommandMapper.isPauseKey(event.code.toString) then asked(Command.Pause)
