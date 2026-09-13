@@ -52,13 +52,13 @@ object Main extends JFXApp3:
       scene = new Scene:
         fill = Color.web(Style.Night)
         root = menu
-        // A filter, not a handler, and for the reason given on `steering`.
+        // The filter runs before focused controls consume arrow keys.
         filterEvent(KeyEvent.KeyPressed) { (event: KeyEvent) => steering(event) }
     AnimationTimer(framed).start()
 
   private def asked(command: Command): Unit = became(application.commanded(command))
 
-  /** Drives the application with the animation clock. */
+  /** Advances the application state on each JavaFX animation frame. */
   private def framed(now: Long): Unit =
     became(application.advancedToFrame(now))
     application.playing.foreach(covered)
@@ -74,9 +74,8 @@ object Main extends JFXApp3:
     stage.scene().root = drawn.node
     view => drawn.draw(Frame.of(view))
 
-  // The veil is what the loop and the level say together, so it goes on outside the projection.
-  // Only when the screen changes: a game that ended would otherwise keep projecting its own score
-  // for as long as its veil is read.
+  // The overlay depends on loop and level state, so it lives outside the level projection.
+  // Updating it only when the screen changes preserves the final score after a game ends.
   private def covered(playing: Playing): Unit =
     val screen = Screen.of(playing.loop, playing.status, playing.startingIn)
     if !veiled.contains(screen) then
@@ -94,9 +93,7 @@ object Main extends JFXApp3:
       asked
     ).node
 
-  /** Every control claims the arrows to move the focus and consumes them, so a steer is read on the
-    * way down and, once taken, consumed in its turn.
-    */
+  /** Handles movement keys before focused controls use arrows for navigation. */
   private def steering(event: KeyEvent): Unit =
     if CommandMapper.isPauseKey(event.code.toString) then asked(Command.Pause)
     else
@@ -107,7 +104,7 @@ object Main extends JFXApp3:
         application = application.steered(direction)
         event.consume()
 
-  // Shown rather than waited on: a frame is being drawn, and a modal wait would refuse to open.
+  // A modal wait cannot be opened while an animation frame is being processed.
   private def announced(notice: ApplicationNotice): Unit =
     notice match
       case ApplicationNotice.Error(message) =>
