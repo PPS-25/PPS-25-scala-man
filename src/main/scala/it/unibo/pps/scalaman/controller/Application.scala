@@ -57,12 +57,8 @@ trait GameEnvironment:
 
 /** A message the application asks the interface to show. */
 enum ApplicationNotice:
-  case Error(override val message: String)
-  case Information(override val message: String)
-
-  def message: String = this match
-    case Error(message)       => message
-    case Information(message) => message
+  case Error(message: String)
+  case Information(message: String)
 
 /** Running session together with its player and source map. */
 final case class Playing(session: GameSession, by: Played):
