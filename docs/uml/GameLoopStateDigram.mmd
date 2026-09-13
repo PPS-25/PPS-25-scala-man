@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral"}}%%
+stateDiagram-v2
+  direction LR
+
+  state "not started" as NotStarted
+  state "running" as Running
+  state "paused" as Paused
+
+  [*] --> NotStarted
+  NotStarted --> Running : start
+  Running --> Paused : pause
+  Paused --> Running : resume
