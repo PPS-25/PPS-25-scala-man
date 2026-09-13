@@ -215,8 +215,10 @@ The following qualities are expressed together with the evidence used to assess 
     \textbf{Quality} & \textbf{Requirement and evidence} \\
     \hline
     Responsiveness & The model update must fit within a 16-millisecond frame budget. The
-    \texttt{TickPerformanceIT} integration test measures the average of 1,000 updates, after warm-up, on every
-    supplied maze and requires it to remain below that threshold. \\
+    \texttt{TickPerformanceIT} integration test, run through the dedicated \texttt{performance} sbt
+    configuration, measures the average of 1,000 updates, after warm-up, on every supplied maze and requires
+    it to remain below that threshold. It is kept outside the standard CI test suite because elapsed-time
+    measurements depend on the execution environment. \\
     \hline
     Robustness & Malformed maps and saves must be rejected with an actionable explanation rather than crashing the
     application. Parsing and storage operations report failures as values, and the corresponding parser,
