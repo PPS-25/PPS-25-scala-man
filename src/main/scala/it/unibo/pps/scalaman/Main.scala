@@ -8,7 +8,7 @@ import it.unibo.pps.scalaman.controller.{
   GameFilesEnvironment,
   Playing
 }
-import it.unibo.pps.scalaman.presentation.{LevelView, RenderListener}
+import it.unibo.pps.scalaman.view.{LevelView, RenderListener}
 import it.unibo.pps.scalaman.model.ModeTuning
 import it.unibo.pps.scalaman.model.effects.given
 import it.unibo.pps.scalaman.model.map.ValidatedMap

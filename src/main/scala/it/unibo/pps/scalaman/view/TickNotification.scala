@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.presentation
+package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.model.GameStateUpdatePipeline
 

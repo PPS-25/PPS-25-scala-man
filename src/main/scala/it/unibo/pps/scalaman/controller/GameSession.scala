@@ -2,7 +2,7 @@ package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.model.effects.{BonusDuration, Slowdown}
 import it.unibo.pps.scalaman.model.{Direction, GameLoop, LevelState, LoopState}
-import it.unibo.pps.scalaman.presentation.{LevelView, RenderListener, Ticked, tickNotifying}
+import it.unibo.pps.scalaman.view.{LevelView, RenderListener, Ticked, tickNotifying}
 
 import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration, SECONDS}
 

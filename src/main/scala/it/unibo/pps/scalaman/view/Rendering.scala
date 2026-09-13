@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.presentation
+package it.unibo.pps.scalaman.view
 
 /** Notified with what the view needs to draw. */
 type RenderListener[V] = V => Unit

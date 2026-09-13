@@ -17,7 +17,7 @@ import it.unibo.pps.scalaman.model.{
 }
 import it.unibo.pps.scalaman.persistence.SavedGame
 import org.scalatest.funsuite.AnyFunSuite
-import it.unibo.pps.scalaman.presentation.{LevelView, RenderListener}
+import it.unibo.pps.scalaman.view.{LevelView, RenderListener}
 
 import java.nio.file.{Path, Paths}
 import scala.collection.mutable.ListBuffer

@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.presentation.{LevelView, RenderedMovement}
+import it.unibo.pps.scalaman.view.{LevelView, RenderedMovement}
 import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.{GameState, LeaderboardMode, Position}
