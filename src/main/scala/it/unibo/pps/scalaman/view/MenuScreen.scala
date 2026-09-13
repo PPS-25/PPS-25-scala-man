@@ -16,6 +16,7 @@ import scalafx.stage.FileChooser
 import java.io.IOException
 import java.nio.file.{Files, Path}
 
+/** The screen a game is started from: who is playing, on which maze, and how others did on it. */
 final class MenuScreen(
     offered: Seq[MapName],
     bestOn: (MapName, LeaderboardMode) => Leaderboard,
@@ -85,6 +86,7 @@ final class MenuScreen(
   )
   refuseEmptyName()
 
+  /** What to put on a scene to choose a game. */
   val node: Parent = new VBox:
     alignment = Pos.TopCenter
     spacing = SpacedBy
@@ -143,4 +145,5 @@ object MenuScreen:
 
   private[view] def limitedName(name: String): String = name.take(MaxNameLength)
 
+  // The drawn part of logo.png
   private val LogoDrawnOn = Rectangle2D(142, 516, 1719, 953)

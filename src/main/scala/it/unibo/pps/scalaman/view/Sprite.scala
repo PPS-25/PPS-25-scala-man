@@ -5,9 +5,11 @@ import it.unibo.pps.scalaman.model.Direction
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import scalafx.scene.image.Image
 
+/** Whether the player is drawn with its mouth open. */
 enum Mouth:
   case Open, Closed
 
+/** Everything the game draws on a single position of the map. */
 enum Sprite:
   case Wall, Floor, Item
   case Teleport(pair: Int)
@@ -17,8 +19,10 @@ enum Sprite:
 
 object Sprite:
 
+  /** How many teleport doors are told apart by the way they are drawn. */
   val TeleportLooks: Int = 5
 
+  /** An enum with parameterised cases derives no `values`, so the whole set is listed here. */
   val All: Set[Sprite] =
     Set(Wall, Floor, Item) ++
       (0 until TeleportLooks).map(Teleport.apply) ++
@@ -29,8 +33,12 @@ object Sprite:
       BonusEffect.values.map(Bonus.apply) ++
       EnemyKind.values.map(Enemy.apply)
 
+/** Which picture belongs to which sprite. The pictures themselves are read only once. */
 object SpriteImages:
 
+  /** The file a sprite is drawn from. Teleports past the pictures available reuse the first ones,
+    * so that a maze never holds a door that cannot be drawn.
+    */
   def fileOf(sprite: Sprite): String = sprite match
     case Sprite.Wall                    => "/wall.png"
     case Sprite.Floor                   => "/floor.png"
@@ -44,6 +52,9 @@ object SpriteImages:
     case Sprite.Enemy(EnemyKind.Anticipator)       => "/enemy2.png"
     case Sprite.Enemy(EnemyKind.Patroller)         => "/enemy3.png"
 
+  /** The picture of a sprite, read the first time that very sprite is asked for and kept from then
+    * on: a screen showing two of them does not pay for all the others.
+    */
   def of(sprite: Sprite): Image = pictures.getOrElse(sprite, readAndKeep(sprite))
 
   private var pictures: Map[Sprite, Image] = Map.empty
@@ -53,6 +64,7 @@ object SpriteImages:
     pictures += sprite -> picture
     picture
 
+  // The files are far larger than any cell, and are decoded once at a size worth keeping in memory.
   private def read(file: String): Image =
     Image(
       Option(getClass.getResourceAsStream(file))

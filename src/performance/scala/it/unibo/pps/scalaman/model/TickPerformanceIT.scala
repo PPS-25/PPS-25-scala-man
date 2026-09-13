@@ -8,6 +8,14 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
+/** A tick has to fit in the time a frame is given What is measured here is the most pessimistic
+  * tick. An enemy asks its strategy where to go only while it stands on a cell, so the pathfinding
+  * is paid once every sixteen ticks, since an enemy takes 250ms to cross a cell and a tick is worth
+  * 16 ms. Here, the tick is performed on a level that has just started, so every enemy is idle, and
+  * thus has to perform the pathfinding operation every time. For this reason, this is a case
+  * scenario sufficient to state that the game is going to stay inside the budget no matter how it
+  * is played.
+  */
 class TickPerformanceIT extends AnyFunSuite:
 
   private val FrameBudget: FiniteDuration = 16.millis

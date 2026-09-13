@@ -31,8 +31,12 @@ import scalafx.scene.control.Alert
 import scalafx.scene.input.KeyEvent
 import scalafx.scene.paint.Color
 
+/** The name the application is known by, on its window and in its messages. */
 def applicationName: String = "scala-man"
 
+/** The window: it draws what the application became, and hands it whatever whoever plays asks for.
+  * Nothing is decided here, which is why nothing here is tested — see `Application`.
+  */
 object Main extends JFXApp3:
 
   private var application = Application(
@@ -51,6 +55,7 @@ object Main extends JFXApp3:
       scene = new Scene:
         fill = Color.web(Style.Night)
         root = menu
+        // A filter, not a handler, and for the reason given on `steering`.
         filterEvent(KeyEvent.KeyPressed) { (event: KeyEvent) => steering(event) }
     AnimationTimer(framed).start()
 
@@ -60,17 +65,26 @@ object Main extends JFXApp3:
     became(application.advancedToFrame(now))
     application.playing.foreach(covered)
 
+  /** Whatever the application became: a game that ended goes back to the menu, and anything it has
+    * to say is said once.
+    */
   private def became(next: Application): Unit =
     if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = menu
     application = next.noticed
     next.notice.foreach(announced)
 
+  /** How a level of a maze is drawn: the board shown here, and the brush handed back to whoever
+    * advances the game.
+    */
   private def showing(maze: ValidatedMap): RenderListener[LevelView] =
     val drawn = GameBoard.fittingScreen(Board.of(maze), asked)
     board = Some(drawn)
     stage.scene().root = drawn.node
     view => drawn.draw(Frame.of(view))
 
+  // The veil is what the loop and the level say together, so it goes on outside the projection.
+  // Only when the screen changes: a game that ended would otherwise keep projecting its own score
+  // for as long as its veil is read.
   private def covered(playing: Playing): Unit =
     val screen = Screen.of(playing.loop, playing.status, playing.startingIn)
     if !veiled.contains(screen) then
@@ -79,6 +93,9 @@ object Main extends JFXApp3:
         _.cover(Overlay.of(screen, StatusBar.of(LevelView.of(playing.session.level))))
       )
 
+  /** The menu as it is right now, so that a maze added while the game is open is offered as soon as
+    * the menu comes back.
+    */
   private def menu: scalafx.scene.Parent =
     MenuScreen(
       application.mazes,
@@ -88,6 +105,9 @@ object Main extends JFXApp3:
       asked
     ).node
 
+  /** What a key press asks for. Every control claims the arrows to move the focus and consumes
+    * them, so a steer is read on the way down and, once taken, consumed in its turn.
+    */
   private def steering(event: KeyEvent): Unit =
     if CommandMapper.isPauseKey(event.code.toString) then asked(Command.Pause)
     else
@@ -98,6 +118,7 @@ object Main extends JFXApp3:
         application = application.steered(direction)
         event.consume()
 
+  // Shown rather than waited on: a frame is being drawn, and a modal wait would refuse to open.
   private def announced(notice: ApplicationNotice): Unit =
     notice match
       case ApplicationNotice.Error(message) =>

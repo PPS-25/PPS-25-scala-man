@@ -29,6 +29,9 @@ import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
+/** The world outside as it really is, over the files of whoever plays. Every error becomes a
+  * sentence, because whoever reads it is playing a game rather than debugging one.
+  */
 final class GameFilesEnvironment(
     files: GameFiles,
     saves: GameSaveRepository,
@@ -63,6 +66,7 @@ final class GameFilesEnvironment(
   def mazeAt(path: Path): Either[String, ValidatedMap] =
     MapLoader.load(path).left.map(described).flatMap(read)
 
+  // Nothing is ever written over, and a name the game already ships with is not taken.
   def keeping(path: Path): Either[String, Unit] =
     PlayableMazes
       .named(path)
@@ -80,8 +84,10 @@ final class GameFilesEnvironment(
 
   def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit] =
     val storage = FileLeaderboardStorage(files.leaderboardOf(on, mode))
+    // A recording reads the result out of a state: here the state handed to it is the result.
     LeaderboardRecording[GameResult](Some.apply, storage).recording(result).left.map(described)
 
+  // Best scores nobody can read are shown as none reached: a menu has nowhere to tell it.
   def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard =
     FileLeaderboardStorage(files.leaderboardOf(maze, mode)).load().getOrElse(Leaderboard.empty)
 
@@ -111,11 +117,15 @@ final class GameFilesEnvironment(
 
 object GameFilesEnvironment:
 
+  /** The world of whoever is running the game. */
   def ofUser(saves: GameSaveRepository): GameFilesEnvironment =
     GameFilesEnvironment(GameFiles.ofUser, saves)
 
   private val Unnamed = "game"
 
+  /** A save name identifies its maze, player, and local date and time. A suffix retains every save
+    * even if two happen during the same millisecond.
+    */
   private def nextSavePath(folder: Path, by: Played, now: LocalDateTime): Path =
     val timestamp = now.format(SaveTimestamp)
     val stem = s"${by.maze.map(_.value).getOrElse(Unnamed)}-${plainly(by.player.value)}-$timestamp"

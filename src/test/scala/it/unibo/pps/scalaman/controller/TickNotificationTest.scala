@@ -14,6 +14,9 @@ class TickNotificationTest extends AnyFunSuite:
   private val movingForward = pipelineMoving(_.copy(shown = 2))
   private val tickedForward = movingForward.tickNotifying(start, showingShown)
 
+  /** A rendering that has already shown the initial state, so that what the recorder holds
+    * afterwards is only what the tick notified.
+    */
   private def alreadyShownTo(
       recorded: ListBuffer[Int],
       listener: RenderListener[Int]

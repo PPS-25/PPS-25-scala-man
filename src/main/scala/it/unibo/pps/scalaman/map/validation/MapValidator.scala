@@ -12,6 +12,11 @@ import it.unibo.pps.scalaman.model.map.ValidatedMap
 import it.unibo.pps.scalaman.model.map.EnemySpawn
 
 object MapValidator:
+  /** Validates a parsed map and enriches it with semantic information.
+    *
+    * This layer checks structural rules, teleport pairing, and graph reachability from the spawn
+    * point, using teleports as bidirectional edges.
+    */
   def validate(map: RawMap): Either[List[MapValidationError], ValidatedMap] =
     if hasInvalidDimensions(map) then
       Left(List(MapValidationError.InvalidDimensions(map.height, map.width)))

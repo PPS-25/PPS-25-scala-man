@@ -29,6 +29,9 @@ class ApplicationTest extends AnyFunSuite:
   private val onMaze = MapName("test")
   private val start = Command.StartGame(onMaze, player, ModeChoice.Normal)
 
+  /** Rules whose clock runs out before the only collectible of the maze can be reached, so that a
+    * game against the clock is lost to the clock rather than won.
+    */
   private val RunsOutIn = LevelState.PlayerTimePerPos / 2
   private val soon: ModeTuning = choice =>
     if choice == ModeChoice.Timed then GameMode.Timed(RunsOutIn)
@@ -39,11 +42,17 @@ class ApplicationTest extends AnyFunSuite:
   private val elsewhere = Paths.get("/somewhere/spirale.txt")
   private val aFrameApart = GameSession.LongestStep.toNanos
 
+  /** Frames enough to reach the only collectible, two positions away. Two go by first: one records
+    * when it happened, the other starts the crossing.
+    */
   private val EnoughToRunOut = (RunsOutIn / GameSession.LongestStep).toInt + 2
 
   private val EnoughToWin =
     2 * (LevelState.PlayerTimePerPos / GameSession.LongestStep).toInt + 2
 
+  /** The world outside, kept in memory: it answers what it is told to answer and remembers what it
+    * was asked to keep.
+    */
   private class Outside(
       unreadable: Boolean = false,
       unwritable: Boolean = false,
@@ -91,10 +100,14 @@ class ApplicationTest extends AnyFunSuite:
       tuning: ModeTuning = ModeTuning.standardModes
   ): Application = Application(outside, showing, tuning)
 
+  /** Whoever draws, together with everything they were shown. */
   private def watching(): (ListBuffer[LevelView], ValidatedMap => RenderListener[LevelView]) =
     val seen = ListBuffer.empty[LevelView]
     (seen, _ => seen.addOne)
 
+  /** The application after a number of frames, each as long as a frame is allowed to be, counted
+    * from the frame a game goes on: the wait before it starts is not what these tests are about.
+    */
   private def played(from: Application, frames: Int): Application =
     (1 to frames).foldLeft(started(from))((application, frame) =>
       application.advancedToFrame(GameSession.LeadIn.toNanos + frame * aFrameApart)

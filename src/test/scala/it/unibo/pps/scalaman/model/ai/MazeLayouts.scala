@@ -3,6 +3,7 @@ package it.unibo.pps.scalaman.model.ai
 import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.model.map.{RawMap, Tile, ValidatedMap}
 
+/** Builds mazes out of an ASCII layout, where `#` is a wall and anything else is walkable. */
 trait MazeLayouts:
 
   protected def maze(layout: String): ValidatedMap =

@@ -5,6 +5,11 @@ import it.unibo.pps.scalaman.model.map.MapParseError
 import it.unibo.pps.scalaman.model.map.RawMap
 
 object MapParser:
+  /** Converts a raw textual map into the intermediate `RawMap` representation.
+    *
+    * The parser only checks syntax and symbol support. Gameplay constraints are deliberately
+    * deferred to the validation layer.
+    */
   def parse(text: String): Either[List[MapParseError], RawMap] =
     val lines = text.linesIterator.toVector
     if isEmptyMap(lines) then Left(List(MapParseError.EmptyMap))

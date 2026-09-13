@@ -14,31 +14,40 @@ import scalafx.stage.{Modality, Stage, Window}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
+/** One place in the standings, with everything a finished game carries. */
 final case class Standing(place: Int, player: String, score: Int, achievedAt: Instant)
 
+/** The map and game category currently shown by a leaderboard. */
 final case class LeaderboardSelection(maze: MapName, mode: LeaderboardMode)
 
+/** The best scores reached on a maze, as they are read. */
 object Standings:
 
   private val When = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
+  // A leaderboard keeps its entries ordered and capped, so a place is just an index.
+  /** Every place a leaderboard holds, in the order it already keeps them. */
   def of(leaderboard: Leaderboard): Seq[Standing] =
     leaderboard.entries.zipWithIndex
       .map((result, place) =>
         Standing(place + 1, result.playerName, result.score, result.achievedAt)
       )
 
+  /** The standings for the selected map and game category. */
   def forSelection(
       selection: LeaderboardSelection,
       bestOn: (MapName, LeaderboardMode) => Leaderboard
   ): Seq[Standing] = of(bestOn(selection.maze, selection.mode))
 
+  /** The explanation shown when a selected leaderboard has no entries. */
   def emptyMessage(selection: LeaderboardSelection): String =
     s"No ${selection.mode.label} scores for ${selection.maze.value} yet."
 
+  /** When a game was played, told where whoever reads it lives. */
   def dated(achievedAt: Instant, where: ZoneId): String =
     When.format(achievedAt.atZone(where))
 
+/** Every score reached on a maze, read in a window of its own. */
 object LeaderboardWindow:
 
   private val Headings = Seq("#", "Player", "Score", "When")
@@ -46,6 +55,7 @@ object LeaderboardWindow:
   private val Widest = 400.0
   private val Tallest = 420.0
 
+  /** Opens standings that can be filtered by map and game category. */
   def open(
       offered: Seq[MapName],
       initially: LeaderboardSelection,
@@ -70,6 +80,7 @@ object LeaderboardWindow:
     maps.value.onChange((_, _, _) => refresh())
     modes.value.onChange((_, _, _) => refresh())
     refresh()
+    // Owned, so it closes with the game instead of outliving it, and holds the menu meanwhile.
     opened.initOwner(from)
     opened.initModality(Modality.ApplicationModal)
     opened.scene = new Scene:
@@ -92,6 +103,7 @@ object LeaderboardWindow:
       new ScrollPane:
         content = tabulated(places)
         fitToWidth = true
+        // The viewport is what caps the window: the table inside it can be as long as it likes.
         prefViewportWidth = Widest
         prefViewportHeight = Tallest
         maxWidth = Widest
