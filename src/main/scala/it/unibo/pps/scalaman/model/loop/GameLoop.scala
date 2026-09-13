@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.loop
 
 import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Running, Paused, Stopped}
 

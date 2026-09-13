@@ -1,8 +1,10 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.modes
 
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
+import it.unibo.pps.scalaman.model.loop.{GameClock, GameState}
 import it.unibo.pps.scalaman.model.score.ScoringEvent.{RemainingLives, RemainingTime, WavesSurvived}
 import it.unibo.pps.scalaman.model.score.{ScoringEvent, ScoringRule}
+import it.unibo.pps.scalaman.model.LevelProgress
 
 import scala.concurrent.duration.{Duration, DurationInt, DurationLong, FiniteDuration}
 

@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.modes
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 

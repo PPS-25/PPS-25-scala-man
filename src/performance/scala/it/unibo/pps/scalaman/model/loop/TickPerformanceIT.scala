@@ -1,8 +1,9 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.loop
 
 import it.unibo.pps.scalaman.app.{DefaultMaps, MapName}
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
+import it.unibo.pps.scalaman.model.LevelState
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 import org.scalatest.funsuite.AnyFunSuite
 

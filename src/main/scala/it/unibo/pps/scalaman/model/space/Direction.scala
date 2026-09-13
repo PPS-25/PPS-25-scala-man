@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.space
 
 enum Direction(val dx: Int, val dy: Int):
   case Up extends Direction(0, -1)

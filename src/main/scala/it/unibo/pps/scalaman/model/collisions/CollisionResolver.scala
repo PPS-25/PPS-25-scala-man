@@ -1,6 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collisions
 
-import it.unibo.pps.scalaman.model.Collision.Teleport
+import it.unibo.pps.scalaman.model.collisions.Collision.Teleport
 import it.unibo.pps.scalaman.model.entities.{Enemy, MovingEntity}
 import it.unibo.pps.scalaman.model.map.ValidatedMap
 

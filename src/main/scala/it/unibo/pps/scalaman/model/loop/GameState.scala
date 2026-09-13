@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.loop
 
 /** Outcome state of a level. Pause and resume are execution concerns owned by [[GameLoop]]. */
 enum GameState:

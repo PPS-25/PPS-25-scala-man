@@ -1,5 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collisions
 
+import it.unibo.pps.scalaman.model.LevelProgress
 import it.unibo.pps.scalaman.model.effects.{ActiveEffects, BonusEffect}
 
 import scala.concurrent.duration.FiniteDuration

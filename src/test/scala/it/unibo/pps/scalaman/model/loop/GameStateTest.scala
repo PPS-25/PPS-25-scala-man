@@ -1,5 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.loop
 
+import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.model.GameState.{Defeat, Running, Victory}
 import org.scalatest.funsuite.AnyFunSuite
 

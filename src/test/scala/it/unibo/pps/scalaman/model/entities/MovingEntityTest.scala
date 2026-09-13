@@ -1,5 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.entities
 
+import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.model.Direction.{Down, Left, Right, Up}
 import it.unibo.pps.scalaman.model.entities.MovingEntity
 import org.scalatest.funsuite.AnyFunSuite

@@ -1,6 +1,7 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.collisions
 
 import it.unibo.pps.scalaman.model.map.{Tile, ValidatedMap}
+import it.unibo.pps.scalaman.model.space.Position
 
 /** Collision types based on tiles
   */

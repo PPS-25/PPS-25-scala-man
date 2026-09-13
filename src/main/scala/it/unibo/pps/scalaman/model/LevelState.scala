@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.model
 
-import it.unibo.pps.scalaman.model.Collision.Teleport
+import it.unibo.pps.scalaman.model.collisions.{afterCollision, Collision, CollisionDetector, CollisionResolver}
+import it.unibo.pps.scalaman.model.collisions.Collision.Teleport
 import it.unibo.pps.scalaman.model.collectibles.Collectible.{Basic, Bonus}
 import it.unibo.pps.scalaman.model.collectibles.{
   Collectible,

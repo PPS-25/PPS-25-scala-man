@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.space
 
 import scala.concurrent.duration.{FiniteDuration, Duration}
 

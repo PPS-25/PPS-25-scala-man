@@ -1,4 +1,4 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.modes
 
 /** A leaderboard category, independent from the tuning values of a game mode. */
 enum LeaderboardMode(val label: String):

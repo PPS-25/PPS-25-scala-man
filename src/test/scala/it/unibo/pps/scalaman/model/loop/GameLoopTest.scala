@@ -1,5 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.model.loop
 
+import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Paused, Running, Stopped}
 import org.scalatest.funsuite.AnyFunSuite
 

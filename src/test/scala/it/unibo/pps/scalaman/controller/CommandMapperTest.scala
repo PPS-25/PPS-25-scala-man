@@ -1,5 +1,6 @@
-package it.unibo.pps.scalaman.model
+package it.unibo.pps.scalaman.controller
 
+import it.unibo.pps.scalaman.model.*
 import it.unibo.pps.scalaman.controller.CommandMapper
 import org.scalatest.funsuite.AnyFunSuite
 
