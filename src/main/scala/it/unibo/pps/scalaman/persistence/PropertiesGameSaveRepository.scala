@@ -56,7 +56,7 @@ final class PropertiesGameSaveRepository private () extends GameSaveRepository:
         Using.resource(Files.newBufferedReader(path, StandardCharsets.UTF_8)) { reader =>
           properties.load(reader)
         }
-        decode(properties).map(SavedGame(_, mazeNameIn(properties)))
+        decode(properties).flatMap(level => mazeNameIn(properties).map(SavedGame(level, _)))
       catch
         case exception: IOException => Left(SaveGameError.ReadFailed(path, exception.getMessage))
         case exception: IllegalArgumentException =>
@@ -122,8 +122,14 @@ object PropertiesGameSaveRepository:
 
   def apply(): GameSaveRepository = new PropertiesGameSaveRepository()
 
-  private def mazeNameIn(properties: Properties): Option[MapName] =
-    Option(properties.getProperty(MazeKey)).map(_.trim).filter(_.nonEmpty).map(MapName(_))
+  private def mazeNameIn(properties: Properties): Either[SaveGameError, Option[MapName]] =
+    Option(properties.getProperty(MazeKey)).map(_.trim).filter(_.nonEmpty) match
+      case None       => Right(None)
+      case Some(name) =>
+        MapName
+          .from(name)
+          .map(Some.apply)
+          .toRight(SaveGameError.InvalidSave("a map name must be a safe file name"))
 
   private def required(properties: Properties, key: String): Either[SaveGameError, String] =
     Option(properties.getProperty(key)).toRight(SaveGameError.InvalidSave(s"missing '$key'"))
@@ -185,7 +191,10 @@ object PropertiesGameSaveRepository:
       case "survival" :: every :: maximumSpeedMultiplier :: Nil =>
         for
           difficultyEvery <- decodePositiveDuration(every, "survival difficulty interval")
-          maximum <- decodePositiveLong(maximumSpeedMultiplier, "survival maximum speed multiplier")
+          maximum <- decodePositiveDouble(
+            maximumSpeedMultiplier,
+            "survival maximum speed multiplier"
+          )
         yield GameMode.Survival(difficultyEvery, maximum)
       case _ => invalid("invalid game mode")
 
@@ -322,12 +331,6 @@ object PropertiesGameSaveRepository:
       .find(_.toString == value)
       .toRight(SaveGameError.InvalidSave("invalid bonus effect"))
 
-  private def decodeBoolean(value: String, field: String): Either[SaveGameError, Boolean] =
-    value match
-      case "true"  => Right(true)
-      case "false" => Right(false)
-      case _       => invalid(s"invalid $field")
-
   private def encodeDuration(duration: FiniteDuration): String = duration.toNanos.toString
 
   private def decodePositiveDuration(
@@ -367,14 +370,16 @@ object PropertiesGameSaveRepository:
       Either.cond(number >= 0, number, SaveGameError.InvalidSave(s"$field must not be negative"))
     }
 
-  private def decodePositiveLong(value: String, field: String): Either[SaveGameError, Long] =
+  private def decodePositiveDouble(value: String, field: String): Either[SaveGameError, Double] =
     scala.util
-      .Try(value.toLong)
+      .Try(value.toDouble)
       .toOption
       .flatMap { number =>
-        Option.when(number > 0)(number)
+        Option.when(number.isFinite && number >= 1)(
+          number.min(GameMode.MaximumSurvivalSpeedMultiplier)
+        )
       }
-      .toRight(SaveGameError.InvalidSave(s"$field must be positive"))
+      .toRight(SaveGameError.InvalidSave(s"$field must be at least one"))
 
   private def decodeInt(value: String, field: String): Either[SaveGameError, Int] =
     scala.util.Try(value.toInt).toOption.toRight(SaveGameError.InvalidSave(s"invalid $field"))

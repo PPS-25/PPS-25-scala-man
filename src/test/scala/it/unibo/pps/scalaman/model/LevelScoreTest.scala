@@ -5,6 +5,8 @@ import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.score.ScoreTracker
 import org.scalatest.funsuite.AnyFunSuite
 
+import java.time.Instant
+
 import scala.concurrent.duration.DurationInt
 
 class LevelScoreTest extends AnyFunSuite:
@@ -25,16 +27,20 @@ class LevelScoreTest extends AnyFunSuite:
   }
 
   test("a game still being played has no result") {
-    assert(startingLevel.result("PlayerName").isEmpty)
+    assert(startingLevel.result("PlayerName", Instant.EPOCH).isEmpty)
   }
 
   test("the result keeps the name of whoever played") {
-    assert(won.result("PlayerName").map(_.playerName).contains("PlayerName"))
+    val achievedAt = Instant.parse("2026-09-12T12:00:00Z")
+    val result = won.result("PlayerName", achievedAt)
+
+    assert(result.map(_.playerName).contains("PlayerName"))
+    assert(result.map(_.achievedAt).contains(achievedAt))
   }
 
   test("the result is worth what the game is worth") {
     val ended = won.copy(score = ScoreTracker(300), progress = LevelProgress(2))
-    assert(ended.result("PlayerName").map(_.score).contains(ended.liveScore))
+    assert(ended.result("PlayerName", Instant.EPOCH).map(_.score).contains(ended.liveScore))
   }
 
   test("a timed game is worth the seconds it has left") {

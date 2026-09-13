@@ -41,6 +41,11 @@ class GameFilesTest extends AnyFunSuite:
     assertThrows[IllegalArgumentException](MapName(""))
   }
 
+  test("a maze name cannot escape the game data folders") {
+    assertThrows[IllegalArgumentException](MapName("../../outside"))
+    assertThrows[IllegalArgumentException](MapName("maps\\outside"))
+  }
+
   test("a player cannot go without a name") {
     assertThrows[IllegalArgumentException](PlayerName("  "))
   }

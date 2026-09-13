@@ -24,6 +24,15 @@ class FileLeaderboardStorageTest extends AnyFunSuite:
     finally Files.deleteIfExists(path)
   }
 
+  test("loading a directory fails as a read error") {
+    val directory = Files.createTempDirectory("leaderboard-directory")
+    try
+      FileLeaderboardStorage(directory).load() match
+        case Left(_: LeaderboardError.ReadFailed) => succeed
+        case other                                => fail(s"expected a read error, got $other")
+    finally Files.deleteIfExists(directory)
+  }
+
   test("saving then loading gives back the same leaderboard") {
     val dir = Files.createTempDirectory("leaderboardTest")
     val path = dir.resolve("leaderboard.csv")
@@ -59,4 +68,13 @@ class FileLeaderboardStorageTest extends AnyFunSuite:
       Files.deleteIfExists(nested)
       Files.deleteIfExists(nested.getParent)
       Files.deleteIfExists(dir)
+  }
+
+  test("saving to a directory fails as a write error") {
+    val directory = Files.createTempDirectory("leaderboard-directory")
+    try
+      FileLeaderboardStorage(directory).save(Leaderboard.empty) match
+        case Left(_: LeaderboardError.WriteFailed) => succeed
+        case other                                 => fail(s"expected a write error, got $other")
+    finally Files.deleteIfExists(directory)
   }

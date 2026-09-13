@@ -27,6 +27,7 @@ final case class MovingEntity(
     movement: Option[Movement] = None,
     previousPos: Option[Position] = None
 ):
+  require(timePerPos > Duration.Zero, "time per position must be positive")
 
   /** Makes the entity face a specific direction.
     */

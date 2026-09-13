@@ -11,6 +11,7 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
 import it.unibo.pps.scalaman.model.collectibles.Collectibles
 import it.unibo.pps.scalaman.model.{Direction, GameClock, GameMode, LevelProgress, LevelState}
 import org.scalatest.funsuite.AnyFunSuite
+import it.unibo.pps.scalaman.view.{LevelView, RenderListener, tickNotifying}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt

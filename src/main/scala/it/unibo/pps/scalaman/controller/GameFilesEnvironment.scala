@@ -24,14 +24,19 @@ import it.unibo.pps.scalaman.persistence.{GameSaveRepository, SaveGameError, Sav
 
 import java.io.IOException
 import java.nio.file.{Files, Path}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
 /** The world outside as it really is, over the files of whoever plays. Every error becomes a
   * sentence, because whoever reads it is playing a game rather than debugging one.
   */
-final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
-    extends GameEnvironment:
+final class GameFilesEnvironment(
+    files: GameFiles,
+    saves: GameSaveRepository,
+    now: () => LocalDateTime = () => LocalDateTime.now()
+) extends GameEnvironment:
 
   import GameFilesEnvironment.*
 
@@ -42,6 +47,8 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
       .when(Files.isRegularFile(files.playerName))(files.playerName)
       .flatMap(path => scala.util.Try(Files.readString(path).trim).toOption)
       .flatMap(name => Option.when(name.nonEmpty)(PlayerName(name)))
+
+  def savesFolder: Path = files.saves
 
   def remembering(player: PlayerName): Either[String, Unit] =
     if playerName.contains(player) then Right(())
@@ -72,7 +79,7 @@ final class GameFilesEnvironment(files: GameFiles, saves: GameSaveRepository)
   def saving(level: LevelState, by: Played): Either[String, Unit] =
     for
       folder <- made(files.saves)
-      _ <- saves.save(level, by.maze, folder.resolve(fileFor(by))).left.map(described)
+      _ <- saves.save(level, by.maze, nextSavePath(folder, by, now())).left.map(described)
     yield ()
 
   def recording(result: GameResult, on: MapName, mode: LeaderboardMode): Either[String, Unit] =
@@ -116,14 +123,23 @@ object GameFilesEnvironment:
 
   private val Unnamed = "game"
 
-  /** What a saved game is called: the maze and who was playing it, kept to what a file name can
-    * hold, so that saving the same game again writes over it instead of piling up.
+  /** A save name identifies its maze, player, and local date and time. A suffix retains every save
+    * even if two happen during the same millisecond.
     */
-  private def fileFor(by: Played): String =
-    s"${by.maze.map(_.value).getOrElse(Unnamed)}-${plainly(by.player.value)}.properties"
+  private def nextSavePath(folder: Path, by: Played, now: LocalDateTime): Path =
+    val timestamp = now.format(SaveTimestamp)
+    val stem = s"${by.maze.map(_.value).getOrElse(Unnamed)}-${plainly(by.player.value)}-$timestamp"
+    Iterator
+      .from(0)
+      .map(index => if index == 0 then s"$stem.properties" else s"$stem-$index.properties")
+      .map(folder.resolve)
+      .find(path => !Files.exists(path))
+      .get
 
   private def plainly(name: String): String =
     name.map(letter => if letter.isLetterOrDigit then letter else '-')
+
+  private val SaveTimestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS")
 
   private def attempted[A](whenRefused: String)(action: => A): Either[String, A] =
     try Right(action)

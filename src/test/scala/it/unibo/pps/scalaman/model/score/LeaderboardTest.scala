@@ -36,8 +36,6 @@ class LeaderboardTest extends AnyFunSuite:
     assert(board(tooMany*).entries.size == Leaderboard.Cap)
   }
 
-  test("recording a score tells you if a new hi-score has been hit")(pending)
-
   test("a leaderboard is a monoid") {
     lawsHold(leaderboards)
   }
