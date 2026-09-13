@@ -7,6 +7,7 @@
 \usepackage{lmodern}
 \usepackage{xcolor}
 \usepackage{enumitem}
+\usepackage{listings}
 \usepackage{array}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
@@ -15,7 +16,36 @@
 \usepackage[hidelinks]{hyperref}
 
 \definecolor{ink}{HTML}{1F2933}
+\definecolor{codebg}{HTML}{F7F8F9}
+\definecolor{codekw}{HTML}{1F4E79}
+\definecolor{codecm}{HTML}{6B7A86}
+\definecolor{codestr}{HTML}{2E6B4F}
 
+\lstdefinelanguage{Scala3}{
+    morekeywords={abstract,case,class,def,else,enum,extends,final,given,if,import,match,new,object,override,package,private,then,trait,type,using, val,var,with,yield},
+    sensitive=true,
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]"
+}
+
+\lstset{
+    language=Scala3,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codekw}\bfseries,
+    commentstyle=\color{codecm}\itshape,
+    stringstyle=\color{codestr},
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{black!25},
+    framesep=5pt,
+    xleftmargin=8pt,
+    breaklines=true,
+    showstringspaces=false,
+    columns=fullflexible,
+    aboveskip=1em,
+    belowskip=1em
+}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.55em}
 \setlength{\emergencystretch}{2em}
