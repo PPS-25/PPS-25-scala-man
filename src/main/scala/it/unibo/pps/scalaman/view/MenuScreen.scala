@@ -13,13 +13,15 @@ import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.stage.FileChooser
 
-import java.nio.file.Path
+import java.io.IOException
+import java.nio.file.{Files, Path}
 
 /** The screen a game is started from: who is playing, on which maze, and how others did on it. */
 final class MenuScreen(
     offered: Seq[MapName],
     bestOn: (MapName, LeaderboardMode) => Leaderboard,
     playerName: Option[PlayerName],
+    savesFolder: Path,
     chosen: Command => Unit
 ):
 
@@ -58,7 +60,9 @@ final class MenuScreen(
 
   private val loadSave = new Button("Load game..."):
     onAction = _ =>
-      picked("Open a saved game").foreach(path => chosen(Command.LoadSave(path, PlayerName(named))))
+      picked("Open a saved game", Some(savesFolder)).foreach(path =>
+        chosen(Command.LoadSave(path, PlayerName(named)))
+      )
     style = Style.button
 
   private val bonuses = new HBox:
@@ -120,10 +124,15 @@ final class MenuScreen(
     )
   )
 
-  private def picked(asked: String): Option[Path] =
+  private def picked(asked: String, from: Option[Path] = None): Option[Path] =
     val chooser = new FileChooser:
       title = asked
+    from.flatMap(readyFolder).foreach(folder => chooser.initialDirectory = folder.toFile)
     Option(chooser.showOpenDialog(node.scene().window())).map(_.toPath)
+
+  private def readyFolder(folder: Path): Option[Path] =
+    try Some(Files.createDirectories(folder))
+    catch case _: IOException => None
 
 object MenuScreen:
   private val SpacedBy = 12.0

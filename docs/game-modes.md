@@ -32,5 +32,6 @@ Survival mode replaces the standard completion objective with survival time: col
 does not end the level, while losing every life does. The immutable game clock tracks survival time.
 
 Enemy difficulty increases at each configured positive interval by increasing the time enemies
-experience while moving. The speed multiplier is capped by the configured positive maximum. The
-regular slowdown bonus is applied after this mode-specific speed increase.
+experience while moving. Each wave adds 20% of the base speed, rather than doubling it, and the
+speed multiplier is capped at 1.25x so enemies never exceed the player's base speed. The regular
+slowdown bonus is applied after this mode-specific speed increase.

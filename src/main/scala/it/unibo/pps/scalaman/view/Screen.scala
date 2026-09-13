@@ -12,18 +12,22 @@ enum Screen:
   case Menu, Playing, Paused
   case Over(outcome: Outcome)
 
+  /** A game about to start, counting the seconds left down to zero, which is the go. */
+  case Starting(secondsLeft: Int)
+
 object Screen:
 
   /** What to show. The loop knows whether a game is being played and whether it is on hold, the
     * game knows whether it has been won or lost: neither of the two answers on its own.
     */
-  def of(loop: LoopState, state: GameState): Screen = (loop, state) match
-    case (LoopState.NotStarted, _) => Menu
-    case (_, GameState.Victory)    => Over(Outcome.Victory)
-    case (_, GameState.Defeat)     => Over(Outcome.Defeat)
-    case (LoopState.Paused, _)     => Paused
-    case (LoopState.Stopped, _)    => Menu
-    case (LoopState.Running, _)    => Playing
+  def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Screen =
+    (loop, state) match
+      case (LoopState.NotStarted, _) => Menu
+      case (_, GameState.Victory)    => Over(Outcome.Victory)
+      case (_, GameState.Defeat)     => Over(Outcome.Defeat)
+      case (LoopState.Paused, _)     => Paused
+      case (LoopState.Stopped, _)    => Menu
+      case (LoopState.Running, _)    => startingIn.fold(Playing)(Starting.apply)
 
 /** What is read over the board while the game is not being played. */
 final case class Overlay(title: String, lines: Seq[String], choices: Seq[Command])
@@ -38,7 +42,12 @@ object Overlay:
       Some(Overlay("Paused", Seq.empty, Seq(Command.Restart, Command.Resume, Command.SaveAndQuit)))
     case Screen.Over(outcome) =>
       Some(Overlay(titleOf(outcome), reached(status), Seq(Command.Restart, Command.BackToMenu)))
+    case Screen.Starting(secondsLeft) =>
+      Some(Overlay(counted(secondsLeft), Seq.empty, Seq.empty))
     case Screen.Playing | Screen.Menu => None
+
+  private def counted(secondsLeft: Int): String =
+    if secondsLeft == 0 then "Go!" else secondsLeft.toString
 
   private def titleOf(outcome: Outcome): String = outcome match
     case Outcome.Victory => "Victory"

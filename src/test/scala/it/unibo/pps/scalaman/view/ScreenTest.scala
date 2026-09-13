@@ -6,6 +6,18 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class ScreenTest extends AnyFunSuite:
 
+  test("a game that is counting down is not being played yet") {
+    assert(Screen.of(LoopState.Running, Running, Some(3)) == Screen.Starting(3))
+  }
+
+  test("a game about to go is still counting down") {
+    assert(Screen.of(LoopState.Running, Running, Some(0)) == Screen.Starting(0))
+  }
+
+  test("a game on hold reads as on hold, even while it counts down") {
+    assert(Screen.of(LoopState.Paused, Running, Some(3)) == Screen.Paused)
+  }
+
   test("the menu is shown until a game is started") {
     assert(Screen.of(LoopState.NotStarted, Running) == Screen.Menu)
   }

@@ -12,11 +12,23 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.util.Properties
 import scala.concurrent.duration.DurationInt
+import scala.util.Using
 
 class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
   private val repository = PropertiesGameSaveRepository()
   private val mazeName = MapName("arena")
+
+  private def changedSave(key: String, value: String): java.nio.file.Path =
+    val path = Files.createTempFile("scala-man-save", ".properties")
+    assert(repository.save(LevelState.from(maze), Some(mazeName), path) == Right(()))
+    val properties = new Properties()
+    Using.resource(Files.newBufferedReader(path, StandardCharsets.UTF_8))(properties.load)
+    properties.setProperty(key, value)
+    Using.resource(Files.newBufferedWriter(path, StandardCharsets.UTF_8)):
+      properties.store(_, "scala-man save game")
+    path
 
   test("a saved game can be loaded with all its progress") {
     val path = Files.createTempFile("scala-man-save", ".properties")
@@ -47,7 +59,7 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
     val original = LevelState
       .from(
         maze,
-        GameMode.Survival(difficultyEvery = 10.seconds, maximumSpeedMultiplier = 4)
+        GameMode.Survival(difficultyEvery = 10.seconds, maximumSpeedMultiplier = 1.25)
       )
       .copy(
         enemies = Vector(
@@ -112,4 +124,57 @@ class PropertiesGameSaveRepositorySpec extends AnyFunSuite:
 
     try assert(repository.load(path) == Left(SaveGameError.FileNotFound(path)))
     finally Files.deleteIfExists(path.getParent)
+  }
+
+  test("saving to a directory fails as a write error") {
+    val path = Files.createTempDirectory("scala-man-save")
+    try
+      repository.save(LevelState.from(maze), Some(mazeName), path) match
+        case Left(_: SaveGameError.WriteFailed) => succeed
+        case other                              => fail(s"expected a write error, got $other")
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a save with an unsupported format version is rejected") {
+    val path = changedSave("format-version", "999")
+    try
+      assert(
+        repository.load(path) == Left(SaveGameError.InvalidSave("unsupported format version '999'"))
+      )
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a save with an invalid mode is rejected") {
+    val path = changedSave("mode", "arcade")
+    try assert(repository.load(path) == Left(SaveGameError.InvalidSave("invalid game mode")))
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a save with an unsafe maze name is rejected") {
+    val path = changedSave("maze", "../../outside")
+    try
+      assert(
+        repository.load(path) == Left(
+          SaveGameError.InvalidSave("a map name must be a safe file name")
+        )
+      )
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a save with a negative number of lives is rejected") {
+    val path = changedSave("lives", "-1")
+    try
+      assert(repository.load(path) == Left(SaveGameError.InvalidSave("lives must not be negative")))
+    finally Files.deleteIfExists(path)
+  }
+
+  test("a save with an entity outside the map is rejected") {
+    val path = changedSave("player", "999,999:Right:200000000::")
+    try
+      assert(
+        repository.load(path) == Left(
+          SaveGameError.InvalidSave("a saved entity is outside the walkable map")
+        )
+      )
+    finally Files.deleteIfExists(path)
   }

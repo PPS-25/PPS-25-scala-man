@@ -30,7 +30,7 @@ Enemy movement is constrained by `EnemyMovement.validMoves`.
 
 A valid move:
 
-- is orthogonally adjacent to the enemy position;
+- is orthogonally adjacent to the enemy position, or is the paired destination while the enemy stands on a teleport;
 - is inside the map bounds;
 - does not target a `Tile.Wall`.
 
@@ -43,17 +43,19 @@ same movement constraints.
 
 `DirectPursuitStrategy` targets the player's current position.
 
-It chooses the valid adjacent move with the smallest Manhattan distance from the player.
-The strategy is deterministic: when candidate moves are equally good, the shared movement ordering
-is used.
+It chooses the first step of a shortest path to the player. The path is found with breadth-first
+search over walkable cells and teleport links, so an available teleport is considered whenever it
+shortens the route. The strategy is deterministic because candidate cells are explored in the shared
+movement ordering.
 
 ### Player Anticipation
 
 `PlayerAnticipationStrategy` targets a predicted player position.
 
 The prediction is derived from the difference between the player's current position and previous
-position. The strategy projects that movement by `stepsAhead` cells, then chooses the valid adjacent
-move that best approaches the predicted target.
+position. The strategy projects that movement by `stepsAhead` walkable cells, then chooses the valid
+move whose shortest path best approaches the predicted target. A move in the predicted player direction
+wins deterministic ties.
 
 If the previous player position is unavailable, anticipation falls back to targeting the current
 player position.
@@ -65,12 +67,20 @@ player position.
 ```scala
 EnemyKind.Hunter      -> DirectPursuitStrategy
 EnemyKind.Anticipator -> PlayerAnticipationStrategy(stepsAhead = 2)
+EnemyKind.Patroller   -> PatrolStrategy
 ```
 
 `EnemyAiStage` is the default AI stage of the `LevelState` pipeline. It asks the selector for a
 strategy only when an enemy is idle, then assigns the corresponding movement. The stage accepts an
 `EnemyStrategySelection`, so strategy selection remains independent from rendering and input
 handling, and new strategies can be added without changing the game loop.
+
+### Patrol
+
+`PatrolStrategy` ignores the player and follows a cyclic route through the walkable cells nearest the
+four maze corners, clockwise from the top-left corner. It retains the corner currently being targeted,
+then selects the next corner on arrival. Small maps whose nearest cells collapse to fewer than two distinct
+stops produce no patrol movement rather than an invalid route.
 
 ## Extension Rule
 

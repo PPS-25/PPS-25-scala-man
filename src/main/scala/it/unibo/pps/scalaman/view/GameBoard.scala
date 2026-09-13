@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import it.unibo.pps.scalaman.app.Command
+import it.unibo.pps.scalaman.model.Direction
 import scalafx.geometry.Insets
 import scalafx.scene.Parent
 import scalafx.scene.canvas.{Canvas, GraphicsContext}
@@ -98,13 +99,30 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
       if sprite != Sprite.Floor then paint(gc, spot, sprite)
 
   private def paint(gc: GraphicsContext, spot: Spot, sprite: Sprite): Unit =
-    gc.drawImage(
-      SpriteImages.of(sprite),
-      spot.col * cellSize,
-      spot.row * cellSize,
-      cellSize,
-      cellSize
-    )
+    sprite match
+      case Sprite.Player(_, facing) =>
+        gc.save()
+        gc.translate((spot.col + 0.5) * cellSize, (spot.row + 0.5) * cellSize)
+        val (rotation, mirrored) = transformOf(facing)
+        gc.rotate(rotation)
+        if mirrored then gc.scale(-1, 1)
+        gc.drawImage(SpriteImages.of(sprite), -cellSize / 2, -cellSize / 2, cellSize, cellSize)
+        gc.restore()
+      case _ =>
+        gc.drawImage(
+          SpriteImages.of(sprite),
+          spot.col * cellSize,
+          spot.row * cellSize,
+          cellSize,
+          cellSize
+        )
+
+  // Player pictures face right. Left is mirrored rather than rotated, so the character stays upright.
+  private def transformOf(direction: Direction): (Double, Boolean) = direction match
+    case Direction.Right => (0, false)
+    case Direction.Down  => (90, false)
+    case Direction.Left  => (0, true)
+    case Direction.Up    => (270, false)
 
 object GameBoard:
 

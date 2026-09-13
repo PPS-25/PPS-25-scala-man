@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.controller
 
 import scala.collection.mutable.ListBuffer
+import it.unibo.pps.scalaman.view.{RenderListener, Rendering}
 
 /** Fixtures shared by the suites about rendering notifications. */
 object RenderingTestSupport:

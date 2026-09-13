@@ -1,18 +1,14 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.model.Direction
-import scalafx.scene.input.KeyCode
 
 object CommandMapper:
 
-  /** Converts a key press into a movement command.
-    */
-  def toDir(key: KeyCode): Option[Direction] = key match
-    case KeyCode.Up | KeyCode.W    => Some(Direction.Up)
-    case KeyCode.Down | KeyCode.S  => Some(Direction.Down)
-    case KeyCode.Left | KeyCode.A  => Some(Direction.Left)
-    case KeyCode.Right | KeyCode.D => Some(Direction.Right)
-    case _                         => None
+  def toDir(key: String): Option[Direction] = key.toUpperCase match
+    case "UP" | "W"    => Some(Direction.Up)
+    case "DOWN" | "S"  => Some(Direction.Down)
+    case "LEFT" | "A"  => Some(Direction.Left)
+    case "RIGHT" | "D" => Some(Direction.Right)
+    case _             => None
 
-  /** Whether this key press should pause or resume the game */
-  def isPauseKey(key: KeyCode): Boolean = key == KeyCode.Escape
+  def isPauseKey(key: String): Boolean = key.equalsIgnoreCase("ESCAPE")

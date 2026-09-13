@@ -31,6 +31,15 @@ class OverlayTest extends AnyFunSuite:
     assert(asked == 0)
   }
 
+  test("a game counting down is covered by the count, with nothing to choose") {
+    assert(over(Screen.Starting(3)).map(_.title).contains("3"))
+    assert(over(Screen.Starting(3)).exists(_.choices.isEmpty))
+  }
+
+  test("a game about to go says so") {
+    assert(over(Screen.Starting(0)).map(_.title).contains("Go!"))
+  }
+
   test("a game being played is covered by nothing") {
     assert(over(Screen.Playing).isEmpty)
   }

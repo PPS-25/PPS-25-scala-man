@@ -3,3 +3,18 @@
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent eget lectus
 nec augue interdum mattis. Integer porttitor, nibh in congue tincidunt, nisl
 erat luctus purus, nec pharetra metus nibh in mauris.
+
+\section{Future work}
+
+\textbf{Frightened enemies after invulnerability.} At present, invulnerability protects the
+player from losing a life and allows an enemy to be defeated when the two meet. A natural extension
+would make the effect visible in the enemies' behaviour before a collision occurs: while it is active,
+each enemy would temporarily select moves that increase its distance from the player rather than
+following its normal pursuit, anticipation, or patrol strategy.
+
+This would require a short-lived \emph{frightened} movement strategy, chosen from the same walkable
+neighbours and teleport links used by the existing AI. The game would retain each enemy's normal
+strategy and, for a Patroller, its current corner target; when invulnerability expires, those choices
+would be restored unchanged. Thus the bonus would create a tactical opportunity to chase enemies
+without changing their long-term behaviour or disrupting a patrol route. If the player still reaches
+an enemy while the effect is active, the current defeat-and-score rule would continue to apply.
