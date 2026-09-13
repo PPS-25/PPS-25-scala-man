@@ -1,6 +1,5 @@
 package it.unibo.pps.scalaman.model.entities
 
-import it.unibo.pps.scalaman.model.Direction.*
 import it.unibo.pps.scalaman.model.{Direction, Movement, Position}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
