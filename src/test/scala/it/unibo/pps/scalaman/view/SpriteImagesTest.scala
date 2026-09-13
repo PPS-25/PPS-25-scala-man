@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.view
 
 import org.scalatest.funsuite.AnyFunSuite
+import it.unibo.pps.scalaman.model.Direction
 
 class SpriteImagesTest extends AnyFunSuite:
 
@@ -9,6 +10,11 @@ class SpriteImagesTest extends AnyFunSuite:
     assert(missing.isEmpty)
   }
 
-  test("what must be told apart is drawn with its own picture") {
-    assert(Sprite.All.map(SpriteImages.fileOf).size == Sprite.All.size)
+  test("each player direction reuses the same source picture before it is rotated on the board") {
+    assert(
+      Direction.values
+        .map(direction => SpriteImages.fileOf(Sprite.Player(Mouth.Open, direction)))
+        .toSet ==
+        Set("/scalaman1.png")
+    )
   }

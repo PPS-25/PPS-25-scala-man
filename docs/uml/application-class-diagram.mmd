@@ -1,0 +1,88 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+direction LR
+
+class Main {
+  <<composition root>>
+}
+class MenuScreen {
+  <<view>>
+}
+class GameBoard {
+  <<view>>
+}
+class Application {
+  <<controller>>
+  - environment: GameEnvironment
+  - playing: Option~Playing~
+  + commanded(command) Application
+  + advancedToFrame(now) Application
+}
+class GameSession {
+  <<controller>>
+  - ticked: Ticked~LevelState, LevelView~
+  - loop: GameLoop
+  + advancedToFrame(now) GameSession
+  + requestingDirection(direction) GameSession
+}
+class GameEnvironment {
+  <<interface>>
+  + maze(name)
+  + saving(level, player)
+  + recording(result, map, mode)
+}
+class LevelView {
+  <<presentation model>>
+}
+class Rendering {
+  <<presentation>>
+  + notifying(state)
+}
+class LevelState {
+  <<domain aggregate>>
+  + status() GameState
+  + pipeline(delta)
+}
+class GameMode {
+  <<domain policy>>
+}
+class ValidatedMap {
+  <<domain value>>
+}
+class GameFilesEnvironment {
+  <<infrastructure adapter>>
+}
+class GameSaveRepository {
+  <<interface>>
+  + save(level, maze, path)
+  + load(path)
+}
+class PropertiesGameSaveRepository {
+  <<infrastructure adapter>>
+}
+class MapLoader {
+  <<infrastructure adapter>>
+}
+class MapParser
+class MapValidator
+
+Main --> Application : creates
+Main --> MenuScreen : shows
+Main --> GameBoard : shows
+MenuScreen --> Application : commands
+GameBoard --> Application : commands
+Application *-- "0..1" GameSession : current session
+Application --> GameEnvironment : uses
+GameSession --> LevelState : updates through pipeline
+GameSession --> Rendering : uses
+LevelState --> GameMode : applies
+LevelState --> ValidatedMap : reads
+LevelView --> LevelState : projects
+Rendering --> LevelView : notifies
+GameBoard --> LevelView : renders
+GameFilesEnvironment ..|> GameEnvironment : implements
+GameFilesEnvironment --> GameSaveRepository : uses
+PropertiesGameSaveRepository ..|> GameSaveRepository : implements
+GameFilesEnvironment --> MapLoader : loads maps
+MapLoader --> MapParser
+MapLoader --> MapValidator

@@ -4,13 +4,20 @@ import it.unibo.pps.scalaman.model.ModeChoice
 
 import java.nio.file.Path
 
-/** A maze the game can be played on, named after the file it is read from. The name is also how its
-  * leaderboard is told apart from the others.
-  */
+/** A map name validated for safe use in file paths. */
 final case class MapName(value: String):
-  require(value.nonEmpty, "a map must have a name")
+  require(MapName.isSafe(value), "a map name must be a safe file name")
 
-/** Who is playing, as the leaderboard will remember them. */
+object MapName:
+  def from(value: String): Option[MapName] =
+    Option.when(isSafe(value))(MapName(value))
+
+  private def isSafe(value: String): Boolean =
+    value.nonEmpty &&
+      value != "." &&
+      value != ".." &&
+      value.forall(char => char.isLetterOrDigit || ".-_ ".contains(char))
+
 final case class PlayerName(value: String):
   require(value.trim.nonEmpty, "a player must have a name")
 
@@ -19,7 +26,6 @@ final case class PlayerName(value: String):
   */
 final case class Played(player: PlayerName, maze: Option[MapName])
 
-/** Something the player asks for, which the interface offers but never carries out itself. */
 enum Command:
   case StartGame(map: MapName, player: PlayerName, mode: ModeChoice)
   case LoadMap(path: Path, player: PlayerName, mode: ModeChoice)

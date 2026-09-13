@@ -1,6 +1,7 @@
 package it.unibo.pps.scalaman.controller
 
 import it.unibo.pps.scalaman.controller.RenderingTestSupport.{State, recorder, showingShown, start}
+import it.unibo.pps.scalaman.view.{RenderListener, tickNotifying}
 import it.unibo.pps.scalaman.model.GameStateUpdatePipeline
 import org.scalatest.funsuite.AnyFunSuite
 

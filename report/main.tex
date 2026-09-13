@@ -1,22 +1,47 @@
 \documentclass[11pt,a4paper]{report}
 
+\usepackage[margin=2.4cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
-\usepackage{geometry}
-\usepackage{hyperref}
+\usepackage{lmodern}
+\usepackage{xcolor}
 \usepackage{enumitem}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
 \usepackage[useregional]{datetime2}
 \usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
 
-\geometry{margin=2.5cm}
-\hypersetup{
-  colorlinks=true,
-  linkcolor=black,
-  urlcolor=black,
-  citecolor=black,
-  pdftitle={scala-man Final Report}
-}
+\definecolor{ink}{HTML}{1F2933}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlength{\emergencystretch}{2em}
+\renewcommand{\arraystretch}{1.12}
+\setlist{topsep=0.45em,itemsep=0.3em}
+
+\titleformat{\chapter}[hang]
+  {\normalfont\bfseries\color{ink}\Huge}
+  {\color{ink}\thechapter.}
+  {0.6em}
+  {}
+\titlespacing*{\chapter}{0pt}{0pt}{1.4em}
+\titleformat{\section}{\normalfont\Large\bfseries\color{ink}}
+  {\color{ink}\thesection}{0.7em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{ink}}
+  {\color{ink}\thesubsection}{0.65em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{ink}\nouppercase{\leftmark}}
+\fancyhead[R]{\small\color{ink}scala-man}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\hypersetup{pdftitle={scala-man Final Report}}
 
 \newcommand{\todayFullUS}{\DTMtoday}
 
@@ -30,45 +55,52 @@
 
 \begin{document}
 
-\pagenumbering{gobble}
 \begin{titlepage}
+    \thispagestyle{empty}
     \centering
     \vspace*{2.2cm}
 
-    {\Large PPS -- Programming Paradigms and Development\par}
+    {\Large\color{ink} PPS - Programming Paradigms and Development\par}
     \vspace{1.2cm}
     {\rule{0.82\textwidth}{0.5pt}\par}
     \vspace{0.9cm}
-    {\huge\bfseries scala-man\par}
+    {\fontsize{34}{40}\selectfont\bfseries\color{ink} scala-man\par}
     \vspace{0.35cm}
-    {\LARGE Final Report\par}
-    \vspace{0.45cm}
+    {\LARGE\color{ink} Final Report\par}
     \vspace{0.9cm}
     {\rule{0.82\textwidth}{0.5pt}\par}
 
     \vspace{1.6cm}
-    {\large\textbf{Authors}\par}
+    {\large\bfseries\color{ink} Authors\par}
     \vspace{0.25cm}
     {\large \href{https://github.com/matidan01}{Matilde D'Antino}\par}
     {\large \href{https://github.com/GaiaMazzoni}{Gaia Mazzoni}\par}
     {\large \href{https://github.com/AlexSantini10}{Alex Santini}\par}
 
     \vfill
-    {\large Academic Year 2025/2026\par}
-    {\large \todayFullUS\par}
+    {\large\color{ink} Academic Year 2025/2026\par}
+    {\large\color{ink} \todayFullUS\par}
 \end{titlepage}
 
-\pagenumbering{arabic}
+\pagenumbering{roman}
 \tableofcontents
-\clearpage
+\cleardoublepage
+\pagenumbering{arabic}
 
 \input{chapters/01-introduction}
+\clearpage
 \input{chapters/02-development-process}
+\clearpage
 \input{chapters/03-requirement-specification}
+\clearpage
 \input{chapters/04-architectural-design}
+\clearpage
 \input{chapters/05-detailed-design}
+\clearpage
 \input{chapters/06-implementation}
+\clearpage
 \input{chapters/07-testing}
+\clearpage
 \input{chapters/08-retrospective}
 
 \end{document}

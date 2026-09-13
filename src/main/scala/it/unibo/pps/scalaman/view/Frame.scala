@@ -1,6 +1,6 @@
 package it.unibo.pps.scalaman.view
 
-import it.unibo.pps.scalaman.controller.{LevelView, RenderedMovement}
+import it.unibo.pps.scalaman.view.{LevelView, RenderedMovement}
 import it.unibo.pps.scalaman.model.collectibles.Collectible
 import it.unibo.pps.scalaman.model.effects.BonusEffect
 import it.unibo.pps.scalaman.model.{GameState, LeaderboardMode, Position}
@@ -95,7 +95,7 @@ object Frame:
   )
 
   private def player(view: LevelView): Drawn =
-    Drawn(Spot.of(view.player), Sprite.Player(mouth(view.player)))
+    Drawn(Spot.of(view.player), Sprite.Player(mouth(view.player), view.player.facing))
 
   // Parity flips at every step, so the mouth moves only while the player does.
   private def mouth(movement: RenderedMovement): Mouth =
