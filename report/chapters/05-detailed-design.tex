@@ -177,18 +177,6 @@ Common navigation lives in \texttt{EnemyMovement}: breadth-first search finds sh
 and teleport links, and a fixed neighbour order makes equal paths deterministic. An enemy that has just left a
 teleport cannot immediately use it again, preventing a bounce between its two ends.
 
-The \textbf{Patroller} is what shows the abstraction is worth having. Its round is the walkable cell nearest each of
-the four corners of the maze, taken clockwise, with a cell that stands for two corners counted once and no round at
-all if fewer than two remain; it makes for the corner it was given, takes the next as soon as it arrives, and never
-consults the player. Figure~\ref{fig:enemies} shows it beside the two that pursue: added last of the three, it
-required no change to anything already written.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.85\textwidth]{../docs/uml/EnemyStrategyDiagram.pdf}
-    \caption{The three enemy behaviours as implementations of one abstraction, and the context that is the whole of what a decision may look at. Adding a fourth changes nothing here except the selection.}
-    \label{fig:enemies}
-\end{figure}
 
 \subsection{Game modes}
 
