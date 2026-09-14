@@ -148,3 +148,152 @@ one doubles the awarded points.
 \end{figure}
 
 \section{Alex Santini}
+
+My main implementation work focused on two boundaries that are essential to a reliable maze game: transforming a
+textual maze into a \textbf{playable domain value}, and making enemies take \textbf{deterministic decisions} within
+that maze. I also implemented the Timed and Survival modes, save/load support, and the CI checks used by the team;
+the following sections concentrate on maps and AI because they contain the most substantial modelling and algorithmic
+work.
+
+\subsection{Maps as a validated input pipeline}
+
+A map is authored as a UTF-8 ASCII file, but the game model must never depend on arbitrary text. I therefore split
+map handling into three steps with different responsibilities:
+
+\begin{enumerate}
+  \item \texttt{MapLoader} is the only step that performs file I/O. It returns either the file text or a
+  \texttt{MapLoadError}.
+  \item \texttt{MapParser} is pure: it translates supported symbols into tiles and returns either a \texttt{RawMap}
+  or a list of syntactic errors.
+  \item \texttt{MapValidator} is pure: it checks gameplay invariants and returns either a \texttt{ValidatedMap} or
+  a list of semantic errors.
+\end{enumerate}
+
+The resulting types make an invalid intermediate state visible at the boundary. In the standard application flow,
+\texttt{LevelState.from} receives only a \texttt{ValidatedMap}, containing the unique player spawn, enemy spawns,
+collectibles, and paired teleports; the \texttt{RawMap} never reaches level creation. The application composes the
+pure stages with \texttt{Either}, turning domain errors into actionable messages only at the file-system boundary:
+
+\begin{lstlisting}
+private def read(text: String): Either[String, ValidatedMap] =
+  for
+    raw <- MapParser.parse(text).left.map(_.map(spelled).mkString("; "))
+    maze <- MapValidator.validate(raw).left.map(_.map(spelled).mkString("; "))
+  yield maze
+\end{lstlisting}
+
+This separation is useful both for robustness and for testing. A parser test never needs a file, a validation test can
+construct a small \texttt{RawMap} directly, and an integration test can exercise the complete pipeline. It also keeps
+the domain independent from paths, encodings, and \texttt{IOException}.
+
+\subsection{Playability is a graph property}
+
+Parsing checks whether text is well formed; it cannot determine whether a game can actually be completed. The
+validator therefore inspects the rectangular grid once to collect its structural elements and checks that it has a
+closed border, exactly one player spawn, at least one standard collectible, and at least one enemy. It pairs
+teleports according to their documented codes and accumulates independent structural errors, so a map author can
+correct several mistakes in a single attempt.
+
+Once the structure is sound, \texttt{MapReachability} performs breadth-first search from the player spawn over
+walkable orthogonal neighbours. A valid teleport pair contributes two directed graph edges, one in each direction.
+The same traversal consequently proves that every required collectible and enemy can be reached even when the only
+route crosses a teleport. This is stronger than checking local tile placement: an isolated but syntactically valid
+collectible would otherwise make a level impossible to win.
+
+\begin{center}
+  \small
+  \begin{tabular}{|p{2.3cm}|p{3.1cm}|p{3.2cm}|p{3.2cm}|}
+    \hline
+    \textbf{Stage} & \textbf{Input} & \textbf{Success} & \textbf{Failure} \\
+    \hline
+    \texttt{MapLoader} & \texttt{Path} & UTF-8 text & \texttt{MapLoadError} \\
+    \hline
+    \texttt{MapParser} & text & \texttt{RawMap} & \texttt{List[MapParseError]} \\
+    \hline
+    \texttt{MapValidator} & \texttt{RawMap} & \texttt{ValidatedMap} & \texttt{List[MapValidationError]} \\
+    \hline
+  \end{tabular}
+\end{center}
+
+The map suite was developed test-first. \texttt{MapParserSpec}, \texttt{MapLoaderSpec}, and
+\texttt{MapValidationSpec} cover malformed rows, unsupported symbols, spawn cardinality, borders, teleport pairing,
+and reachability; \texttt{MapPipelineSpec} verifies their composition. In particular, tests cover entities and
+collectibles that are reachable only through a teleport, which protects the intended graph semantics rather than
+only the ordinary grid case.
+
+\subsection{Enemy AI as a deterministic strategy}
+
+Enemy AI is part of the domain model, not of rendering or the game loop. I introduced
+\texttt{EnemyMovementStrategy} as the narrow abstraction through which an enemy selects its next cell:
+
+\begin{lstlisting}
+trait EnemyMovementStrategy:
+  def nextMove(context: EnemyMovementContext): Option[Position]
+\end{lstlisting}
+
+The context is an immutable value containing the enemy position, current and previous player positions, the
+\texttt{ValidatedMap}, whether a teleport may be used, and an optional remembered target. A strategy returns
+\texttt{None} when no movement is possible; it never mutates an enemy, reads global state, or accesses the UI. This
+keeps each decision reproducible from its input and lets strategies be tested with a hand-built map.
+
+\texttt{EnemyAiStage} owns orchestration. On each tick it leaves moving enemies unchanged, asks
+\texttt{EnemyStrategySelector} for the strategy associated with an idle enemy kind, builds the context, retains any
+strategy memory, and converts the selected next position into a legal entity movement. The stage is itself injected
+into \texttt{LevelState.pipeline}, so tests may replace it without constructing a different game loop.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.96\textwidth]{../docs/uml/EnemyAiDecision.pdf}
+  \caption{Enemy AI separates orchestration, strategy selection, immutable decision context, and shared navigation.
+  A strategy proposes a position; only the stage turns that proposal into entity movement.}
+\end{figure}
+
+\subsection{Path finding, anticipation, and teleport semantics}
+
+The common \texttt{EnemyMovement} module contains the navigation policy shared by every strategy. It enumerates
+walkable neighbours in a fixed order and uses a tail-recursive breadth-first search over immutable
+\texttt{Queue}, \texttt{Vector}, and \texttt{Set} values. The first discovered path is therefore a shortest path,
+and equal alternatives are resolved deterministically rather than by timing or randomness.
+
+\begin{lstlisting}
+private[ai] def orderedMoves(
+    from: Position, map: ValidatedMap, canUseTeleport: Boolean
+): Vector[Position] =
+  orthogonalNeighbors(from).filter(map.isWalkable) ++
+    Option.when(canUseTeleport)(teleportDestination(from, map)).flatten.toVector
+\end{lstlisting}
+
+The \texttt{Vector} order---up, down, left, right, then a permitted teleport---is also the tie-breaking order used by
+the breadth-first search. The conversion to a set occurs only in the public \texttt{validMoves} query, where ordering
+is not part of the result contract.
+
+\texttt{DirectPursuitStrategy} takes the first step of that shortest path towards the player's current cell.
+\texttt{PlayerAnticipationStrategy} derives a unit direction from the player's current and previous cells, projects
+the player up to two walkable cells ahead, then chooses the legal move with the smallest shortest-path distance to
+that prediction. If the player is stationary or the previous position is unavailable, it targets the current position;
+if the projection meets a wall, it stops at the last walkable cell instead of predicting an invalid target.
+
+Teleports are part of navigation rather than an exceptional afterthought. When allowed, the paired endpoint is added
+to the candidate moves and can shorten a BFS route. After an enemy uses a teleport, its context disallows another
+teleport at the origin until it has stepped away; this prevents an enemy from bouncing forever between paired cells.
+The implementation and tests therefore share one semantics for ordinary movement, shortest paths, and teleports.
+
+\subsection{Extension and verification}
+
+The strategy boundary keeps an additional enemy behaviour local: implement \texttt{EnemyMovementStrategy}, reuse the
+shared navigation primitives where appropriate, test the decision, and add a selector mapping only when the behaviour
+is chosen from \texttt{EnemyKind}. The independently developed \texttt{PatrolStrategy} follows precisely this route,
+which demonstrates that the original abstraction was sufficient without changing the update pipeline.
+
+The AI tests cover valid moves, shortest paths, prediction, deterministic ties, teleport routing, the
+no-immediate-return rule, selector mapping, and stage integration. Together with the map tests, they exercise the two properties
+that matter most for these contributions: untrusted map data cannot enter play unchecked, and the same valid state
+always produces the same enemy decision.
+
+\subsection{Other contributions}
+
+Outside these two main areas, I implemented \texttt{Timed} and \texttt{Survival} game modes, including the cap that
+keeps Survival enemies no faster than the player's base speed. I implemented game saving and loading, where a saved
+maze is reconstructed through the same parser and validator rather than trusted as persisted state. Finally, I set up
+the project CI workflows for compilation, tests, scalafmt, report generation, and the delivery archive; this made the
+repository continuously buildable and gave pull requests an objective integration gate.

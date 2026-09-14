@@ -6,7 +6,7 @@ All members contributed to the design, implementation, and review of the game. I
 \textbf{Product Owner}, maintaining and prioritising the product backlog, while Matilde D'Antino acted as
 \textbf{Client and Domain Expert}, checking completed increments against the expected game behaviour.
 
-Development was organised into \textbf{four non-consecutive one-week sprints} of roughly fifteen hours per member,
+Development was organised into \textbf{four non-consecutive one-week sprints}, each planned for roughly fifteen hours per member,
 preceded by an organisational phase that established the build, repository structure, and initial backlog. Each sprint
 was expected to end with a \textbf{tangible client-facing increment}, rather than an isolated technical layer.
 
@@ -17,7 +17,7 @@ coherent area of the system, which were then decomposed into smaller \textbf{tas
 Only the highest-priority epics were decomposed immediately, while the rest were refined during later
 sprint plannings.
 
-Fourteen epics were identified. The first ten formed the \textbf{core backlog}; the last four were marked
+Fourteen product epics were identified. The first ten formed the \textbf{core backlog}; the last four were marked
 \textbf{optional} from the outset and scheduled only once the core game was playable.
 
 The core epics were:
@@ -84,8 +84,7 @@ The planned sprint windows were:
 \section{Task review over time}
 
 Work was reviewed continuously, through the branching model and the pull request process, rather than only at sprint
-boundaries.
-Four kinds of branch were used:
+boundaries. The main development flow used four kinds of branch:
 
 \begin{center}
     \begin{tabular}{|l|p{9cm}|}
@@ -103,8 +102,11 @@ Four kinds of branch were used:
 Work flows in one direction:
 
 \begin{center}
-  \texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
+\texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
 \end{center}
+
+Short-lived \texttt{docs/}, \texttt{refactor/}, \texttt{chore/}, and \texttt{integrate/} branches complemented this
+flow for documentation, maintenance, and conflict resolution during the final review phase.
 
 The team used pull requests to integrate work into \texttt{dev}, with reviews performed by another team member before
 merging. This provided an opportunity to discuss changes and identify potential integration issues before they reached
@@ -135,6 +137,13 @@ are declared: ScalaFX 21.0.0-R32 for the graphical interface, and ScalaTest 3.2.
 Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}.
 Continuous integration runs \texttt{scalafmtCheckAll} and fails on formatting deviations, enforcing the agreed style
 mechanically and reducing formatting-related discussion during code review.
+
+\subsection{Static analysis}
+
+WartRemover complements formatting by checking production sources for selected unsafe constructs: partial
+\texttt{Option} and collection operations, \texttt{throw}, and \texttt{Any}. The checks are deliberately focused on
+production code, where they prevent avoidable failures from reaching the game, while test fixtures remain free to use
+the concise setup that makes each test readable.
 
 \subsection{Testing}
 

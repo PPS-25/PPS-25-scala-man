@@ -1,61 +1,79 @@
 % !TEX root = ../main.tex
-\chapter{Detailed design}
+\chapter{Detailed Design}
 
-This chapter details further the architecture described in the previous one, explaining the choices that shaped each
-part of the obtained design, the patterns those choices led to. The descriptions are divided by the layer they belong to.
-Diagrams are included to explain in more detail the relationship.
+This chapter refines the architecture described in Chapter~4. Rather than enumerating classes, it explains the
+\textbf{invariants}, \textbf{responsibilities}, and \textbf{extension points} that shaped the design. The discussion
+is organised by layer; diagrams are included only where they clarify a relationship.
 
-The key choice that led to this architecture and the following design is that everything in the model is a value, and
-every operation upon one yields another value, rather than altering what it was given.
+The key choice is a \textbf{functional core}: everything in the model is a value, and every operation upon one yields
+another value rather than altering what it was given.
 
 \section{Model}
 
-The model holds every rule of the game and nothing else. It opens no file, draws nothing, and uses no library beyond
+The model holds \textbf{every game rule and nothing else}. It opens no file, draws nothing, and uses no library beyond
 Scala's own and a few types from the Java platform.
 
-Two decisions shaped it. The first is that a level, that is the whole state of a game at one instant, is a single value
-from which the next is computed. For this reason, everything in the model must compose into that value, and nothing in
-it can keep a state of its own. The second is the requirement that the behavior of modes and enemies must be extensible.
-This led to each of them being expressed as something to be implemented: a new mode or a new enemy behavior is written
-on its own, leaving the rules already written untouched.
+Two decisions shaped it. \textbf{First}, a level---the whole state of a game at one instant---is a single value from
+which the next is computed. Everything in the model must therefore compose into that value, and nothing in it can keep
+state of its own.
+
+\textbf{Second}, the behaviour of modes and enemies must be extensible. Each is consequently expressed as an
+implementation point: a new mode or enemy behaviour is written on its own, leaving the rules already written untouched.
+
+\begin{center}
+  \small
+  \begin{tabular}{|p{3cm}|p{3.4cm}|p{5.2cm}|}
+    \hline
+    \textbf{Concern} & \textbf{Design element} & \textbf{Guarantee} \\
+    \hline
+    Invalid external input & \texttt{Either} and error ADTs & A malformed map or save never becomes a playable value. \\
+    \hline
+    Deterministic updates & \texttt{LevelState} and update pipeline & A tick is an ordered transition from one immutable level to the next. \\
+    \hline
+    Variable game rules & Strategies and mode policies & A new enemy behaviour or mode remains local to its implementation. \\
+    \hline
+    Graphical rendering & \texttt{LevelView} projection and \texttt{Rendering} & The view receives drawing data, never the mutable game process. \\
+    \hline
+    Files and persistence & Ports and adapters & Storage formats and paths remain outside controller policy and domain rules. \\
+    \hline
+  \end{tabular}
+\end{center}
 
 \subsection{Value objects and semantics}
 
-Everything in the model is a value, something entirely defined by its contents, using which it can be compared to other
-values, rather than relying on IDs, and it is immutable. Immutability was employed as much as possible, not limiting it
-to positions and movements but to whole game states being considered as single values, so that no part of the model can
-have a state of its own.
+Every model object is an \textbf{immutable value}, entirely defined by its contents and comparable without relying on
+identifiers. This choice applies not only to positions and movements, but to whole game states, so no part of the model
+can keep state of its own.
 
-Values carry the small operations that belong to them, rather than leaving those to their callers. A direction added to
-a position returns an adjacent position. A movement advanced by a duration gives the movement further along, or reports
-that it has arrived. The arithmetic of the maze lives with the values it concerns, and the rules above are written in
-terms of positions and movements rather than rows and columns.
+\textbf{Operations live with their values}, rather than with their callers. A direction added to a position returns an
+adjacent position. A movement advanced by a duration gives the movement further along, or reports that it has arrived.
+The arithmetic of the maze is therefore written in terms of positions and movements rather than rows and columns.
 
 What follows is that a whole game can be compared with ordinary equality, allowing, for example, saved games to be
 tested by asserting that what was read back equals what was written, with no need for the comparison to be written by
 hand.
 
 The cost is that every update allocates rather than overwrites, creating a stream of short-lived values. This is
-accepted, as the cost of a complete update is reported in the chapter on testing, and is well within the time a
-frame allows.
+accepted: the complete-update cost is covered in the testing chapter and remains well within a frame budget.
 
 \subsection{Constructing valid values}
-A value is either impossible to build wrong or not built at all. Two devices are employed, and the choice between them
-says what kind of failure is being described.
 
-Where a malformed value could only come from a mistake in the program, the constructor refuses it: a level cannot begin
-with a negative number of lives, an entity cannot cross a cell in no time, an effect cannot be granted for no duration.
-These are raised as errors, since no player can provoke one, and they hold at the only place such a value can be made.
+The design distinguishes \textbf{invalid external data} from an invalid state created by the game itself. The former
+is expected and represented explicitly: parsing and validation return an \texttt{Either} whose left side contains
+domain errors, while normal absence, such as an unavailable next move, is represented by \texttt{Option}. This keeps
+malformed map and save files out of the playing model without using exceptions for ordinary input failures.
 
-Where absence is a legitimate answer instead, the \textbf{smart constructor} is used, as it is for the leaderboard
-described further on: the constructor is private and the only way in is a factory returning an option. A patrol route
-exists only if the maze offers at least two distinct corners, so a maze with no walkable cell yields no route rather
-than an empty one.
+By contrast, values whose callers are exclusively program code protect their invariants at construction. A timed
+mode requires a positive duration, a survival mode constrains its speed multiplier, an active bonus requires time
+left, and a movement refuses a non-positive crossing time. This is the \textbf{smart constructor} principle applied
+at the smallest useful scope: once a value exists, its clients may rely on its invariant instead of checking it again.
+The leaderboard makes the same choice with a private constructor and a factory that orders and truncates entries.
 
-What follows is that the rules read as rules. None of them re-examines whether a duration is positive or a route long
-enough, because a value in hand has already answered.
+A patrol route is the same choice made where absence is a legitimate answer: its constructor is private, and the
+factory answers with a route only if the maze offers at least two distinct corners, so a maze with no walkable cell
+yields no route rather than an empty one.
 
-\subsection{Level State}
+\subsection{Level state}
 A level is the whole state of a game at one instant, gathered into a single value, at the centre of
 Figure~\ref{fig:level}. Nothing about a game in progress is kept anywhere else.
 
@@ -69,8 +87,8 @@ arrived through it, and the anticipating enemy reads from it which way the playe
 
 Every rule takes a level and returns the level that follows, and is named after the event it accounts for rather than
 after the field it touches, since one rule often touches several: dropping the effects that expired also ends the combo
-of defeated enemies. None of them knows what precedes it, so the order they run in is settled in one place, and a tick
-is their composition.
+of defeated enemies. None of them knows what precedes it, so the order they run in is settled in one place, described
+further on, and a tick is their composition.
 
 \begin{figure}
     \centering
@@ -80,12 +98,13 @@ is their composition.
 \end{figure}
 
 \subsection{Collectibles}
-What a maze still holds is kept indexed by the position it lies on, so asking what stands where the player has arrived
-is a lookup rather than a search. Collecting returns what remains together with what was taken, which is what the
-two fields of the result in Figure~\ref{fig:items} record, so that the stages which follow, the score and the effects,
-need not look at the maze a second time to learn what to award.
 
-The two kinds are told apart by what they mean rather than by a flag. Only a standard item counts among those
+What a maze still holds is kept indexed by the position it lies on, so asking what stands where the player has arrived
+is a lookup rather than a search. Collecting returns what remains together with what was taken, which is what the two
+fields of the result in Figure~\ref{fig:items} record, so that the stages which follow, the score and the effects, need
+not look at the maze a second time to learn what to award.
+
+The two kinds are told apart by what they mean rather than by a flag. Only a standard collectible counts among those
 remaining, while a bonus is worth points and grants an effect without ever bringing a level closer to its end. What
 follows is that a maze holding bonuses alone is complete from the start, which is a consequence of the rules rather
 than a case written into the code.
@@ -103,11 +122,13 @@ that an effect behaves the same whether the frames were regular or not. Granting
 its end by the full duration rather than adding to what was left, which is what a player expects of a bonus gathered
 twice in quick succession.
 
+The collection knows only which effects are in force, and what an effect means is decided by whoever asks: collision
+resolution asks whether invulnerability applies, movement asks how much of the passing time the enemies experience
+under a slowdown, and neither effect knows the rules of the other.
+
 What the rest of the program is shown is not those instants but how much of each effect remains, and an effect can be
 rebuilt from that figure alone. A saved game therefore carries durations rather than moments, and is taken up again
-correctly although the clock of the new session begins elsewhere. The storage learns nothing of how expiry is modelled,
-and the model stays free to change it.
-
+correctly although the clock of the new session begins elsewhere.
 
 \begin{figure}
     \centering
@@ -118,18 +139,16 @@ and the model stays free to change it.
 
 \subsection{Entities and their movement}
 
-Both the player and the enemy can be similarly described as entities that occupy a cell in the maze, face a certain
-direction, and may be moving, meaning that they might be in-between adjacent cells. The cell they occupy is discrete,
-and changes only upon arrival of the entity on a different cell. The crossing from a cell to an adjacent one is held
-separately, as the movement that is being performed and the time left to complete it. This lets the position always be
-whole. Only the drawing interpolates, and based on the crossing behavior rather than from the position of the entities.
+Both player and enemy are \textbf{moving entities}: they occupy a maze cell, face a direction, and may be crossing
+between adjacent cells. The occupied cell is discrete and changes only on arrival. The crossing and its remaining
+time are held separately, so the position is always whole and only drawing interpolates the movement.
 
 Speed is expressed as the time taken to cross one cell, rather than as a distance to be covered per update, making an
 entity faster than another on the basis of a model choice rather than frame rate.
 
-An entity is not aware of the maze. When asked to move, it is handed a predicate that determines which positions are
-walkable, and refuses the step if the answer is negative. The same type therefore serves the player and the enemies,
-without either knowing what it is moving through, and can be exercised in tests against predicates written by hand.
+An entity is \textbf{independent of the maze}. When asked to move, it receives a predicate defining walkable positions
+and refuses a step if the predicate is false. The same type therefore serves player and enemies, and tests can use
+hand-written predicates rather than a real map.
 
 The event of two entities meeting is not simply them sharing a cell, but also two entities swapping their respective
 positions at the same time. Therefore, an entity remembers the cell it most recently left, and thus a meeting is
@@ -144,25 +163,25 @@ entities standing where each other just was.
 
 
 \subsection{Enemy behavior}
-Where an enemy goes next is decided by a \textbf{strategy}, an operation from a description of the situation to the
-cell to make for, or to nothing when there is nowhere to go. The three of them stand side by side in
-Figure~\ref{fig:enemies}: a new behaviour is a new implementation written on its own, and the stage that hands a
-strategy to every idle enemy does not change. This is where the requirement that enemy behaviour be extensible is
-honoured.
 
-A strategy is not given the level but the context in the same figure, which is the whole of what a decision may look
-at: where it stands, where the player is and was, the maze, and whether the teleport under it may be used. What follows
-is that no strategy can reach for the score or the lives, and that each can be exercised against a situation assembled
-by hand.
+Enemy variation is isolated behind \textbf{\texttt{EnemyMovementStrategy}}. A strategy receives an immutable
+\texttt{EnemyMovementContext} and returns an optional next position; it neither changes an enemy nor reads the game
+state through a global reference. The context contains exactly the information a decision needs: enemy and player
+positions, previous player position, validated maze, teleport permission, and any strategy-specific remembered target.
 
-The last field of that context is how a behaviour remembers something between one decision and the next. Rather than
-let a strategy keep a state of its own, which would make it a thing with a history instead of a rule, the strategy
-answers what it should be told next time, and that single position travels with the enemy.
+The \textbf{AI stage orchestrates rather than decides}: it selects a strategy from the enemy kind, builds the context
+only for idle enemies, records any retained target, and turns a chosen position into an entity movement. Hunter,
+Anticipator, and Patroller thus vary independently while sharing one scheduling rule.
 
-The \textbf{patrolling} enemy is the one that needs it. It makes for one corner of the maze at a time, taken clockwise,
-and never consults the player. Added last of the three, it required no change to anything already written, which is the
-extensibility claimed above demonstrated rather than asserted.
+Common navigation lives in \texttt{EnemyMovement}: breadth-first search finds shortest paths through walkable cells
+and teleport links, and a fixed neighbour order makes equal paths deterministic. An enemy that has just left a
+teleport cannot immediately use it again, preventing a bounce between its two ends.
 
+The \textbf{Patroller} is what shows the abstraction is worth having. Its round is the walkable cell nearest each of
+the four corners of the maze, taken clockwise, with a cell that stands for two corners counted once and no round at
+all if fewer than two remain; it makes for the corner it was given, takes the next as soon as it arrives, and never
+consults the player. Figure~\ref{fig:enemies} shows it beside the two that pursue: added last of the three, it
+required no change to anything already written.
 
 \begin{figure}
     \centering
@@ -173,23 +192,38 @@ extensibility claimed above demonstrated rather than asserted.
 
 \subsection{Game modes}
 
+\texttt{GameMode} is a \textbf{domain policy}, rather than a flag checked throughout the level. Its operations decide the
+current outcome, the scoring rule, any terminal bonus, the time visible to the player, and the amount of time enemies
+experience during an update. \texttt{Normal}, \texttt{Timed}, and \texttt{Survival} therefore share movement,
+collisions, collectibles, and persistence while differing only where their rules differ.
+
+Timed mode adds a positive limit and gives precedence to its expiration over the normal completion rule. Survival
+never yields victory and increases the enemy time multiplier at regular intervals, capped so enemies cannot exceed the
+player's base speed. This arrangement keeps a future mode local: implementing one policy does not require adding
+mode checks to collision, movement, or rendering code.
+
 \subsection{Scoring rules}
 
-Scoring is split across three responsibilities that change for different reasons: what happened, what it is worth in
-points, and how many points have been accumulated so far.
+Scoring is split across three responsibilities that change for different reasons:
 
-What happened is expressed as a \textbf{scoring event}: collecting a standard item, gathering a bonus item,
+\begin{itemize}
+  \item a \textbf{scoring event} records what happened;
+  \item a \textbf{scoring rule} determines what that event is worth in a selected mode;
+  \item the \textbf{score tracker} records the resulting points and the current defeat combo.
+\end{itemize}
+
+What happened is expressed as a \textbf{scoring event}: collecting a standard collectible, gathering a bonus,
 defeating an enemy, finishing without losing all lives, finishing with time to spare, surviving a number of waves.
-Events are data that is carrying only what is needed to score them: a number of lives, a duration left, a count of
-waves. The model reports that something happened without knowing what it is worth.
+Events carry only the data needed to score them: a number of lives, a duration left, or a count of waves. The model
+can therefore report that something happened without knowing what it is worth.
 
-What it is worth is a \textbf{scoring rule}. These have been implemented through the \textbf{strategy pattern},
-A rule maps an event to an amount of points, and three rules exist, one for each game mode. The pattern is used
+What it is worth is a \textbf{scoring rule}, implemented through the \textbf{strategy pattern}. A rule maps an event
+to an amount of points, and three rules exist, one for each game mode. The pattern is used
 because the modes do not simply scale the same scoring differently, but they score different events entirely. Under
 the standard rule, points come from what is gathered and whom the player defeats; under the timed rule, points come
 from the time remaining at the end of the game, and under the survival rule, they come from the waves outlived by
 the player. An event that a rule has no interest in is worth nothing, and is not an error, so each rule stays total
-over the whole event type, and they do not know which events the other handle.
+over the whole event type, and rules do not need to know which events the others handle.
 
 The rule enforced is a property of the game mode, and reaches the scoring code as a context parameter, so no part of
 the model has to carry it from hand to hand, and none of it decides which rule applies.
@@ -216,7 +250,7 @@ A leaderboard holds the results achieved on one maze in one game mode, ordered f
 hundred deep. Results from different mazes or modes are never gathered together.
 
 Combining two leaderboards is the only operation that changes one: recording a result means combining the leaderboard
-read back from storage with a leaderboard holding the single new result. That operation was deliberately designed
+read from storage with a leaderboard holding the single new result. That operation was deliberately designed
 to form a \textbf{monoid}, an algebraic structure consisting of a set, an associative binary operation upon it, and an
 identity element for that operation. Leaderboards are the set, combining is the operation, and the empty leaderboard
 is the identity. Combining is associative, so it cannot matter how results are grouped, and combining with the empty
@@ -233,9 +267,9 @@ Every leaderboard is therefore already ordered and already within the cap, which
 takes them from the top with no need to sort again. The invariant is established once, where the value is made, instead
 of being checked wherever it is used.
 
-A maze nobody has played has an empty leaderboard rather than no leaderboard at all. The empty value is a leaderboard
-like any other, so it can be displayed, combined, asked for its best results, so no case for absence is ever carried.
-This is a display of the \textbf{null object} pattern, that in this case coincides with the identity element of the monoid.
+A maze nobody has played has an empty leaderboard rather than no leaderboard at all. The empty value can be displayed,
+combined, and queried for its best results, so no absence case is carried through the application. This is an instance
+of the \textbf{null object} pattern that, in this case, also coincides with the identity element of the monoid.
 
 \begin{figure}
     \centering
@@ -244,11 +278,39 @@ This is a display of the \textbf{null object} pattern, that in this case coincid
 \end{figure}
 
 
-\subsection{Ordered updates stages}
+\subsection{Ordered update stages}
+
+\textbf{Ordered updates} represent the mutable-looking phrase ``game tick''. \texttt{GameStateUpdatePipeline[S]} is a value holding an
+ordered sequence of functions \texttt{S => S}. Its \texttt{tick} method folds the initial state through AI, movement,
+collision and teleport resolution, collection, effect expiration, and the next player step. The order is declared in
+one place and can be tested separately from every individual rule.
+
+\begin{lstlisting}
+def tick(initialState: S): S =
+  List(updateAi, updateMovement, resolveCollisions,
+       collectItems, applyBonuses, updateState)
+    .foldLeft(initialState)((state, stage) => stage(state))
+\end{lstlisting}
+
+This is the functional core in its most compact form: a stage has no access to a hidden current level and returns the
+level that follows from the one it receives. The shell can choose when to invoke a tick, but the model fixes what that
+tick means.
+
+\begin{center}
+  \small
+  \texttt{AI} $\rightarrow$ \texttt{movement} $\rightarrow$ \texttt{collisions and teleports} $\rightarrow$
+  \texttt{collection} $\rightarrow$ \texttt{effects} $\rightarrow$ \texttt{next player step}
+\end{center}
+
+For a level, stages are guarded after terminal states, so later stages cannot accidentally revive a defeated game or
+collect an item after victory. Input is intentionally recorded between ticks as a requested direction; the final stage
+starts that movement only when the player is stationary and the requested cell is walkable. The result is a deterministic
+pipeline whose stages can be replaced in tests without introducing a second update mechanism.
 
 \subsection{Game loop and game clock}
 
-A game in progress is governed by two small values which between them decide whether time passes and how much of it has.
+A game in progress is governed by two small values: one decides \textbf{whether time passes}; the other records
+\textbf{how much time has passed}.
 
 The \textbf{game loop} is a \textbf{finite state machine} over three states: not yet started, running, or paused. What
 makes it a machine rather than a flag is that the legal transitions are declared rather than assumed. Every one of
@@ -271,12 +333,29 @@ stay reachable only from code.
         and no final state: a loop is discarded rather than ended.}
 \end{figure}
 
-The \textbf{game clock} records how long a game has been played for, and nothing else. Because time is handed to
-it an interval at a time rather than read from the system, how far a game has got is part of its state, so a game
-saved, left and later picked up again resumes at exactly the moment it was left, and a game paused needs no rule
-specifically, it is simply a game that is given no time.
+The \textbf{game clock} records how long a game has been played for, and nothing else. Time is handed to it one
+interval at a time rather than read from the system; elapsed time is therefore part of the state. A saved game resumes
+at exactly the recorded instant, while a paused game simply receives no interval to advance.
 
 \subsection{Reading a maze}
+
+Reading a maze is a \textbf{boundary pipeline} with four deliberately distinct representations. \texttt{MapLoader} performs
+file I/O and returns a load error on unreadable input. \texttt{MapParser} converts supported ASCII symbols into a
+\texttt{RawMap}, reporting syntactic errors such as an empty file, ragged rows, or unsupported characters.
+\texttt{MapValidator} then checks gameplay invariants and returns a \texttt{ValidatedMap}, the only map accepted by
+the playing model.
+
+\begin{center}
+  \small
+  \texttt{UTF-8 file} $\rightarrow$ \texttt{MapLoader} $\rightarrow$ \texttt{MapParser} $\rightarrow$
+  \texttt{RawMap} $\rightarrow$ \texttt{MapValidator} $\rightarrow$ \texttt{ValidatedMap}
+\end{center}
+
+Validation inspects the raw grid once to collect spawns, collectibles, enemies, and teleport endpoints. Structural
+errors are accumulated, so a map author can correct all independent problems in one pass. When the structure is sound,
+\texttt{MapReachability} performs breadth-first traversal over walkable orthogonal neighbours and bidirectional
+teleport links. Keeping this traversal separate from validation gives the validator the policy decision---which cells
+must be reachable---while the traversal owns only graph exploration.
 
 \section{View}
 The view draws and collects input, and holds no rule of its own. It is given a description of what there is to show and
@@ -285,24 +364,25 @@ library is in use.
 
 Its shape follows from a constraint that is not aesthetic: the machine that runs the tests has no graphical
 environment, so a test instantiating a graphical node breaks the build for everyone. The view is therefore split in
-two, a line that runs across Figure~\ref{fig:projection}. One half decides what is to be drawn and is made of pure functions over immutable
-descriptions; the other draws, is written against the library, and holds no decision. What follows is that everything
-worth asserting lies on the first side of that line, and that the second stays thin enough to be read rather than
-tested.
+two, a line that runs across Figure~\ref{fig:projection}. One half decides what is to be drawn and is made of pure
+functions over immutable descriptions; the other draws, is written against the library, and holds no decision. What
+follows is that everything worth asserting lies on the first side of that line, and that the second stays thin enough
+to be read rather than tested.
 
 \subsection{Drawing from a projection}
-What reaches the view is not the level but a projection of it, a flat description of what is to be shown: where
-whoever moves has got to, what is left on the ground, the lives, the score, the effects in force and the time. The view
-cannot reach into the game, and the model does not know what a pixel is.
+What reaches the view is not the level but a projection of it, a flat description of what is to be shown: where whoever
+moves has got to, what is left on the ground, the lives, the score, the effects in force and the time. It is a read
+model and not a second game state: it cannot advance a clock, move an entity, or see a field the interface has no
+reason to know.
 
 Only what is seen enters that description. The time it carries is reduced to whole seconds because whole seconds are
 what is displayed; carried in full it would differ at every frame, and the comparison described further on would have
 nothing to discard.
 
-The drawing is layered, which is why the board in Figure~\ref{fig:projection} is handed two different descriptions. The maze does
-not change for the whole level, so it becomes a grid of sprites once; whoever moves becomes a frame at every tick,
-drawn over it. A crossing is drawn by interpolating along the movement rather than by moving the position, so that a
-position stays whole in the model and only the picture is continuous.
+The drawing is layered, which is why the board in Figure~\ref{fig:projection} is handed two different descriptions. The
+maze does not change for the whole level, so it becomes a grid of sprites once; whoever moves becomes a frame at every
+tick, drawn over it. A crossing is drawn by interpolating along the movement rather than by moving the position, so
+that a position stays whole in the model and only the picture is continuous.
 
 How wide a cell is drawn is computed from the shape of the maze and the size of the screen, never below what can still
 be seen. The exact fractions are a tuning choice rather than a derived one, chosen so that a maze of any proportion
@@ -322,14 +402,13 @@ Deriving it from both, in one place, keeps the interface from holding a notion o
 
 Over the board there may be a veil, carrying a title, what is read under it, and the choices offered. A game in
 progress is covered by nothing, and the menu is not a veil but a screen of its own, since nothing is being played
-behind it.
+behind it. A button cannot produce a veil of its own: it raises a command, the application answers with the state that
+follows, and screen and veil are derived again from it.
 
 The state of the level reaches the veil only if the veil asks for it, and a game in progress never does. The veil
 depends on the loop as well as on the level, as Figure~\ref{fig:screens} shows, and therefore cannot be part of the
-projection. What
-follows is that the score of a finished game survives on screen: the veil is computed again only when the screen
-changes, so the figures read on it are those of the moment the game ended.
-
+projection. What follows is that the score of a finished game survives on screen: the veil is computed again only when
+the screen changes, so the figures read on it are those of the moment the game ended.
 
 \begin{figure}
     \centering
@@ -350,7 +429,9 @@ application rather than modifying the present one. What follows is that a transi
 expression, and asserted in a test as an ordinary comparison.
 
 Commands are the only way in. The interface offers intentions and never performs them; the controller decides what each
-one means, asks the outside world for what it needs, and answers with the application as it then stands.
+one means, asks the outside world for what it needs, and answers with the application as it then stands. The shell that
+owns the window keeps the current application in a mutable reference and replaces it after every event, which is where
+a program made of values meets a toolkit that is not.
 
 A request the outside world refuses becomes a sentence rather than an exception, since whoever reads it is playing a
 game rather than debugging one, and it is shown once: the notice is consumed as it is displayed, so a message cannot
@@ -361,11 +442,11 @@ follow, and only if the maze it was played on can be named, since a leaderboard 
 
 \subsection{From frames to game time}
 
-The first frame of a game yields no duration at all, since there is nothing to measure from. Every frame after it
+\textbf{The first frame yields no duration}, since there is nothing to measure from. Every frame after it
 produces the interval since the one before, and that interval is what the model is advanced by. Therefore, a session
 carries the moment of the last frame it saw, which is the only thing in it that has to do with real time.
 
-Before being passed, the interval is bounded so that it is never negative and never longer than fifty milliseconds.
+\textbf{Before entering the model, the interval is bounded}: it is never negative and never longer than fifty milliseconds.
 The lower bound guards against a clock that appears to go backwards, while the upper bound guards against a frame
 the machine took too long over, like the runtime pausing to collect memory. Without it, the frame following a long
 stall would advance the game by everything that elapsed during it, expiring bonuses, jumping the difficulty in survival,
@@ -381,16 +462,19 @@ so if turning is asked just before a corner is taken at the first opening rather
 
 \subsection{Rendering with change detection}
 Between the level and whoever draws it stands the value in Figure~\ref{fig:rendering}: the projection to apply, the
-listeners registered against it, and the last description shown. Given a level it computes the description
-that follows and passes it on only if it differs from the last.
+listeners registered against it, and the last description shown. Given a level it computes the description that follows
+and passes it on only if it differs from the last. A game session owns it together with the level, and asks it to
+notify after every update of the pipeline.
 
 What follows is that a frame in which nothing visible changed does not reach the interface at all, and that how much
 detail the projection may carry is settled here rather than in the view: the coarser the description, the more this
 comparison can discard.
 
-It names neither levels nor views, and the comparison it performs is the ordinary equality the model already provides
-by being made of values. The same value serves the tests, which register a listener and therefore observe not only what
-was drawn but also what deliberately was not.
+Notifying answers with an updated rendering rather than changing one in place, so the listeners registered and the last
+description shown stay explicit instead of hiding in the state of an observer. It names neither levels nor views, and
+the comparison it performs is the ordinary equality the model already provides by being made of values. The same value
+serves the tests, which register a listener and therefore observe not only what was drawn but also what deliberately
+was not.
 
 Advancing the game and notifying whoever draws are joined in one operation, so that the level which results and the
 notice just given about it cannot fall out of step.
@@ -403,6 +487,16 @@ notice just given about it cannot fall out of step.
 \end{figure}
 
 \subsection{Adapters design}
+
+\textbf{Adapters are divided by external format}. \texttt{GameFilesEnvironment} owns the user-data
+layout and coordinates maps, saves, remembered player names, and leaderboards. The save repository encodes a versioned
+properties file containing a copy of the ASCII maze and progress necessary to resume it. Leaderboard storage reads and
+writes text rows through small encoder and decoder abstractions, while map loading, parsing, and validation remain a
+separate pipeline.
+
+Each adapter translates operational failures into domain-facing errors at its boundary. A missing leaderboard is an
+empty value rather than a failure, whereas a malformed save or map returns an actionable explanation. This leaves file
+paths, encodings, and I/O exceptions outside both \texttt{Application} policy and the model.
 
 \subsubsection{Storing a leaderboard}
 
@@ -420,6 +514,8 @@ When storing a game result, the leaderboard that is to receive it is first read 
 the new game result, and finally saved to the storage once again, as a simple line append to the file would preserve
 neither the order nor the cap of the leaderboard.
 
-In case of a malformed leaderboard read, a failure is reported naming the first faulty line found. A missing
-leaderboard file is not treated as failure: no game has yet been recorded on that maze in that mode, so the answer
-is an empty leaderboard, which behaves as any other.
+At the storage boundary, a malformed leaderboard read is a failure naming the first faulty line found. The production
+environment presents an unreadable leaderboard requested from the menu as empty, so an optional ranking cannot prevent
+the game from being played; recording through that same storage still reports the failure. A missing leaderboard file
+is not a failure: no game has yet been recorded on that maze in that mode, so the answer is an empty leaderboard,
+which behaves as any other.
