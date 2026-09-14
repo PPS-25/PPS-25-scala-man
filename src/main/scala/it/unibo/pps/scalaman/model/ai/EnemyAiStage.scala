@@ -22,7 +22,7 @@ object EnemyAiStage:
       val strategy = selection.strategyFor(enemy.kind)
       val context = EnemyMovementContext(
         enemyPosition = enemy.currentPos,
-        teleportDisabled = enemy.previousPos.isDefined,
+        canUseTeleport = enemy.previousPos.isEmpty,
         playerPosition = level.player.currentPos,
         playerPreviousPosition = level.playerPreviousPos,
         map = level.maze,
