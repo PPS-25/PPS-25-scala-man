@@ -1,0 +1,292 @@
+package it.unibo.pps.scalaman.controller
+
+import it.unibo.pps.scalaman.app.{Command, MapName, Played, PlayerName}
+import it.unibo.pps.scalaman.model.LevelTestSupport
+import it.unibo.pps.scalaman.model.collectibles.Collectibles
+import it.unibo.pps.scalaman.model.effects.given
+import it.unibo.pps.scalaman.model.map.ValidatedMap
+import it.unibo.pps.scalaman.model.score.{GameResult, Leaderboard}
+import it.unibo.pps.scalaman.model.{
+  Direction,
+  GameMode,
+  GameState,
+  LeaderboardMode,
+  LevelState,
+  ModeChoice,
+  ModeTuning
+}
+import it.unibo.pps.scalaman.persistence.SavedGame
+import org.scalatest.funsuite.AnyFunSuite
+import it.unibo.pps.scalaman.view.{LevelView, RenderListener}
+
+import java.nio.file.{Path, Paths}
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.DurationInt
+
+class ApplicationTest extends AnyFunSuite:
+
+  private val player = PlayerName("Matilde")
+  private val onMaze = MapName("test")
+  private val start = Command.StartGame(onMaze, player, ModeChoice.Normal)
+
+  /** Rules whose clock runs out before the only collectible of the maze can be reached, so that a
+    * game against the clock is lost to the clock rather than won.
+    */
+  private val RunsOutIn = LevelState.PlayerTimePerPos / 2
+  private val soon: ModeTuning = choice =>
+    if choice == ModeChoice.Timed then GameMode.Timed(RunsOutIn)
+    else summon[ModeTuning].of(choice)
+  private val enoughTime: ModeTuning = choice =>
+    if choice == ModeChoice.Timed then GameMode.Timed(1.second)
+    else summon[ModeTuning].of(choice)
+  private val elsewhere = Paths.get("/somewhere/spirale.txt")
+  private val aFrameApart = GameSession.LongestStep.toNanos
+
+  /** Frames enough to reach the only collectible, two positions away. Two go by first: one records
+    * when it happened, the other starts the crossing.
+    */
+  private val EnoughToRunOut = (RunsOutIn / GameSession.LongestStep).toInt + 2
+
+  private val EnoughToWin =
+    2 * (LevelState.PlayerTimePerPos / GameSession.LongestStep).toInt + 2
+
+  /** The world outside, kept in memory: it answers what it is told to answer and remembers what it
+    * was asked to keep.
+    */
+  private class Outside(
+      unreadable: Boolean = false,
+      unwritable: Boolean = false,
+      resumable: Option[LevelState] = None,
+      resumedOn: Option[MapName] = None
+  ) extends GameEnvironment:
+    val saved: ListBuffer[(LevelState, Played)] = ListBuffer.empty
+    val recorded: ListBuffer[(GameResult, MapName, LeaderboardMode)] = ListBuffer.empty
+    val kept: ListBuffer[Path] = ListBuffer.empty
+    val remembered: ListBuffer[PlayerName] = ListBuffer.empty
+
+    private def refusing[A](answer: A, refused: Boolean): Either[String, A] =
+      if refused then Left("the world says no") else Right(answer)
+
+    def mazes: Seq[MapName] = Seq(onMaze)
+    def playerName: Option[PlayerName] = remembered.lastOption
+    def savesFolder: Path = Paths.get("/somewhere/saves")
+    def remembering(player: PlayerName): Either[String, Unit] =
+      remembered += player
+      Right(())
+    def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = Leaderboard.empty
+    def maze(name: MapName): Either[String, ValidatedMap] =
+      refusing(LevelTestSupport.maze, unreadable)
+    def mazeAt(path: Path): Either[String, ValidatedMap] =
+      refusing(LevelTestSupport.maze, unreadable)
+    def keeping(path: Path): Either[String, Unit] = { kept += path; Right(()) }
+    def savedGame(path: Path): Either[String, SavedGame] =
+      resumable.map(SavedGame(_, resumedOn)).toRight("there is no game to resume")
+    def saving(level: LevelState, by: Played): Either[String, Unit] =
+      saved += ((level, by))
+      refusing((), unwritable)
+    def recording(
+        result: GameResult,
+        on: MapName,
+        mode: LeaderboardMode
+    ): Either[String, Unit] =
+      recorded += ((result, on, mode))
+      refusing((), unwritable)
+
+  private def drawingNothing: ValidatedMap => RenderListener[LevelView] = _ => _ => ()
+
+  private def application(
+      outside: GameEnvironment = Outside(),
+      createRenderer: ValidatedMap => RenderListener[LevelView] = drawingNothing,
+      tuning: ModeTuning = ModeTuning.standardModes
+  ): Application = Application(outside, createRenderer, tuning)
+
+  /** Whoever draws, together with everything they were shown. */
+  private def watching(): (ListBuffer[LevelView], ValidatedMap => RenderListener[LevelView]) =
+    val seen = ListBuffer.empty[LevelView]
+    (seen, _ => seen.addOne)
+
+  /** The application after a number of frames, each as long as a frame is allowed to be, counted
+    * from the frame a game goes on: the wait before it starts is not what these tests are about.
+    */
+  private def played(from: Application, frames: Int): Application =
+    (1 to frames).foldLeft(started(from))((application, frame) =>
+      application.advancedToFrame(GameSession.LeadIn.toNanos + frame * aFrameApart)
+    )
+
+  private def started(from: Application): Application =
+    from.advancedToFrame(0L).advancedToFrame(GameSession.LeadIn.toNanos)
+
+  test("a game asked for from the menu is played") {
+    assert(application().handleCommand(start).playing.isDefined)
+  }
+
+  test("the name used to start a game is remembered") {
+    val outside = Outside()
+    application(outside).handleCommand(start)
+    assert(outside.remembered.toSeq == Seq(player))
+  }
+
+  test("a maze that cannot be read starts no game") {
+    assert(application(Outside(unreadable = true)).handleCommand(start).playing.isEmpty)
+  }
+
+  test("a maze that cannot be read is something whoever plays gets told") {
+    assert(application(Outside(unreadable = true)).handleCommand(start).notice.isDefined)
+  }
+
+  test("whoever draws is shown the level a game starts on") {
+    val (seen, showing) = watching()
+    application(createRenderer = showing).handleCommand(start)
+    assert(seen.size == 1)
+  }
+
+  test("whoever draws is shown the level again once a frame has changed it") {
+    val (seen, showing) = watching()
+    played(application(createRenderer = showing).handleCommand(start), 1)
+    assert(seen.size == 2 && seen.head != seen.last)
+  }
+
+  test("whoever draws is not shown again a level that a frame left untouched") {
+    val (seen, showing) = watching()
+    val onHold =
+      application(createRenderer = showing).handleCommand(start).handleCommand(Command.Pause)
+    played(onHold, 3)
+    assert(seen.size == 1)
+  }
+
+  test("a game on hold does not advance") {
+    val onHold = application().handleCommand(start).handleCommand(Command.Pause)
+    assert(played(onHold, 3).playing.map(_.session.level) == onHold.playing.map(_.session.level))
+  }
+
+  test("a game resumed carries on advancing") {
+    val resumed = application()
+      .handleCommand(start)
+      .handleCommand(Command.Pause)
+      .handleCommand(Command.Resume)
+    assert(played(resumed, 2).playing.exists(_.session.level.player.isMoving))
+  }
+
+  test("a steer is taken while a game is being played") {
+    val steered = application().handleCommand(start).requestDirection(Direction.Down)
+    assert(steered.playing.exists(_.session.level.requestedDirection.contains(Direction.Down)))
+  }
+
+  test("a steer is refused while a game is on hold") {
+    assert(!application().handleCommand(start).handleCommand(Command.Pause).acceptsDirectionInput)
+  }
+
+  test("a steer is refused once a game is over") {
+    assert(!played(application().handleCommand(start), EnoughToWin).acceptsDirectionInput)
+  }
+
+  test("a steer is refused while no game is being played") {
+    assert(!application().acceptsDirectionInput)
+  }
+
+  test("the score of a game that ends is recorded on the maze it was played on") {
+    val outside = Outside()
+    played(application(outside).handleCommand(start), EnoughToWin)
+    assert(outside.recorded.map(_._2).toSeq == Seq(onMaze))
+  }
+
+  test("a score is recorded under the mode it was played in") {
+    val outside = Outside()
+    played(
+      application(outside, tuning = enoughTime)
+        .handleCommand(Command.StartGame(onMaze, player, ModeChoice.Timed)),
+      EnoughToWin
+    )
+    assert(outside.recorded.map(_._3).toSeq == Seq(LeaderboardMode.Timed))
+  }
+
+  test("a score is recorded once, however many frames follow the end of the game") {
+    val outside = Outside()
+    played(application(outside).handleCommand(start), EnoughToWin * 2)
+    assert(outside.recorded.size == 1)
+  }
+
+  test("a recorded score is confirmed with its map and mode") {
+    val completed = played(application().handleCommand(start), EnoughToWin)
+    assert(
+      completed.notice.contains(
+        ApplicationNotice.Information("Result recorded in the Classic leaderboard for test.")
+      )
+    )
+  }
+
+  test("a game resumed from a file has no leaderboard to be recorded in") {
+    val outside = Outside(resumable = Some(LevelState.from(LevelTestSupport.maze)))
+    played(application(outside).handleCommand(Command.LoadSave(elsewhere, player)), EnoughToWin)
+    assert(outside.recorded.isEmpty)
+  }
+
+  test("a game is played by the rules that were chosen") {
+    val timed = application().handleCommand(Command.StartGame(onMaze, player, ModeChoice.Timed))
+    assert(timed.playing.map(_.session.level.mode).contains(GameMode.Timed(2.minutes)))
+  }
+
+  test("a maze read from elsewhere is played by the rules that were chosen too") {
+    val survived =
+      application().handleCommand(Command.LoadMap(elsewhere, player, ModeChoice.Survival))
+    assert(survived.playing.map(_.session.level.mode).contains(GameMode.Survival()))
+  }
+
+  test("a game against the clock is over once its time has run out") {
+    val timed =
+      application(tuning = soon).handleCommand(Command.StartGame(onMaze, player, ModeChoice.Timed))
+    assert(played(timed, EnoughToRunOut).playing.map(_.status).contains(GameState.Defeat))
+  }
+
+  test("a game of survival is not won even with nothing left to collect") {
+    val nothingLeft = LevelState
+      .from(LevelTestSupport.maze, GameMode.Survival())
+      .copy(collectibles = Collectibles(Set.empty))
+    val survived = application(Outside(resumable = Some(nothingLeft)))
+      .handleCommand(Command.LoadSave(elsewhere, player))
+    assert(survived.playing.map(_.status).contains(GameState.Running))
+  }
+
+  test("a game saved on request is put away") {
+    assert(application().handleCommand(start).handleCommand(Command.SaveAndQuit).playing.isEmpty)
+  }
+
+  test("a game saved on request is handed over with who was playing it") {
+    val outside = Outside()
+    application(outside).handleCommand(start).handleCommand(Command.SaveAndQuit)
+    assert(outside.saved.map(_._2).toSeq == Seq(Played(player, Some(onMaze))))
+  }
+
+  test("a game whose save failed is not put away") {
+    val stayed = application(Outside(unwritable = true))
+      .handleCommand(start)
+      .handleCommand(Command.SaveAndQuit)
+    assert(stayed.playing.isDefined && stayed.notice.isDefined)
+  }
+
+  test("a game left behind is put away") {
+    assert(application().handleCommand(start).handleCommand(Command.BackToMenu).playing.isEmpty)
+  }
+
+  test("a game restarted keeps the rules it was played with") {
+    val timed = LevelState.from(LevelTestSupport.maze, GameMode.Timed(30.seconds))
+    val again = application(Outside(resumable = Some(timed)))
+      .handleCommand(Command.LoadSave(elsewhere, player))
+      .handleCommand(Command.Restart)
+    assert(again.playing.exists(_.session.level.mode == GameMode.Timed(30.seconds)))
+  }
+
+  test("a maze read from elsewhere is kept, so that it is offered from then on") {
+    val outside = Outside()
+    application(outside).handleCommand(Command.LoadMap(elsewhere, player, ModeChoice.Normal))
+    assert(outside.kept.toSeq == Seq(elsewhere))
+  }
+
+  test("a maze read from elsewhere is played under the name of its file") {
+    val played = application().handleCommand(Command.LoadMap(elsewhere, player, ModeChoice.Normal))
+    assert(played.playing.map(_.game.maze).contains(Some(MapName("spirale"))))
+  }
+
+  test("what the application has to say is said once") {
+    assert(application(Outside(unreadable = true)).handleCommand(start).noticed.notice.isEmpty)
+  }

@@ -1,4 +1,217 @@
 % !TEX root = ../main.tex
 \chapter{Testing}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec feugiat, augue
-ut eleifend sagittis, purus mi bibendum nisi, non aliquet orci lacus at eros.
+
+The definition of done set out in Chapter 2 required every task to be covered by automated tests, so the suite grew
+with the code rather than after it. It counts \textbf{516 tests over 60 suites} and runs in under two seconds. Each
+member wrote the tests of the epics or the tasks they were responsible for, so the ownership of an area covered its
+specification as well as its implementation.
+
+\section{Conventions}
+
+As a rule the tests of a task were written before its implementation, and the history of the commits keeps the trace of
+it.
+
+Suites are written in the \texttt{AnyFunSuite} style, which lets the name of a test be a sentence rather than an
+identifier. The convention adopted is that a name describes \textbf{a behaviour of the domain} and not the method under
+test, so that it stays true when the method is renamed. Each test covers \textbf{one concept} and follows the
+build-operate-check shape.
+
+What several suites share lives in six dedicated files that hold no test of their own: a maze for testing together with
+the levels derived from it (\texttt{LevelTestSupport}), the mazes drawn in ASCII the strategies are tried on
+(\texttt{MazeLayouts}), the reading of test mazes from the resources (\texttt{MapTestSupport}), sample results and
+leaderboards at a fixed instant (\texttt{LeaderboardTestSupport}), a fake state with a listener recording what it is
+notified of (\texttt{RenderingTestSupport}) and the checker of the monoid laws (\texttt{MonoidLawsTest}).
+
+\section{Testing the pure model}
+
+The rules of the game are pure functions from a state and a duration to the state that follows, so they are tested
+without infrastructure: there is nothing to set up and nothing to tear down.
+
+\subsection{Loop and update pipeline}
+
+The clock is verified as an immutable component that accumulates elapsed time and rejects negative advances. The loop
+lifecycle is tested as a state machine, covering the valid transitions and the invalid ones, which must raise an
+exception. The update pipeline is covered with order-focused tests ensuring that each tick runs the expected stages in
+sequence and that each stage receives the result of the previous one. The outcome of a level is modelled apart from the
+lifecycle of the loop and is tested for the property the rest of the code relies upon: victory and defeat are terminal,
+running is not.
+
+\subsection{Maps}
+
+Map validation is the largest suite of the project: each rule listed under FR-S2 has a test that rejects a maze
+breaking it, and the errors are asserted to \textbf{accumulate} rather than stopping at the first, since a player
+rewriting a maze should be told everything that is wrong with it at once. The mazes under test are resources on file
+rather than strings in the code, which is what makes it practical to cover every documented teleport pairing.
+
+\subsection{Movement and collisions}
+
+Movement is tested as an entity crossing between adjacent cells over a given duration: the crossing in progress, its
+completion, the direction faced independently of the movement under way, and the rejection of a negative duration or of
+a non-positive time per cell. Collision detection is tested by cell, covering every kind of occupant and the case of a
+tile and an enemy on the same position. Two entities exchanging cells within one tick are covered as a meeting, which
+is the case a position-by-position comparison alone would miss.
+
+\subsection{Enemy behaviour}
+
+The two pursuing strategies are tested on hand-built mazes: they take the shortest path around dead ends, respect walls
+when the closest move is blocked, return no move when trapped, and use a teleport only when it shortens the path.
+Determinism is asserted explicitly, so that two equally close moves always resolve the same way, and one test asserts
+that pursuit and anticipation produce observably different decisions, which is what makes them worth keeping apart.
+
+The patrolling strategy is tested for a behaviour no single step can show. One test walks a simulated patrol for sixty
+moves through a tail-recursive traversal and compares the corners touched with the endless repetition of the expected
+round, establishing that the route closes and repeats. Another asserts that its choices do not change when the player
+is moved elsewhere.
+
+\subsection{Rules and effects}
+
+Every rule depending on elapsed time receives it as an argument instead of reading a clock, which makes temporal
+behaviour testable \textbf{without waiting}: a bonus is asserted to be still applied one millisecond before its
+expiration and no longer applied at it, pinning the exact boundary. The same technique covers effects renewed while
+already active, effects expiring independently of one another, and the restoration of an effect at a different instant
+of the clock, which is what a saved game needs when it is taken up again.
+
+Where a rule is a property rather than an example, the test states the property: collection is idempotent, so an
+emptied position yields nothing and leaves the count of what remains untouched; a maze holding only bonuses is complete
+from the start. Meeting an enemy is covered on both sides of the rule, and the slowdown effect is asserted not to grant
+the protection that invulnerability does.
+
+\subsection{Modes and scoring}
+
+Each mode is tested for the three things that distinguish it: whether it has a clock and how much of it is left, what
+decides its outcome, and how it awards points. Survival is covered for its progressive increase in enemy speed and for
+the order in which that increase and the slowdown effect combine. Scoring is tested through tables of event and
+expected points, including the combo that is reset without affecting the points already gained; each scoring rule is
+asserted to award nothing for the events belonging to the others.
+
+The leaderboard is tested as an algebraic structure: a reusable checker verifies the \textbf{monoid laws}, left and
+right identity and associativity, over a list of leaderboards including the empty one and one exceeding the cap. Its
+ordering is covered for scores and, at equal scores, for the instant they were achieved.
+
+\subsection{Persistence}
+
+Saved games and recorded results are tested for round trips and for failures. A saved game is written and read back
+with all its progress, down to the movement an enemy was making and the corner a patroller was heading for. Failures
+are covered by \textbf{injecting them}: a real save is written, one property of the file is then corrupted, and the
+load is required to refuse it without throwing, for an unsupported format version, an invalid mode, an unsafe maze
+name, a negative number of lives and an entity outside the map. Recorded results are covered by the same round trip on
+their encoding, \texttt{decode(encode(r)) == r}, together with the malformed lines that must be rejected.
+
+\section{Testing the interface without opening a window}
+
+Continuous integration runs on a headless machine, so a test instantiating a graphical node would break the build for
+the whole team. This is why the interface is split as Chapter 5 describes, and everything on the pure side of that
+split is tested: which screen is showing, what covers the board, how the maze is laid out, how wide a cell is drawn,
+what the status bar reads, what the standings are.
+
+The state of the level is passed to the overlay by name, because a game in progress never needs it, and a test counts
+the evaluations of that argument to assert that a board covered by nothing does not even ask how the level is doing.
+Other tests assert that every sprite the game can name has a picture among the resources and that every teleport pair a
+maze may hold is one the board knows how to draw, catching at build time a kind of mismatch that usually appears only
+when the application is run.
+
+\section{Testing the boundary}
+
+The interface through which the game reaches the world outside is the seam at which that world is replaced during
+testing. The tests of the application supply an in-memory implementation of it, which answers what it is told to
+answer, remembers what it was asked to keep, and can be instructed to fail on reading or on writing. Behaviours that
+would otherwise require a real game and a real file system are then asserted directly: a result is recorded
+\textbf{once}, however many frames follow the end of a game; a game whose save failed is not put away and its player is
+told; a game resumed from a file has no leaderboard to be recorded in; a maze opened from elsewhere is kept, so that it
+is offered from then on. The controller is thus tested end to end \textbf{without a file being written and without a
+window being opened}. The adapters that do touch the file system are tested separately, against temporary directories,
+so that the decision and the storage fail apart from each other.
+
+\section{Levels of testing}
+
+\begin{itemize}
+  \item \textbf{Unit}: the large majority of the suite, each test covering one abstraction at a time.
+  \item \textbf{Integration}: a single test, marked \textbf{by convention} with the \texttt{IT} suffix, exercising
+  movement over a validated maze rather than over a grid built for the occasion, so that two modules are put to the
+  test together. It runs with all the others.
+  \item \textbf{Performance}: the tick check described among the non-functional requirements, which lives on sources of
+  its own under a dedicated sbt configuration and is therefore left out of the ordinary suite. It is run separately, and
+  is what measures the margin against the sixteen milliseconds a frame is given.
+  \item \textbf{Acceptance}: not automated, carried out by the member acting as client and domain expert, who played
+  each increment at the end of its sprint and reported what the specification did not cover or what the game did not do
+  as expected.
+\end{itemize}
+
+\section{Design decisions the tests pin down}
+
+Two values of the implementation are written down in the tests alone: the code applies them without explaining them,
+and changing one turns a test red instead of silently changing how the game behaves.
+
+Renderings notify their listeners only after a \textbf{visible} change, so that a frame in which nothing changed is not
+redrawn. For that comparison to be worth anything, the elapsed time the projection exposes is \textbf{truncated to whole
+seconds}: whole seconds are what the status bar displays, and an untruncated time would differ at every tick, leaving
+nothing to discard. In the code these are two barely visible calls, the time elapsed rounded down and the time left
+rounded up, and what says why they are there is the test requiring that a tick with nothing visible to show notifies
+nobody.
+
+The clamp on the duration of a frame is the same case. At every frame the model receives the time passed since the
+previous one, ordinarily sixteen milliseconds, but that measure is not to be trusted: it can arrive negative when a
+frame presents itself out of order, or amount to whole seconds when the machine has stalled. The clock of the level is
+what the expiry of the effects and the time left in a timed game rest upon, so a long frame would expire a bonus just
+picked up while nothing happened on the screen. The time handed to the model is therefore kept between zero and fifty
+milliseconds, and the tests fix both limits: the clock does not go back for a frame out of order, and does not advance
+by more than one step for a frame arriving late.
+
+\section{Coverage of the requirements}
+
+Every requirement of Chapter 3 is answered by tests. The table names, for each one, the suites that establish it; the
+non-functional requirements name their own evidence where they are stated.
+
+\begin{center}
+  \small
+  \begin{tabular}{|p{1.6cm}|p{4.4cm}|p{6.4cm}|}
+    \hline
+    \textbf{Req.} & \textbf{Requirement} & \textbf{Where it is established} \\
+    \hline
+    FR-U1 & Give a name & \texttt{GameFilesTest}, \texttt{MenuScreenTest} \\
+    \hline
+    FR-U2 & Choose a maze & \texttt{PlayableMazesTest}, \texttt{DefaultMapsTest}, \texttt{ApplicationTest} \\
+    \hline
+    FR-U3 & Choose a mode & \texttt{ModeTuningTest}, \texttt{ApplicationTest} \\
+    \hline
+    FR-U4 & Start a game & \texttt{ApplicationTest} \\
+    \hline
+    FR-U5 & Move through the maze & \texttt{LevelMovementTest}, \texttt{CommandMapperTest} \\
+    \hline
+    FR-U6 & Follow the game as it is played & \texttt{StatusBarTest}, \texttt{LevelViewTest}, \texttt{FrameTest} \\
+    \hline
+    FR-U7 & Pause, resume and load & \texttt{GameSessionTest}, \texttt{ApplicationTest},
+    \texttt{PropertiesGameSaveRepositorySpec} \\
+    \hline
+    FR-U8 & Restart & \texttt{ApplicationTest} \\
+    \hline
+    FR-U9 & See the leaderboard & \texttt{StandingsTest}, \texttt{LeaderboardTest} \\
+    \hline
+    FR-S1 & Read a maze & \texttt{MapParserSpec}, \texttt{MapLoaderSpec} \\
+    \hline
+    FR-S2 & Judge whether a maze is playable & \texttt{MapValidationSpec}, \texttt{MapPipelineSpec} \\
+    \hline
+    FR-S3 & Explain a refusal & \texttt{MapValidationSpec}, \texttt{GameFilesEnvironmentTest} \\
+    \hline
+    FR-S4 & Movement & \texttt{MovingEntityTest}, \texttt{LevelMovementTest} \\
+    \hline
+    FR-S5 & Decide where enemies go & \texttt{EnemyMovementStrategySpec}, \texttt{EnemyMovementSpec},
+    \texttt{PatrolStrategySpec}, \texttt{PatrolRouteSpec}, \texttt{EnemyAiStageSpec},
+    \texttt{EnemyStrategySelectorSpec} \\
+    \hline
+    FR-S6 & Carry entities through teleports & \texttt{LevelStateTest}, \texttt{MovingEntityMapIT} \\
+    \hline
+    FR-S7 & Resolve a meeting & \texttt{LevelMeetingTest}, \texttt{CollidingTest}, \texttt{CollisionDetectorTest},
+    \texttt{CollisionResolverTest} \\
+    \hline
+    FR-S8 & Grant and expire effects & \texttt{ActiveEffectsTest}, \texttt{BonusCollectingTest} \\
+    \hline
+    FR-S9 & Award points & \texttt{LevelScoreTest}, \texttt{ScoreTrackerTest}, \texttt{ScoringRuleTest} \\
+    \hline
+    FR-S10 & Judge game status & \texttt{LevelOutcomeTest}, \texttt{GameModeSpec} \\
+    \hline
+    FR-S11 & Keep the best results only & \texttt{LeaderboardTest}, \texttt{FileLeaderboardStorageTest},
+    \texttt{GameResultCodecTest}, \texttt{LeaderboardRecordingTest} \\
+    \hline
+  \end{tabular}
+\end{center}

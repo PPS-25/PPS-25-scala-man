@@ -1,0 +1,30 @@
+%%{init: {
+  "theme": "neutral",
+  "class": {
+    "htmlLabels": false
+  }
+}}%%
+classDiagram
+  direction TB
+
+  class LevelState {
+    +player: MovingEntity
+    +enemies: Vector~Enemy~
+  }
+
+  class MovingEntity {
+    +currentPos: Position
+    +facing: Direction
+    +timePerPos: FiniteDuration
+    +movement: Option~Movement~
+    +previousPos: Option~Position~
+  }
+
+  class Enemy {
+    +kind: EnemyKind
+    +heading: Option~Position~
+  }
+
+  Enemy *-- MovingEntity : entity
+  LevelState --> MovingEntity : player
+  LevelState --> "0..*" Enemy : enemies

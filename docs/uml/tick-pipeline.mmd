@@ -1,0 +1,37 @@
+%%{init: {"theme": "neutral"}}%%
+sequenceDiagram
+  autonumber
+  participant Main
+  participant Application
+  participant Session as GameSession
+  participant Level as LevelState pipeline
+  participant Rendering
+  participant Board as GameBoard
+  participant Environment
+
+  Main->>Application: advancedToFrame(now)
+  Application->>Session: advancedToFrame(now)
+  alt paused
+    Session-->>Application: unchanged session
+  else counting down before the game starts
+    Session-->>Session: shorten the wait
+  else running
+    Session->>Level: tick(delta)
+    Note over Session,Level: delta never negative and never more than 50 ms
+    rect rgb(245, 245, 245)
+      Level->>Level: EnemyAiStage.stage
+      Level->>Level: ticking(delta).movingOn(delta)
+      Level->>Level: afterMeetingEnemies.afterTeleporting.afterEnemiesTeleporting
+      Level->>Level: collecting
+      Level->>Level: withoutExpiredEffects
+      Level->>Level: playerStartingNextStep
+    end
+    Level-->>Session: updated state
+    Session->>Rendering: notifying(updated LevelState)
+    Rendering->>Board: LevelView snapshot
+  end
+  Session-->>Application: updated session
+  opt game just ended
+    Application-->>Environment: record the result
+  end
+  Application-->>Main: updated application

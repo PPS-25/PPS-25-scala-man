@@ -1,5 +1,150 @@
 % !TEX root = ../main.tex
 \chapter{Implementation}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas tincidunt,
-arcu at congue pulvinar, nibh massa tincidunt augue, a sodales odio lacus non
-leo.
+
+\section{Matilde D'Antino}
+
+\section{Gaia Mazzoni}
+
+My work concentrated on three areas: what moves through a maze and what happens when two things meet, the passage of
+time through a game, and everything to do with scoring and the results a game leaves behind.
+
+\subsection{Shared beginnings}
+
+The first sprint was collaborative. With the rest of the team, I took part in defining the domain concepts, dividing
+responsibilities across model, view and controller, and deciding how those parts would address one another. The majority
+of the decisions described in the architecture chapters were agreed within that first sprint.
+
+\subsection{Movement and collisions}
+
+I wrote the moving entity shared by the player and the enemies, along with the constraints on how it may move: an
+entity occupies a whole cell, holds any crossing under way separately, and is handed a predicate saying which positions
+are walkable rather than being given the maze itself.
+
+I also wrote the detection of collisions and their resolution. The subtlest part was deciding what counts as two
+entities colliding, which is not only sharing a cell, but also crossing the same cells but in opposite directions
+or exchanging place within the same update. Making an entity remember the cell it most recently left, and clearing
+that memory on the following update, is what closed the gap.
+
+\begin{lstlisting}
+    def meets(other: MovingEntity): Boolean =
+        currentPos == other.currentPos || swapping(other) || swappedSinceLastUpdate(other)
+\end{lstlisting}
+
+Sharing a cell is the obvious case. The second is two entities crossing into each other's cell at the same moment.
+The third catches the case in which the two entities that are crossing in opposite directions between adjacent cells
+complete the movement within a single update and exchange places without ever having shared a cell. This can happen
+because an update advances every moving entity before collisions are resolved.
+
+
+\subsection{The passage of time}
+
+I wrote the game loop, as a small state machine with declared transitions, and the game clock, which accumulates the
+time handed to it rather than reading any clock of its own. I wrote most of the session that stands between them and
+the interface converting the moment a frame arrives into the duration the model is advanced by, and bounding that
+duration so that a frame the machine took too long over cannot push the game forward all at once. That file is shared
+with Matilde D'Antino.
+
+\subsection{Input}
+
+I wrote the mapping from keys to directions and commands, and the path by which a direction asked for reaches the
+player: a turn is requested rather than applied, and the level keeps the request until the turn becomes possible,
+so that a turn asked for shortly before a corner is taken at the first opening instead of being lost.
+
+\subsection{Scoring and the leaderboard}
+
+I wrote the scoring subsystem: scoring events, the three rules that award points for them, and the tracker that
+accumulates them, as well as the leaderboard, its ordering and its errors, the storage that keeps it in a file
+and the codec that turns a result into a line and back.
+
+Two integrations followed: connecting scoring to the leaderboard meant deciding when a result is formed and by what
+route it reaches storage, while connecting scoring to the game modes was done with Alex Santini, who owns the modes.
+I added the hook by which a mode names the rule it scores by and the award it grants at the finish, while the modes
+themselves and their tuning remained his.
+
+\subsection{Scala mechanisms}
+
+The design described in the previous chapter would have taken a different shape, had it not been for a few of the
+language mechanisms.
+
+\subsubsection{Building an ordering by composition}
+
+The leaderboard depends on results being totally ordered, since combining two of them truncates to the best hundred
+and any pair comparing as equal would make the outcome depend on how the results happened to be grouped. The
+ordering is built from combinators rather than written as a comparison by hand:
+
+\begin{lstlisting}
+    given Ordering[GameResult] =
+        Ordering
+            .by[GameResult, Int](_.score)
+            .reverse
+            .orElseBy(_.achievedAt.toEpochMilli)
+            .orElseBy(_.playerName)
+\end{lstlisting}
+
+Each combinator adds a tiebreaker, and the reason the last link in this chain exists is to leave no two results as
+equal. By using \texttt{given} the ordering is found wherever results are sorted, without ever being passed.
+
+\subsubsection{A trait instantiated as a function}
+
+A scoring rule has a single abstract method, which lets an instance be written as a lambda rather than as an object:
+
+\begin{lstlisting}
+    val timedScoring: ScoringRule =
+        (event: ScoringEvent, combo: Int) => event match
+            case ScoringEvent.RemainingTime(left) => left.toSeconds.toInt * PointsPerRemainingSecond
+            case _                        => 0
+\end{lstlisting}
+
+Three rules therefore read as three functions from an event to an amount of points. Because different rules consider
+different events, the final case returns nothing for events that are not considered by that specific rule. This way,
+each rule stays total over the whole event type and none needs to know which events the others handle.
+
+\subsubsection{Context parameters instead of passing by hand}
+
+The rule a game scores by is not carried from hand to hand through the model but supplied as a \texttt{context parameter},
+so no intermediate step accepts it merely to pass it on. This is useful in the case of rules that games score by,
+since they are a property of the game mode being played, but are only needed at the point of a score increase.
+The same holds for the durations of bonus effects and for the rate at which slowed enemies experience time.
+
+\subsubsection{Enumerations whose cases carry data}
+
+Scoring events are an enumeration whose cases carry what pricing them requires: a number of lives, a duration
+remaining, a count of waves. This way, an event is data rather than a tag with a lookup beside it, and a rule
+receives everything it needs to award points from the event alone. The same shape is used for the errors a leaderboard
+can suffer, where each case names both what went wrong and the file or line at fault.
+
+\subsubsection{Type classes}
+
+Rather than depend on a functional library, I declared the two abstractions the code needed as traits of my own:
+a \textbf{monoid}, with an identity and an associative operation, and a pair of \textbf{codecs} for writing a
+value as text and reading it back. Each is five to seven lines. Instances are supplied as \texttt{given} definitions
+and reached with \texttt{summon}, so the leaderboard obtains its monoid and the storage its codec without either
+being handed one. The benefit to writing them was that their laws became mine to state and test. The monoid's two
+laws are checked generically, by a property test that would verify any monoid, over generated leaderboards rather
+than examples chosen to pass.
+
+\subsubsection{Values that cannot be built wrong}
+
+A leaderboard is a case class whose constructor is private, so the only way to obtain one is the factory that sorts
+and truncates. Every leaderboard is therefore already ordered and already within the cap, and the invariant is
+established where the value is made rather than checked wherever it is used.
+
+\subsubsection{Failure as a value, and failure as a mistake}
+
+What the world outside can get wrong is reported as a value: reading a leaderboard yields either the leaderboard or
+an error naming the line at fault. What only the program can get wrong is refused outright, with a \textbf{requirement}
+stated where the value is made: a negative number of lives, a movement with negative time remaining, an elapsed time
+that runs backwards, or a transition the game loop does not allow.
+
+\subsection{The order for scoring a combo}
+
+The combo count is increased before the event is priced, so the first defeat prices at combo 1 and each subsequent
+one doubles the awarded points.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../docs/uml/ComboIncreaseDiagram.pdf}
+    \caption{The combo count is increased before the event is priced, so a kill counts towards its own multiplier}
+\end{figure}
+
+\section{Alex Santini}

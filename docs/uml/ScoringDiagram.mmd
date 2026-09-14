@@ -1,0 +1,40 @@
+%%{init: {
+  "theme": "neutral",
+  "class": {
+    "htmlLabels": false
+  }
+}}%%
+  classDiagram
+  direction TB
+
+  class ScoreTracker {
+    +currentScore: Int
+    +combo: Int
+    +increaseScore(event) ScoreTracker
+    +resetCombo() ScoreTracker
+  }
+
+  class ScoringRule {
+    <<trait>>
+    +awardedPoints(event, combo) Int
+  }
+
+  class ScoringEvent {
+    <<enumeration>>
+    BasicItem()
+    BonusItem()
+    EnemyKill()
+    RemainingLives(lives)
+    RemainingTime(left)
+    WavesSurvived(waves)
+  }
+
+  class standardScoring
+  class timedScoring
+  class survivalScoring
+
+  ScoreTracker ..> ScoringRule : uses
+  ScoringRule ..> ScoringEvent : values
+  ScoringRule <|.. standardScoring
+  ScoringRule <|.. timedScoring
+  ScoringRule <|.. survivalScoring

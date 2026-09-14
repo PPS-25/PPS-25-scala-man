@@ -1,0 +1,59 @@
+package it.unibo.pps.scalaman.map.parser
+
+import it.unibo.pps.scalaman.model.map.Tile
+import it.unibo.pps.scalaman.model.map.MapParseError
+import it.unibo.pps.scalaman.model.map.RawMap
+
+object MapParser:
+  /** Converts a raw textual map into the intermediate `RawMap` representation.
+    *
+    * The parser only checks syntax and symbol support. Gameplay constraints are deliberately
+    * deferred to the validation layer.
+    */
+  def parse(text: String): Either[List[MapParseError], RawMap] =
+    val lines = text.linesIterator.toVector
+    if isEmptyMap(lines) then Left(List(MapParseError.EmptyMap))
+    else
+      val expectedWidth = lines.headOption.fold(0)(_.length)
+      val errors = syntaxErrors(lines, expectedWidth)
+
+      if errors.nonEmpty then Left(errors)
+      else Right(RawMap(lines.map(parseRow)))
+
+  private def isEmptyMap(lines: Vector[String]): Boolean =
+    lines.isEmpty || lines.forall(_.isEmpty)
+
+  private def syntaxErrors(lines: Vector[String], expectedWidth: Int): List[MapParseError] =
+    lines.zipWithIndex.flatMap { case (line, rowIndex) =>
+      rowErrors(line, rowIndex, expectedWidth)
+    }.toList
+
+  private def rowErrors(line: String, rowIndex: Int, expectedWidth: Int): List[MapParseError] =
+    val raggedRowError =
+      if line.length == expectedWidth then Nil
+      else List(MapParseError.RaggedRow(rowIndex, expectedWidth, line.length))
+
+    raggedRowError ++ unsupportedSymbolErrors(line, rowIndex)
+
+  private def unsupportedSymbolErrors(line: String, rowIndex: Int): List[MapParseError] =
+    line.zipWithIndex.collect {
+      case (char, colIndex) if supportedCell(char).isEmpty =>
+        MapParseError.UnsupportedSymbol(char, rowIndex, colIndex)
+    }.toList
+
+  private def parseRow(line: String): Vector[Tile] =
+    line.iterator.flatMap(supportedCell).toVector
+
+  private def supportedCell(char: Char): Option[Tile] =
+    char match
+      case '#'                                   => Some(Tile.Wall)
+      case '.'                                   => Some(Tile.Floor)
+      case 'S'                                   => Some(Tile.Spawn)
+      case 'C'                                   => Some(Tile.Collectible)
+      case 'H'                                   => Some(Tile.Hunter)
+      case 'A'                                   => Some(Tile.Anticipator)
+      case 'P'                                   => Some(Tile.Patroller)
+      case 'I'                                   => Some(Tile.InvulnerabilityBonus)
+      case 'R'                                   => Some(Tile.SlowdownBonus)
+      case digit if digit >= '0' && digit <= '9' => Some(Tile.Teleport(digit.asDigit))
+      case _                                     => None
