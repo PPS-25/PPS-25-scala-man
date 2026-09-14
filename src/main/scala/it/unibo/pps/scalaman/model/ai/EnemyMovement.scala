@@ -68,7 +68,7 @@ object EnemyMovement:
       case None                    => None
       case Some((path, remaining)) =>
         path.lastOption match
-          case None => explore(target, map, remaining, visited, teleportDisabled)
+          case None          => explore(target, map, remaining, visited, teleportDisabled)
           case Some(current) =>
             if current == target then Some(path)
             else
