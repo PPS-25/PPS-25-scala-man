@@ -1,0 +1,78 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class EnemyAiStage {
+    <<object>>
+    +stage(level, selection) LevelState
+  }
+
+  class EnemyStrategySelection {
+    <<trait>>
+    +strategyFor(kind) EnemyMovementStrategy
+  }
+
+  class EnemyStrategySelector {
+    <<object>>
+  }
+
+  class EnemyMovementStrategy {
+    <<trait>>
+    +nextMove(context) Option~Position~
+    +memoryAfter(context) Option~Position~
+  }
+
+  class EnemyMovementContext {
+    +enemyPosition: Position
+    +canUseTeleport: Boolean
+    +playerPosition: Position
+    +playerPreviousPosition: Option~Position~
+    +map: ValidatedMap
+    +enemyHeading: Option~Position~
+  }
+
+  class DirectPursuitStrategy {
+    <<object>>
+  }
+
+  class PlayerAnticipationStrategy {
+    +stepsAhead: Int
+  }
+
+  class PatrolStrategy {
+    <<object>>
+  }
+
+  class PatrolRoute {
+    <<private constructor>>
+    +corners: Vector~Position~
+    +acrossCorners(map)$ Option~PatrolRoute~
+  }
+
+  class EnemyMovement {
+    <<object>>
+    +validMoves(from, map) Set~Position~
+    ~firstStepTowards(from, target, map, canUseTeleport) Option~Position~
+    ~shortestPathTo(from, target, map, canUseTeleport) Option~Vector~Position~~
+  }
+
+  class Enemy {
+    +kind: EnemyKind
+    +heading: Option~Position~
+  }
+
+  EnemyAiStage ..> EnemyStrategySelection : asks which
+  EnemyStrategySelection <|.. EnemyStrategySelector
+  EnemyStrategySelector ..> DirectPursuitStrategy : Hunter
+  EnemyStrategySelector ..> PlayerAnticipationStrategy : Anticipator
+  EnemyStrategySelector ..> PatrolStrategy : Patroller
+  EnemyMovementStrategy <|.. DirectPursuitStrategy
+  EnemyMovementStrategy <|.. PlayerAnticipationStrategy
+  EnemyMovementStrategy <|.. PatrolStrategy
+  EnemyAiStage ..> EnemyMovementContext : builds
+  EnemyMovementStrategy ..> EnemyMovementContext : reads
+  DirectPursuitStrategy ..> EnemyMovement : first step towards
+  PlayerAnticipationStrategy ..> EnemyMovement : neighbours and distances
+  PatrolStrategy ..> EnemyMovement : first step towards
+  PatrolStrategy ..> PatrolRoute : corners
+  EnemyAiStage --> Enemy : heading kept on

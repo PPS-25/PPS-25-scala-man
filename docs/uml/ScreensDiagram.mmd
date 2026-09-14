@@ -1,0 +1,65 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class LoopState {
+    <<enum>>
+    NotStarted
+    Running
+    Paused
+  }
+
+  class GameState {
+    <<enum>>
+    Running
+    Victory
+    Defeat
+  }
+
+  class Screen {
+    <<enum>>
+    Menu
+    Playing
+    Paused
+    Over(outcome)
+    Starting(secondsLeft)
+    +of(loop, state, startingIn)$ Screen
+  }
+
+  class Outcome {
+    <<enum>>
+    Victory
+    Defeat
+  }
+
+  class Overlay {
+    +title: String
+    +lines: Seq~String~
+    +choices: Seq~Command~
+    +of(screen, status)$ Option~Overlay~
+  }
+
+  class Command["Command: the cases a veil offers"] {
+    <<enum>>
+    Restart
+    Resume
+    SaveAndQuit
+    BackToMenu
+  }
+
+  class StatusBar {
+    <<by name>>
+  }
+
+  class GameBoard {
+    <<ScalaFX>>
+    +cover(overlay) Unit
+  }
+
+  Screen ..> LoopState : reads
+  Screen ..> GameState : reads
+  Screen --> Outcome : Over
+  Overlay ..> Screen : of
+  Overlay ..> StatusBar : only if asked
+  Overlay --> "0..*" Command : choices
+  GameBoard ..> Overlay : covers with
