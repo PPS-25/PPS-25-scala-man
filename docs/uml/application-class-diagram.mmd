@@ -1,15 +1,15 @@
 %%{init: {"theme": "neutral"}}%%
 classDiagram
-direction LR
+  direction LR
 
-class Main {
-  <<composition root>>
+  class Main {
+<<composition root>>
 }
 class MenuScreen {
-  <<view>>
+<<view>>
 }
 class GameBoard {
-  <<view>>
+<<view>>
 }
 class Application {
   <<controller>>
@@ -26,42 +26,42 @@ class GameSession {
   + requestDirection(direction) GameSession
 }
 class GameEnvironment {
-  <<interface>>
-  + maze(name)
-  + saving(level, player)
-  + recording(result, map, mode)
+<<interface>>
++ maze(name)
++ saving(level, player)
++ recording(result, map, mode)
 }
 class LevelView {
-  <<presentation model>>
+<<view model>>
 }
 class Rendering {
-  <<presentation>>
-  + notifying(state)
+<<controller>>
++ notifying(state)
 }
 class LevelState {
-  <<domain aggregate>>
-  + status() GameState
-  + pipeline(delta)
+<<domain aggregate>>
++ status() GameState
++ pipeline(delta)
 }
 class GameMode {
-  <<domain policy>>
+<<domain policy>>
 }
 class ValidatedMap {
-  <<domain value>>
+<<domain value>>
 }
 class GameFilesEnvironment {
-  <<infrastructure adapter>>
+<<infrastructure adapter>>
 }
 class GameSaveRepository {
-  <<interface>>
-  + save(level, maze, path)
-  + load(path)
+<<interface>>
++ save(level, maze, path)
++ load(path)
 }
 class PropertiesGameSaveRepository {
-  <<infrastructure adapter>>
+<<infrastructure adapter>>
 }
 class MapLoader {
-  <<infrastructure adapter>>
+<<infrastructure adapter>>
 }
 class MapParser
 class MapValidator

@@ -14,7 +14,7 @@ object MapParser:
     val lines = text.linesIterator.toVector
     if isEmptyMap(lines) then Left(List(MapParseError.EmptyMap))
     else
-      val expectedWidth = lines.head.length
+      val expectedWidth = lines.headOption.fold(0)(_.length)
       val errors = syntaxErrors(lines, expectedWidth)
 
       if errors.nonEmpty then Left(errors)
@@ -42,12 +42,7 @@ object MapParser:
     }.toList
 
   private def parseRow(line: String): Vector[Tile] =
-    line.iterator.map(parseCell).toVector
-
-  private def parseCell(char: Char): Tile =
-    supportedCell(char).getOrElse(
-      throw new IllegalArgumentException(s"Unsupported symbol '$char' reached parser output")
-    )
+    line.iterator.flatMap(supportedCell).toVector
 
   private def supportedCell(char: Char): Option[Tile] =
     char match

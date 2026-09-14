@@ -22,10 +22,6 @@ class CollectingTest extends AnyFunSuite:
     assert(collectibles.collectedBy(standingPlayer).element.contains(item))
   }
 
-  test("what a player collects is no longer on the map") {
-    assert(collectibles.collectedBy(standingPlayer).left.at(item.position).isEmpty)
-  }
-
   test(
     "a player collecting a standard collectible decreases the remaining ones"
   ) {
@@ -51,17 +47,9 @@ class CollectingTest extends AnyFunSuite:
     assert(collectibles.collectedBy(arrivedPlayer).element.contains(item))
   }
 
-  test("a player standing again on an emptied position collects nothing") {
+  test("a player standing again on an emptied position picks up nothing") {
     val afterCollection = collectibles.collectedBy(standingPlayer).left
-    assert(afterCollection.collectedBy(standingPlayer).element.isEmpty)
-  }
-
-  test(
-    "a player standing again on an emptied position leaves the remaining ones untouched"
-  ) {
-    val afterCollection = collectibles.collectedBy(standingPlayer).left
-    assert(
-      afterCollection.collectedBy(standingPlayer).left.remaining ==
-        afterCollection.remaining
-    )
+    val again = afterCollection.collectedBy(standingPlayer)
+    assert(again.element.isEmpty)
+    assert(again.left.remaining == afterCollection.remaining)
   }

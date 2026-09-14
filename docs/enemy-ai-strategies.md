@@ -87,6 +87,6 @@ stops produce no patrol movement rather than an invalid route.
 To add a new strategy:
 
 1. implement `EnemyMovementStrategy`;
-2. reuse `EnemyMovement.validMoves` or `EnemyMovement.nextMoveToward` when possible;
+2. reuse `EnemyMovement.validMoves` or `EnemyMovement.firstStepTowards` when possible;
 3. add automated tests for the new behavior;
 4. add a mapping in `EnemyStrategySelector` only if the strategy is selected from `EnemyKind`.

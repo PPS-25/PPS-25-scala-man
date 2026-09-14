@@ -1,0 +1,11 @@
+%%{init: {"theme": "neutral"}}%%
+sequenceDiagram
+    participant Level as LevelState
+    participant Tracker as ScoreTracker
+    participant Rule as ScoringRule
+
+    Level->>Tracker: increaseScore(EnemyKill)
+    Tracker->>Tracker: increase the combo
+    Tracker->>Rule: awardedPoints(EnemyKill, combo)
+    Rule-->>Tracker: 200 x 2^(combo-1)
+    Tracker-->>Level: a tracker with the points added

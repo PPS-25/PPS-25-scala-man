@@ -4,9 +4,9 @@ import it.unibo.pps.scalaman.model.Position
 
 object DirectPursuitStrategy extends EnemyMovementStrategy:
   override def nextMove(context: EnemyMovementContext): Option[Position] =
-    EnemyMovement.nextMoveToward(
+    EnemyMovement.firstStepTowards(
       from = context.enemyPosition,
       target = context.playerPosition,
       map = context.map,
-      teleportDisabled = context.teleportDisabled
+      canUseTeleport = context.canUseTeleport
     )
