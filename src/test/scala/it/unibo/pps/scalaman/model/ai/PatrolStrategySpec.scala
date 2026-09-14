@@ -82,7 +82,7 @@ class PatrolStrategySpec extends AnyFunSuite with MazeLayouts:
   ): EnemyMovementContext =
     EnemyMovementContext(
       enemyPosition = enemyPosition,
-      teleportDisabled = false,
+      canUseTeleport = true,
       playerPosition = Position(2, 2),
       playerPreviousPosition = None,
       map = map,
