@@ -1,20 +1,234 @@
-% !TEX root = ../main.tex
 \chapter{Retrospective}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent eget lectus
-nec augue interdum mattis. Integer porttitor, nibh in congue tincidunt, nisl
-erat luctus purus, nec pharetra metus nibh in mauris.
+
+This chapter reviews the project as it was carried out: what each sprint delivered, how the process behaved in
+practice, and what remains open. The team considers the outcome a success: \textbf{every epic of the product backlog
+was delivered}, including the four that had been marked optional from the outset, none of which was dropped or reduced
+in scope.
+
+\section{Sprint breakdown}
+
+The tables below report, for each sprint, the epics addressed with the tasks they were split into, the team member each
+task was assigned to, and the estimate agreed during planning. An epic occupies a single row in the first two columns,
+divided into its own tasks in the remaining three.
+
+\subsection*{Sprint 1 (3--9 August)}
+
+\begin{center}
+  \small
+  \begin{tabular}{|c|p{3.5cm}|p{5.0cm}|p{2.3cm}|c|}
+    \hline
+    \textbf{\#} & \textbf{Epic} & \textbf{Task} & \textbf{Assignee} & \textbf{Estimate} \\
+    \hline
+    1 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Set Up Repository, CI/CD, Quality, and Testing}} & Initialize Scala Project (\#15) & Matilde & 1 h \\
+    \cline{3-5}
+      &  & Configure Automated Testing (\#16) & Gaia & 1 h \\
+    \cline{3-5}
+      &  & Configure Code Formatting (\#17) & Matilde & 1 h \\
+    \cline{3-5}
+      &  & Configure Static Analysis (\#18) & Gaia & 1 h \\
+    \cline{3-5}
+      &  & Configure Pull Request CI (\#19) & Alex & 3 h \\
+    \cline{3-5}
+      &  & Configure Main Branch CD (\#20) & Alex & 2 h \\
+    \hline
+    2 & Define Domain Model (MVC Architecture) & Shared definition of the model & Whole team & 2 h each \\
+    \hline
+    3 & Load, Generate, and Validate Maps & Epic carried out by a single member & Alex & 5 h \\
+    \hline
+    4 & Implement Movement and Input Management & Epic started & Gaia & 6 h \\
+    \hline
+    5 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Implement Game Loop and State Updates}} & Define Game Loop Tests (\#37) & Gaia & 3 h \\
+    \cline{3-5}
+      &  & Implement Game Clock (\#38) & Gaia & 1 h \\
+    \cline{3-5}
+      &  & Implement Game Loop Lifecycle (\#39) & Gaia & 1 h \\
+    \cline{3-5}
+      &  & Implement State Update Pipeline (\#40) & Alex & 2 h \\
+    \cline{3-5}
+      &  & Implement Game State Transitions (\#41) & Alex & 1 h \\
+    \cline{3-5}
+      &  & Integrate Rendering Notifications (\#42) & Matilde & 4 h \\
+    \hline
+    6 & Implement Collectibles and Bonuses & Epic started & Matilde & 7 h \\
+    \hline
+  \end{tabular}
+\end{center}
+
+Epics 4 and 6 were started in this sprint and completed in the following one; every other epic was closed within the
+sprint.
+
+\subsection*{Sprint 2 (10--16 August)}
+
+\begin{center}
+  \small
+  \begin{tabular}{|c|p{3.5cm}|p{5.0cm}|p{2.3cm}|c|}
+    \hline
+    \textbf{\#} & \textbf{Epic} & \textbf{Task} & \textbf{Assignee} & \textbf{Estimate} \\
+    \hline
+    4 & Implement Movement and Input Management & Epic completed & Gaia & 8 h \\
+    \hline
+    6 & Implement Collectibles and Bonuses & Epic completed & Matilde & 5 h \\
+    \hline
+    7 & Implement Lives, Victory, and Defeat & Epic carried out by a single member & Matilde & 10 h \\
+    \hline
+    8 & Implement Enemy AI Standard Strategies & Epic carried out by a single member & Alex & 15 h \\
+    \hline
+    11 & Implement Scoring and Leaderboard & Epic started & Gaia & 6 h \\
+    \hline
+  \end{tabular}
+\end{center}
+
+Epics 4 and 6, started in the previous sprint, were closed here; epic 11 was started in this sprint and continued in
+the following ones.
+
+\subsection*{Sprint 3 (24--30 August)}
+
+\begin{center}
+  \small
+  \begin{tabular}{|c|p{3.5cm}|p{5.0cm}|p{2.3cm}|c|}
+    \hline
+    \textbf{\#} & \textbf{Epic} & \textbf{Task} & \textbf{Assignee} & \textbf{Estimate} \\
+    \hline
+    9 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Implement UI and System Integration}} & Implement Game View (\#75) & Matilde & 4 h \\
+    \cline{3-5}
+      &  & Implement Game State Visualization (\#76) & Matilde & 3 h \\
+    \cline{3-5}
+      &  & Integrate Player Input with Controller (\#77) & Gaia & 4 h \\
+    \cline{3-5}
+      &  & Connect View to Model State Updates (\#78) & Matilde & 3 h \\
+    \cline{3-5}
+      &  & Integrate Game Loop, Controller, Model, and View (\#79) & Gaia & 4 h \\
+    \cline{3-5}
+      &  & Implement Playable Application Entry Point (\#80) & Gaia & 2 h \\
+    \hline
+    11 & Implement Scoring and Leaderboard & Epic completed & Gaia & 5 h \\
+    \hline
+    12 & Implement Patrol Enemy Strategy & Epic carried out by a single member & Matilde & 5 h \\
+    \hline
+    13 & Implement Game Save and Load & Epic carried out by a single member & Alex & 5 h \\
+    \hline
+    14 & Implement Multiple Game Modes & Epic carried out by a single member & Alex & 10 h \\
+    \hline
+  \end{tabular}
+\end{center}
+
+Epic 11, started in the previous sprint, was closed here; epic 9 is the only one split between two team members and was
+completed in the following sprint.
+
+\subsection*{Sprint 4 (7--13 September)}
+
+The review of the previous sprint found that the game modes just implemented were not yet handled in the interface and
+in the leaderboard: three tasks were therefore added to epics already open. The remaining hours were devoted to the
+review of the whole codebase and to the documentation.
+
+\begin{center}
+  \small
+  \begin{tabular}{|c|p{3.5cm}|p{5.0cm}|p{2.3cm}|c|}
+    \hline
+    \textbf{\#} & \textbf{Epic} & \textbf{Task} & \textbf{Assignee} & \textbf{Estimate} \\
+    \hline
+    9 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Implement UI and System Integration}} & UI Game Mode Integration (\#115) & Matilde & 2 h \\
+    \cline{3-5}
+      &  & UI New Leaderboard Integration (\#116) & Alex & 2 h \\
+    \hline
+    10 & Produce Project Documentation and Final Report & Documentation and final report & Whole team & 8 h each \\
+    \hline
+    11 & Implement Scoring and Leaderboard & Leaderboard Game Mode Integration (\#117) & Gaia & 2 h \\
+    \hline
+    15 & Final Review & Review of the whole codebase & Whole team & 5 h each \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\section{Analysis of the development process}
+
+Adopting an agile process was, together with the choice of Scala, the main novelty of the project for every member of
+the team, and it proved a good fit for a project of this size.
+
+\subsection{What worked}
+
+The rhythm of the work rested on two weekly appointments: a mid-week backlog refinement and an end-of-sprint meeting,
+in which the review, the retrospective and the planning of the following sprint took place one after the other. Every
+planned appointment was held and, whenever a personal commitment required it, it was moved rather than skipped. Every
+sprint closed with its own content delivered, with the tasks planned during planning completed within the agreed time.
+
+In this setting daily meetings were not necessary. With weekly sprints and at least two meetings a week, the picture of
+how the sprint was progressing was already up to date without a daily appointment: minor questions were settled in a
+WhatsApp group dedicated to the project, the scrum board kept track of everyone's progress and could be consulted at
+any time, and pull requests made the state of every area visible to all.
+
+Backlog management relied entirely on the tools offered by GitHub: a scrum board for the state of progress, with epics
+represented as tasks and split into subtasks, each carrying its own estimate, labels and priority. The team worked well
+with this arrangement, which kept in one place what had been planned, what was in progress and what was left to do.
+
+The roles agreed at the beginning were also carried through for the whole duration of the project. Alex Santini, as
+Product Owner, maintained the scrum board and the repository configuration and was the one who most kept the meetings
+on track; Matilde D'Antino, as client and domain expert, played the application at every increment and reported her
+observations back to the rest of the group.
+
+On the technical side, continuous integration was in place from the first sprint and was never switched off, so that a
+failing test or a formatting deviation was reported before the change reached the shared branch; no change entered the
+integration branch without a review by another member.
+
+Assigning each epic to a single member finally gave everyone a coherent area to answer for and kept the design
+decisions of an epic consistent even when they were taken over several weeks. A correction to the way pull requests
+were used grew out of this arrangement: the initial plan called for one per individual task, but it became clear after
+the first week that the number of reviews so generated weighed on the process more than it kept it under control. The
+rule was therefore split into two cases. If an epic is followed by a single person, its tasks are developed on the
+branch of the epic and one pull request brings it into \texttt{dev}; if instead the tasks are distributed over several
+people, each has its own branch and its own pull request towards the branch of the epic, which is integrated only once
+the epic is complete. The resulting reviews touch more files and demand more attention, but for a group of three people
+on weekly sprints this cost less than the fragmentation it replaces.
+
+\subsection{What proved harder}
+
+The greatest difficulty was not technical but linguistic. Besides the novelty of the process itself, the team had to
+take possession of a new vocabulary and learn to use it with awareness.
+
+The second uncomfortable point was the difficulty of keeping tasks genuinely separate. Some tasks, and in a few cases
+whole epics, needed others assigned to different members to be finished first, and the waiting that followed was at
+times inconvenient. The clearest example concerns the enemy: three different epics needed the enemy as an entity, each
+introduced it in the form that made its own work simple, and since the matter had never been discussed in depth the
+concept had to be taken up again later to put it back in order.
 
 \section{Future work}
 
-\textbf{Frightened enemies after invulnerability.} At present, invulnerability protects the
-player from losing a life and allows an enemy to be defeated when the two meet. A natural extension
-would make the effect visible in the enemies' behaviour before a collision occurs: while it is active,
-each enemy would temporarily select moves that increase its distance from the player rather than
-following its normal pursuit, anticipation, or patrol strategy.
+Since the features initially intended as optional were implemented in full as well, the team discussed which others
+could be introduced in the future. The possibilities are many; the ones considered are the following.
 
-This would require a short-lived \emph{frightened} movement strategy, chosen from the same walkable
-neighbours and teleport links used by the existing AI. The game would retain each enemy's normal
-strategy and, for a Patroller, its current corner target; when invulnerability expires, those choices
-would be restored unchanged. Thus the bonus would create a tactical opportunity to chase enemies
-without changing their long-term behaviour or disrupting a patrol route. If the player still reaches
-an enemy while the effect is active, the current defeat-and-score rule would continue to apply.
+\begin{itemize}
+  \item \textbf{Graphics and gameplay experience.} A more polished visual appearance and a richer overall experience,
+  together with mazes more elaborate than the ones shipped with the game.
+  \item \textbf{The return of an enemy to its own spawn point.} An enemy defeated by the player under the effect of
+  invulnerability leaves the game for good; making it reappear at the spawn point it was born from would turn the
+  effect into a temporary advantage rather than a permanent one.
+  \item \textbf{Frightened enemies after invulnerability.} At present, invulnerability protects the player from losing
+  a life and allows an enemy to be defeated when the two meet. A natural extension would make the effect visible in the
+  enemies' behaviour before a collision occurs: while it is active, each enemy would temporarily select moves that
+  increase its distance from the player rather than following its normal pursuit, anticipation, or patrol strategy.
+  This would require a short-lived \emph{frightened} movement strategy, chosen from the same walkable neighbours and
+  teleport links used by the existing AI. The game would retain each enemy's normal strategy and, for a Patroller, its
+  current corner target; when invulnerability expires, those choices would be restored unchanged. Thus the bonus would
+  create a tactical opportunity to chase enemies without changing their long-term behaviour or disrupting a patrol
+  route. If the player still reaches an enemy while the effect is active, the current defeat-and-score rule would
+  continue to apply.
+  \item \textbf{An integrated map editor.} Player-authored mazes are written as text files and validated on loading,
+  which is sufficient but assumes the format documentation has been read first.
+  \item \textbf{Further enemy strategies.} The abstraction accepts them without modification, as the patrolling enemy
+  demonstrated; only the time available prevented more of them.
+\end{itemize}
+
+\section{Conclusions}
+
+The final result is \textbf{a complete and playable game}: not a prototype, but an executable that the delivery
+pipeline produces automatically and that anyone can download from the releases of the repository and run. The group is
+satisfied with the work done, because every objective it had set itself was reached. Facing those objectives without
+particular familiarity with either Scala or Scrum was a challenge, and one the team believes it carried through.
+
+Collaboration between the members went very well, both because of everyone's willingness to discuss and because of the
+contribution of the process, which supported it in a concrete way: the sprints imposed precise deadlines to meet and
+the periodic meetings made the dialogue regular.
+
+The way of working is the aspect of this experience the team appreciated most. Being the same process adopted in
+industry, it is also the part that will most easily carry over into a real working context.
+

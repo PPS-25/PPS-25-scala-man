@@ -43,7 +43,7 @@ class GameSessionTest extends AnyFunSuite:
 
   test("a requested direction reaches the level") {
     val askedDirection = readyOn(levelWith(spawn))
-      .requestingDirection(Direction.Down)
+      .requestDirection(Direction.Down)
       .advancedToFrame(frameAfterStart(timePerPos))
     assert(askedDirection.level.player.movement.exists(_.to == Position(2, 1)))
     assert(askedDirection.level.requestedDirection.isEmpty)
@@ -90,7 +90,7 @@ class GameSessionTest extends AnyFunSuite:
   test("a turn asked for while counting down is taken as soon as the game starts") {
     val asked = sessionOn(levelWith(spawn))
       .advancedToFrame(0L)
-      .requestingDirection(Direction.Down)
+      .requestDirection(Direction.Down)
       .advancedToFrame(GameSession.LeadIn.toNanos)
       .advancedToFrame(frameAfterStart(timePerPos))
 

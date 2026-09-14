@@ -100,7 +100,7 @@ class LevelViewTest extends AnyFunSuite:
     assert(LevelView.of(nearlyOut).timeLeft.contains(1.second))
   }
 
-  test("the view is shown the game score") {
+  test("the view is shown what a game that ended is worth") {
     val ended =
       startingLevel.copy(collectibles = Collectibles(Set.empty), progress = LevelProgress(2))
     assert(LevelView.of(ended).score == ended.liveScore)

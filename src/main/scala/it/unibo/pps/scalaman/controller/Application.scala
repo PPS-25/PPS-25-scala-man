@@ -61,7 +61,7 @@ enum ApplicationNotice:
   case Information(message: String)
 
 /** Running session together with its player and source map. */
-final case class Playing(session: GameSession, by: Played):
+final case class Playing(session: GameSession, game: Played):
 
   /** Current lifecycle state of the game loop. */
   def loop: LoopState = session.loop.state
@@ -72,10 +72,10 @@ final case class Playing(session: GameSession, by: Played):
   /** Remaining lead-in seconds, if play has not started. */
   def startingIn: Option[Int] = session.countdown
 
-/** Coordinates commands, game state, rendering, and external operations without UI dependencies. */
+/** Coordinates commands, game state, external operations, and an injected level renderer. */
 final case class Application(
     environment: GameEnvironment,
-    showing: ValidatedMap => RenderListener[LevelView],
+    createRenderer: ValidatedMap => RenderListener[LevelView],
     tuning: ModeTuning,
     playing: Option[Playing] = None,
     notice: Option[ApplicationNotice] = None,
@@ -95,37 +95,37 @@ final case class Application(
   def bestOn(maze: MapName, mode: LeaderboardMode): Leaderboard = environment.bestOn(maze, mode)
 
   /** Applies a command and returns the resulting application state. */
-  def commanded(command: Command): Application = command match
+  def handleCommand(command: Command): Application = command match
     case Command.StartGame(maze, player, mode) =>
-      remembering(player)(
-        begun(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
+      afterRememberingPlayer(player)(
+        startWithMaze(environment.maze(maze), Played(player, Some(maze)), tuning.of(mode))
       )
     case Command.LoadMap(path, player, mode) =>
-      remembering(player) {
+      afterRememberingPlayer(player) {
         val read = environment.mazeAt(path)
         // Importing is best-effort: a valid map remains playable if copying it fails.
         read.foreach(_ => environment.keeping(path))
-        begun(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
+        startWithMaze(read, Played(player, PlayableMazes.named(path)), tuning.of(mode))
       }
     case Command.LoadSave(path, player) =>
-      remembering(player)(
+      afterRememberingPlayer(player)(
         environment
           .savedGame(path)
-          .fold(told, saved => resumed(saved.level, Played(player, saved.maze)))
+          .fold(errorNotice, saved => startSession(saved.level, Played(player, saved.maze)))
       )
-    case Command.Pause | Command.Resume => onHold
-    case Command.Restart                => again
-    case Command.BackToMenu             => putAway
-    case Command.SaveAndQuit            => putAwayIfSaved
+    case Command.Pause | Command.Resume => togglePause
+    case Command.Restart                => restart
+    case Command.BackToMenu             => returnToMenu
+    case Command.SaveAndQuit            => saveAndReturnToMenu
 
   /** True only while an active, non-terminal game can accept movement input. */
-  def steerable: Boolean =
+  def acceptsDirectionInput: Boolean =
     playing.exists(current => current.loop == LoopState.Running && !current.session.isOver)
 
   /** Applies a direction request when the current game accepts input. */
-  def steered(direction: Direction): Application =
-    if !steerable then this
-    else advancing(_.requestingDirection(direction))
+  def requestDirection(direction: Direction): Application =
+    if !acceptsDirectionInput then this
+    else updateSession(_.requestDirection(direction))
 
   /** Advances one frame and records a result when that frame ends the game. */
   def advancedToFrame(nanos: Long)(using BonusDuration, Slowdown): Application =
@@ -133,59 +133,59 @@ final case class Application(
       val advanced = current.session.advancedToFrame(nanos)
       val ended = !current.session.isOver && advanced.isOver
       val next = copy(playing = Some(current.copy(session = advanced)))
-      if ended then next.recorded(advanced.level, current.by) else next
+      if ended then next.recordCompletedGame(advanced.level, current.game) else next
     }
 
   /** Clears the notice after the UI has displayed it. */
   def noticed: Application = copy(notice = None)
 
-  private def begun(
+  private def startWithMaze(
       maze: Either[String, ValidatedMap],
-      by: Played,
+      game: Played,
       mode: GameMode
-  ): Application = maze.fold(told, read => resumed(LevelState.from(read, mode), by))
+  ): Application = maze.fold(errorNotice, map => startSession(LevelState.from(map, mode), game))
 
-  private def remembering(player: PlayerName)(next: => Application): Application =
-    environment.remembering(player).fold(told, _ => next)
+  private def afterRememberingPlayer(player: PlayerName)(next: => Application): Application =
+    environment.remembering(player).fold(errorNotice, _ => next)
 
-  private def resumed(level: LevelState, by: Played): Application = copy(
-    playing = Some(Playing(GameSession.starting(level, showing(level.maze)), by)),
+  private def startSession(level: LevelState, game: Played): Application = copy(
+    playing = Some(Playing(GameSession.starting(level, createRenderer(level.maze)), game)),
     notice = None
   )
 
-  private def again: Application = playing.fold(this) { current =>
-    resumed(
+  private def restart: Application = playing.fold(this) { current =>
+    startSession(
       LevelState.from(current.session.level.maze, current.session.level.mode),
-      current.by
+      current.game
     )
   }
 
-  private def putAway: Application = copy(playing = None, notice = None)
+  private def returnToMenu: Application = copy(playing = None, notice = None)
 
-  private def putAwayIfSaved: Application = playing.fold(this) { current =>
+  private def saveAndReturnToMenu: Application = playing.fold(this) { current =>
     environment
-      .saving(current.session.level, current.by)
-      .fold(told, _ => putAway)
+      .saving(current.session.level, current.game)
+      .fold(errorNotice, _ => returnToMenu)
   }
 
-  private def onHold: Application = advancing(_.togglePause)
+  private def togglePause: Application = updateSession(_.togglePause)
 
-  private def advancing(step: GameSession => GameSession): Application =
+  private def updateSession(step: GameSession => GameSession): Application =
     copy(playing = playing.map(current => current.copy(session = step(current.session))))
 
   // Resumed games have no stable source-map name and therefore no leaderboard entry.
-  private def recorded(level: LevelState, by: Played): Application =
+  private def recordCompletedGame(level: LevelState, game: Played): Application =
     val result = for
-      maze <- by.maze
-      result <- level.result(by.player.value, now())
+      maze <- game.maze
+      result <- level.result(game.player.value, now())
     yield (maze, result)
     result.fold(this) { case (maze, score) =>
       environment
         .recording(score, maze, LeaderboardMode.of(level.mode))
-        .fold(told, _ => informed(maze, level.mode))
+        .fold(errorNotice, _ => resultRecordedNotice(maze, level.mode))
     }
 
-  private def informed(maze: MapName, mode: GameMode): Application = copy(
+  private def resultRecordedNotice(maze: MapName, mode: GameMode): Application = copy(
     notice = Some(
       ApplicationNotice.Information(
         s"Result recorded in the ${LeaderboardMode.of(mode).label} leaderboard for ${maze.value}."
@@ -193,5 +193,5 @@ final case class Application(
     )
   )
 
-  private def told(message: String): Application =
+  private def errorNotice(message: String): Application =
     copy(notice = Some(ApplicationNotice.Error(message)))

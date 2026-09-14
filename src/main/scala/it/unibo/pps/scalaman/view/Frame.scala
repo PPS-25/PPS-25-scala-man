@@ -60,7 +60,11 @@ final case class StatusBar(
 
   private def spelled(duration: FiniteDuration): String =
     val told = duration.toSeconds
-    f"${told / SecondsPerMinute}%02d:${told % SecondsPerMinute}%02d"
+    s"${twoDigits(told / SecondsPerMinute)}:${twoDigits(told % SecondsPerMinute)}"
+
+  private def twoDigits(value: Long): String =
+    val text = value.toString
+    if text.length >= 2 then text else s"0$text"
 
   private def effects: Option[String] =
     Option.when(applied.nonEmpty)(applied.map(_.toString).toSeq.sorted.mkString(", "))

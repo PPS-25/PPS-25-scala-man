@@ -13,16 +13,10 @@ class CollectiblesTest extends AnyFunSuite:
 
   private val collectibles = Collectibles(Set(basic, anotherBasic, bonus))
 
-  test("collecting on a position holding nothing yields no element") {
-    assert(collectibles.collect(emptyPosition).element.isEmpty)
-  }
-
-  test(
-    "collecting on a position holding nothing leaves the collectibles unchanged"
-  ) {
-    assert(
-      collectibles.collect(emptyPosition).left.remaining == collectibles.remaining
-    )
+  test("collecting on a position holding nothing leaves everything as it was") {
+    val collected = collectibles.collect(emptyPosition)
+    assert(collected.element.isEmpty)
+    assert(collected.left.remaining == collectibles.remaining)
   }
 
   test(
@@ -32,7 +26,9 @@ class CollectiblesTest extends AnyFunSuite:
   }
 
   test("a collected element is no longer on the map") {
-    assert(collectibles.collect(basic.position).left.at(basic.position).isEmpty)
+    val left = collectibles.collect(basic.position).left
+    assert(left.at(basic.position).isEmpty)
+    assert(!left.placed.contains(basic))
   }
 
   test(
@@ -52,21 +48,11 @@ class CollectiblesTest extends AnyFunSuite:
     )
   }
 
-  test("collecting twice on the same position yields nothing the second time") {
+  test("collecting twice on the same position picks up nothing the second time") {
     val afterFirstCollection = collectibles.collect(basic.position).left
-    assert(afterFirstCollection.collect(basic.position).element.isEmpty)
-  }
-
-  test(
-    "collecting twice on the same position decreases the remaining ones only once"
-  ) {
-    val afterFirstCollection = collectibles.collect(basic.position).left
-    assert(
-      afterFirstCollection
-        .collect(basic.position)
-        .left
-        .remaining == collectibles.remaining - 1
-    )
+    val afterSecond = afterFirstCollection.collect(basic.position)
+    assert(afterSecond.element.isEmpty)
+    assert(afterSecond.left.remaining == collectibles.remaining - 1)
   }
 
   test(
@@ -87,10 +73,6 @@ class CollectiblesTest extends AnyFunSuite:
 
   test("what is placed on the map is what was put there") {
     assert(collectibles.placed == Set(basic, anotherBasic, bonus))
-  }
-
-  test("what was collected is no longer placed on the map") {
-    assert(!collectibles.collect(basic.position).left.placed.contains(basic))
   }
 
   test("a map holding no standard collectible is complete from the start") {

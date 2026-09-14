@@ -38,12 +38,12 @@ object Main extends JFXApp3:
 
   private var application = Application(
     GameFilesEnvironment.ofUser(PropertiesGameSaveRepository()),
-    showing,
+    createGameRenderer,
     ModeTuning.standardModes
   )
 
-  private var board: Option[GameBoard] = None
-  private var veiled: Option[Screen] = None
+  private var gameBoard: Option[GameBoard] = None
+  private var displayedScreen: Option[Screen] = None
 
   override def start(): Unit =
     stage = new JFXApp3.PrimaryStage:
@@ -51,61 +51,65 @@ object Main extends JFXApp3:
       maximized = true
       scene = new Scene:
         fill = Color.web(Style.Night)
-        root = menu
+        root = createMenu()
         // The filter runs before focused controls consume arrow keys.
-        filterEvent(KeyEvent.KeyPressed) { (event: KeyEvent) => steering(event) }
-    AnimationTimer(framed).start()
+        filterEvent(KeyEvent.KeyPressed) { (event: KeyEvent) => handleKeyPress(event) }
+    AnimationTimer(onAnimationFrame).start()
 
-  private def asked(command: Command): Unit = became(application.commanded(command))
+  /** Entry point for every command emitted by the menu, board, or keyboard. */
+  private def handleCommand(command: Command): Unit =
+    applyApplicationState(application.handleCommand(command))
 
   /** Advances the application state on each JavaFX animation frame. */
-  private def framed(now: Long): Unit =
-    became(application.advancedToFrame(now))
-    application.playing.foreach(covered)
+  private def onAnimationFrame(now: Long): Unit =
+    applyApplicationState(application.advancedToFrame(now))
+    application.playing.foreach(updateGameOverlay)
 
-  private def became(next: Application): Unit =
-    if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = menu
+  /** Makes a new immutable application state visible in the JavaFX shell. */
+  private def applyApplicationState(next: Application): Unit =
+    if application.playing.isDefined && next.playing.isEmpty then stage.scene().root = createMenu()
     application = next.noticed
-    next.notice.foreach(announced)
+    next.notice.foreach(showNotice)
 
-  private def showing(maze: ValidatedMap): RenderListener[LevelView] =
-    val drawn = GameBoard.fittingScreen(Board.of(maze), asked)
-    board = Some(drawn)
-    stage.scene().root = drawn.node
-    view => drawn.draw(Frame.of(view))
+  /** Creates the board for a level and returns the listener used to redraw each changed view. */
+  private def createGameRenderer(maze: ValidatedMap): RenderListener[LevelView] =
+    val board = GameBoard.fittingScreen(Board.of(maze), handleCommand)
+    gameBoard = Some(board)
+    stage.scene().root = board.node
+    levelView => board.draw(Frame.of(levelView))
 
   // The overlay depends on loop and level state, so it lives outside the level projection.
   // Updating it only when the screen changes preserves the final score after a game ends.
-  private def covered(playing: Playing): Unit =
+  private def updateGameOverlay(playing: Playing): Unit =
     val screen = Screen.of(playing.loop, playing.status, playing.startingIn)
-    if !veiled.contains(screen) then
-      veiled = Some(screen)
-      board.foreach(
+    if !displayedScreen.contains(screen) then
+      displayedScreen = Some(screen)
+      gameBoard.foreach(
         _.cover(Overlay.of(screen, StatusBar.of(LevelView.of(playing.session.level))))
       )
 
-  private def menu: scalafx.scene.Parent =
+  private def createMenu(): scalafx.scene.Parent =
     MenuScreen(
       application.mazes,
       application.bestOn,
       application.playerName,
       application.savesFolder,
-      asked
+      handleCommand
     ).node
 
   /** Handles movement keys before focused controls use arrows for navigation. */
-  private def steering(event: KeyEvent): Unit =
-    if CommandMapper.isPauseKey(event.code.toString) then asked(Command.Pause)
+  private def handleKeyPress(event: KeyEvent): Unit =
+    if CommandMapper.isPauseKey(event.code.toString) then handleCommand(Command.Pause)
     else
       for
         direction <- CommandMapper.toDir(event.code.toString)
-        if application.steerable
+        if application.acceptsDirectionInput
       do
-        application = application.steered(direction)
+        application = application.requestDirection(direction)
         event.consume()
 
   // A modal wait cannot be opened while an animation frame is being processed.
-  private def announced(notice: ApplicationNotice): Unit =
+  private def showNotice(notice: ApplicationNotice): Unit =
     notice match
       case ApplicationNotice.Error(message) =>
         new Alert(Alert.AlertType.Error):

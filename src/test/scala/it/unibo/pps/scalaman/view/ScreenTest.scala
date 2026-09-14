@@ -10,7 +10,7 @@ class ScreenTest extends AnyFunSuite:
     assert(Screen.of(LoopState.Running, Running, Some(3)) == Screen.Starting(3))
   }
 
-  test("a game about to go is still counting down") {
+  test("a countdown that reached zero is still not a game being played") {
     assert(Screen.of(LoopState.Running, Running, Some(0)) == Screen.Starting(0))
   }
 

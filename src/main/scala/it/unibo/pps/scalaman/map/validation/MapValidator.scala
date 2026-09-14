@@ -1,8 +1,6 @@
 package it.unibo.pps.scalaman.map.validation
 
 import it.unibo.pps.scalaman.model.Position
-import scala.annotation.tailrec
-import scala.collection.immutable.Queue
 import it.unibo.pps.scalaman.model.map.Tile
 import it.unibo.pps.scalaman.model.map.EnemyKind
 import it.unibo.pps.scalaman.model.map.MapCell
@@ -30,23 +28,27 @@ object MapValidator:
       val teleportValidation = pairTeleports(inspection.teleportPositions)
       val allStructuralErrors = structuralErrors ++ teleportValidation.errors
 
-      if allStructuralErrors.nonEmpty then Left(allStructuralErrors)
-      else
-        val reachable =
-          reachablePositions(map, inspection.spawnPositions.head, teleportValidation.pairs)
-        val reachabilityIssues = reachabilityProblems(inspection, reachable)
-
-        if reachabilityIssues.nonEmpty then Left(reachabilityIssues)
-        else
-          Right(
-            ValidatedMap(
-              raw = map,
-              spawn = inspection.spawnPositions.head,
-              collectibles = inspection.collectibles.toSet,
-              enemies = inspection.enemies.toSet,
-              teleports = teleportValidation.pairs
-            )
+      inspection.spawnPositions match
+        case Vector(spawn) if allStructuralErrors.isEmpty =>
+          val reachable = MapReachability.from(
+            spawn = spawn,
+            map = map,
+            teleports = teleportValidation.pairs
           )
+          val reachabilityIssues = reachabilityProblems(inspection, reachable)
+
+          if reachabilityIssues.nonEmpty then Left(reachabilityIssues)
+          else
+            Right(
+              ValidatedMap(
+                raw = map,
+                spawn = spawn,
+                collectibles = inspection.collectibles.toSet,
+                enemies = inspection.enemies.toSet,
+                teleports = teleportValidation.pairs
+              )
+            )
+        case _ => Left(allStructuralErrors)
 
   private def hasInvalidDimensions(map: RawMap): Boolean =
     map.height <= 0 || map.width <= 0 || map.rows.exists(_.length != map.width)
@@ -93,9 +95,10 @@ object MapValidator:
     val occurrences = startPositions.size + pairedPositions.size
 
     if occurrences == 0 then PairResult.empty
-    else if startPositions.size == 1 && pairedPositions.size == 1 then
-      PairResult(Nil, Some(code -> (startPositions.head, pairedPositions.head)))
-    else PairResult(List(MapValidationError.InvalidTeleportPair(code, occurrences)), None)
+    else
+      (startPositions, pairedPositions) match
+        case (Vector(start), Vector(paired)) => PairResult(Nil, Some(code -> (start, paired)))
+        case _ => PairResult(List(MapValidationError.InvalidTeleportPair(code, occurrences)), None)
 
   private def reachabilityProblems(
       inspection: Inspection,
@@ -121,53 +124,6 @@ object MapValidator:
     enemies
       .filterNot(enemy => reachable.contains(enemy.position))
       .sortBy(enemy => (enemy.position.row, enemy.position.col))
-
-  private def reachablePositions(
-      map: RawMap,
-      spawn: Position,
-      teleports: Map[Int, (Position, Position)]
-  ): Set[Position] =
-    val teleportLinks = teleportLinksFrom(teleports)
-    explore(map, teleportLinks, Queue(spawn), Set(spawn))
-
-  @tailrec
-  private def explore(
-      map: RawMap,
-      teleportLinks: Map[Position, Position],
-      frontier: Queue[Position],
-      visited: Set[Position]
-  ): Set[Position] =
-    frontier.dequeueOption match
-      case None                       => visited
-      case Some((current, remaining)) =>
-        val nextPositions =
-          adjacentPositions(map, current, teleportLinks).filterNot(visited.contains)
-        explore(map, teleportLinks, remaining.enqueueAll(nextPositions), visited ++ nextPositions)
-
-  private def adjacentPositions(
-      map: RawMap,
-      position: Position,
-      teleportLinks: Map[Position, Position]
-  ): Vector[Position] =
-    orthogonalNeighbors(position).filter(isWalkable(map, _)) ++ teleportLinks.get(position)
-
-  private def orthogonalNeighbors(position: Position): Vector[Position] =
-    Vector(
-      Position(position.row - 1, position.col),
-      Position(position.row + 1, position.col),
-      Position(position.row, position.col - 1),
-      Position(position.row, position.col + 1)
-    )
-
-  def isWalkable(map: RawMap, position: Position): Boolean =
-    map.cellAt(position).exists(_.isWalkable)
-
-  private def teleportLinksFrom(
-      teleports: Map[Int, (Position, Position)]
-  ): Map[Position, Position] =
-    teleports.valuesIterator.flatMap { case (left, right) =>
-      Iterator(left -> right, right -> left)
-    }.toMap
 
   private final case class Inspection(
       spawnPositions: Vector[Position],

@@ -65,6 +65,7 @@ object SpriteImages:
     picture
 
   // The files are far larger than any cell, and are decoded once at a size worth keeping in memory.
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   private def read(file: String): Image =
     Image(
       Option(getClass.getResourceAsStream(file))
