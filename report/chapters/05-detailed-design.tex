@@ -19,6 +19,25 @@ it can keep a state of its own. The second is the requirement that the behavior 
 This led to each of them being expressed as something to be implemented: a new mode or a new enemy behavior is written
 on its own, leaving the rules already written untouched.
 
+\begin{center}
+  \small
+  \begin{tabular}{|p{3cm}|p{3.4cm}|p{5.2cm}|}
+    \hline
+    \textbf{Concern} & \textbf{Design element} & \textbf{Guarantee} \\
+    \hline
+    Invalid external input & \texttt{Either} and error ADTs & A malformed map or save never becomes a playable value. \\
+    \hline
+    Deterministic updates & \texttt{LevelState} and update pipeline & A tick is an ordered transition from one immutable level to the next. \\
+    \hline
+    Variable game rules & Strategies and mode policies & A new enemy behaviour or mode remains local to its implementation. \\
+    \hline
+    Graphical rendering & \texttt{LevelView} projection and \texttt{Rendering} & The view receives drawing data, never the mutable game process. \\
+    \hline
+    Files and persistence & Ports and adapters & Storage formats and paths remain outside controller policy and domain rules. \\
+    \hline
+  \end{tabular}
+\end{center}
+
 \subsection{Value objects and semantics}
 
 Everything in the model is a value, something entirely defined by its contents, using which it can be compared to other
@@ -209,6 +228,12 @@ ordered sequence of functions \texttt{S => S}. Its \texttt{tick} method folds th
 collision and teleport resolution, collection, effect expiration, and final reconciliation. The order is declared in
 one place and can be tested separately from every individual rule.
 
+\begin{center}
+  \small
+  \texttt{AI} $\rightarrow$ \texttt{movement} $\rightarrow$ \texttt{collisions and teleports} $\rightarrow$
+  \texttt{collection} $\rightarrow$ \texttt{effects} $\rightarrow$ \texttt{next player step}
+\end{center}
+
 For a level, stages are guarded after terminal states, so later stages cannot accidentally revive a defeated game or
 collect an item after victory. Input is intentionally recorded between ticks as a requested direction; the final stage
 starts that movement only when the player is stationary and the requested cell is walkable. The result is a deterministic
@@ -251,6 +276,12 @@ file I/O and returns a load error on unreadable input. \texttt{MapParser} conver
 \texttt{RawMap}, reporting syntactic errors such as an empty file, ragged rows, or unsupported characters.
 \texttt{MapValidator} then checks gameplay invariants and returns a \texttt{ValidatedMap}, the only map accepted by
 the playing model.
+
+\begin{center}
+  \small
+  \texttt{UTF-8 file} $\rightarrow$ \texttt{MapLoader} $\rightarrow$ \texttt{MapParser} $\rightarrow$
+  \texttt{RawMap} $\rightarrow$ \texttt{MapValidator} $\rightarrow$ \texttt{ValidatedMap}
+\end{center}
 
 Validation inspects the raw grid once to collect spawns, collectibles, enemies, and teleport endpoints. Structural
 errors are accumulated, so a map author can correct all independent problems in one pass. When the structure is sound,
