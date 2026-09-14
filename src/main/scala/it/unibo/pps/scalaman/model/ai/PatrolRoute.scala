@@ -7,6 +7,9 @@ import it.unibo.pps.scalaman.model.map.ValidatedMap
 final case class PatrolRoute private (corners: Vector[Position]):
   require(corners.sizeIs >= 2, "a patrol route needs at least two corners")
 
+  /** The first corner in the patrol round. */
+  def first: Position = corners(0)
+
   /** The corner made for after the given one, back to the first once the round is over. */
   def nextAfter(corner: Position): Option[Position] =
     val index = corners.indexOf(corner)

@@ -69,21 +69,23 @@ object EnemyMovement:
     frontier.dequeueOption match
       case None                    => None
       case Some((path, remaining)) =>
-        val current = path.last
-        if current == target then Some(path)
-        else
-          val nextPositions =
-            // An enemy that has just left a teleport must step away before using it again.
-            orderedMoves(
-              current,
-              map,
-              canUseTeleportAtOrigin || path.size > 1
-            ).filterNot(visited.contains)
-          val nextPaths = nextPositions.map(position => path :+ position)
-          explore(
-            target,
-            map,
-            remaining.enqueueAll(nextPaths),
-            visited ++ nextPositions,
-            canUseTeleportAtOrigin
-          )
+        path.lastOption match
+          case None          => explore(target, map, remaining, visited, canUseTeleportAtOrigin)
+          case Some(current) =>
+            if current == target then Some(path)
+            else
+              val nextPositions =
+                // An enemy that has just left a teleport must step away before using it again.
+                orderedMoves(
+                  current,
+                  map,
+                  canUseTeleportAtOrigin || path.size > 1
+                ).filterNot(visited.contains)
+              val nextPaths = nextPositions.map(position => path :+ position)
+              explore(
+                target,
+                map,
+                remaining.enqueueAll(nextPaths),
+                visited ++ nextPositions,
+                canUseTeleportAtOrigin
+              )
