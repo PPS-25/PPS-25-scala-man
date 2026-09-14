@@ -7,14 +7,17 @@ sequenceDiagram
   participant Level as LevelState pipeline
   participant Rendering
   participant Board as GameBoard
+  participant Environment
 
-  Main->>Application: advancedToFrame(now: Long)
+  Main->>Application: advancedToFrame(now)
   Application->>Session: advancedToFrame(now)
-  alt paused or lead-in active
+  alt paused
     Session-->>Application: unchanged session
+  else counting down before the game starts
+    Session-->>Session: shorten the wait
   else running
-    Session->>Level: LevelState.pipeline(delta).tick(level)
-    Note over Session,Level: delta is clamped to LongestStep = 50 ms
+    Session->>Level: tick(delta)
+    Note over Session,Level: delta never negative and never more than 50 ms
     rect rgb(245, 245, 245)
       Level->>Level: EnemyAiStage.stage
       Level->>Level: ticking(delta).movingOn(delta)
@@ -28,4 +31,7 @@ sequenceDiagram
     Rendering->>Board: LevelView snapshot
   end
   Session-->>Application: updated session
+  opt game just ended
+    Application-->>Environment: record the result
+  end
   Application-->>Main: updated application

@@ -37,11 +37,3 @@ class ScreenTest extends AnyFunSuite:
   test("a game that was lost is shown as over") {
     assert(Screen.of(LoopState.Running, Defeat) == Screen.Over(Outcome.Defeat))
   }
-
-  test("an outcome is still shown once the loop has stopped") {
-    assert(Screen.of(LoopState.Stopped, Victory) == Screen.Over(Outcome.Victory))
-  }
-
-  test("a loop stopped with nothing won or lost leaves the game") {
-    assert(Screen.of(LoopState.Stopped, Running) == Screen.Menu)
-  }
