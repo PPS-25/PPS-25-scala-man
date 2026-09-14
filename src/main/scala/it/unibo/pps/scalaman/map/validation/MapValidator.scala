@@ -30,23 +30,23 @@ object MapValidator:
       val teleportValidation = pairTeleports(inspection.teleportPositions)
       val allStructuralErrors = structuralErrors ++ teleportValidation.errors
 
-      if allStructuralErrors.nonEmpty then Left(allStructuralErrors)
-      else
-        val reachable =
-          reachablePositions(map, inspection.spawnPositions.head, teleportValidation.pairs)
-        val reachabilityIssues = reachabilityProblems(inspection, reachable)
+      inspection.spawnPositions match
+        case Vector(spawn) if allStructuralErrors.isEmpty =>
+          val reachable = reachablePositions(map, spawn, teleportValidation.pairs)
+          val reachabilityIssues = reachabilityProblems(inspection, reachable)
 
-        if reachabilityIssues.nonEmpty then Left(reachabilityIssues)
-        else
-          Right(
-            ValidatedMap(
-              raw = map,
-              spawn = inspection.spawnPositions.head,
-              collectibles = inspection.collectibles.toSet,
-              enemies = inspection.enemies.toSet,
-              teleports = teleportValidation.pairs
+          if reachabilityIssues.nonEmpty then Left(reachabilityIssues)
+          else
+            Right(
+              ValidatedMap(
+                raw = map,
+                spawn = spawn,
+                collectibles = inspection.collectibles.toSet,
+                enemies = inspection.enemies.toSet,
+                teleports = teleportValidation.pairs
+              )
             )
-          )
+        case _ => Left(allStructuralErrors)
 
   private def hasInvalidDimensions(map: RawMap): Boolean =
     map.height <= 0 || map.width <= 0 || map.rows.exists(_.length != map.width)
@@ -93,9 +93,10 @@ object MapValidator:
     val occurrences = startPositions.size + pairedPositions.size
 
     if occurrences == 0 then PairResult.empty
-    else if startPositions.size == 1 && pairedPositions.size == 1 then
-      PairResult(Nil, Some(code -> (startPositions.head, pairedPositions.head)))
-    else PairResult(List(MapValidationError.InvalidTeleportPair(code, occurrences)), None)
+    else
+      (startPositions, pairedPositions) match
+        case (Vector(start), Vector(paired)) => PairResult(Nil, Some(code -> (start, paired)))
+        case _ => PairResult(List(MapValidationError.InvalidTeleportPair(code, occurrences)), None)
 
   private def reachabilityProblems(
       inspection: Inspection,

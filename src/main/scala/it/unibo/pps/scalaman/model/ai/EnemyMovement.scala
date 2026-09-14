@@ -67,20 +67,22 @@ object EnemyMovement:
     frontier.dequeueOption match
       case None                    => None
       case Some((path, remaining)) =>
-        val current = path.last
-        if current == target then Some(path)
-        else
-          val nextPositions =
-            validMovesInOrder(
-              current,
-              map,
-              teleportDisabled && path.size == 1
-            ).filterNot(visited.contains)
-          val nextPaths = nextPositions.map(position => path :+ position)
-          explore(
-            target,
-            map,
-            remaining.enqueueAll(nextPaths),
-            visited ++ nextPositions,
-            teleportDisabled
-          )
+        path.lastOption match
+          case None => explore(target, map, remaining, visited, teleportDisabled)
+          case Some(current) =>
+            if current == target then Some(path)
+            else
+              val nextPositions =
+                validMovesInOrder(
+                  current,
+                  map,
+                  teleportDisabled && path.size == 1
+                ).filterNot(visited.contains)
+              val nextPaths = nextPositions.map(position => path :+ position)
+              explore(
+                target,
+                map,
+                remaining.enqueueAll(nextPaths),
+                visited ++ nextPositions,
+                teleportDisabled
+              )

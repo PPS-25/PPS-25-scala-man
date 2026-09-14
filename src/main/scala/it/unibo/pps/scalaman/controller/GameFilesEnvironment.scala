@@ -26,6 +26,7 @@ import java.io.IOException
 import java.nio.file.{Files, Path}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
@@ -129,12 +130,14 @@ object GameFilesEnvironment:
   private def nextSavePath(folder: Path, by: Played, now: LocalDateTime): Path =
     val timestamp = now.format(SaveTimestamp)
     val stem = s"${by.maze.map(_.value).getOrElse(Unnamed)}-${plainly(by.player.value)}-$timestamp"
-    Iterator
-      .from(0)
-      .map(index => if index == 0 then s"$stem.properties" else s"$stem-$index.properties")
-      .map(folder.resolve)
-      .find(path => !Files.exists(path))
-      .get
+    nextAvailableSavePath(folder, stem, 0)
+
+  @tailrec
+  private def nextAvailableSavePath(folder: Path, stem: String, index: Int): Path =
+    val name = if index == 0 then s"$stem.properties" else s"$stem-$index.properties"
+    val candidate = folder.resolve(name)
+    if Files.exists(candidate) then nextAvailableSavePath(folder, stem, index + 1)
+    else candidate
 
   private def plainly(name: String): String =
     name.map(letter => if letter.isLetterOrDigit then letter else '-')
