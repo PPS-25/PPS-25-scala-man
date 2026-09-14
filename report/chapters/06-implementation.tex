@@ -243,6 +243,13 @@ into \texttt{LevelState.pipeline}, so tests may replace it without constructing 
 
 \begin{figure}
   \centering
+  \includegraphics[width=0.96\textwidth]{../docs/uml/EnemyAiDecision.pdf}
+  \caption{Enemy AI separates orchestration, strategy selection, immutable decision context, and shared navigation.
+  A strategy proposes a position; only the stage turns that proposal into entity movement.}
+\end{figure}
+
+\begin{figure}
+  \centering
   \includegraphics[width=0.92\textwidth]{../docs/uml/TickPipeline.pdf}
   \caption{The AI stage is the first domain stage of a tick. It proposes movement; later stages retain responsibility
   for movement progress, collisions, teleports, collection, effects, and the next player request.}
@@ -254,6 +261,18 @@ The common \texttt{EnemyMovement} module contains the navigation policy shared b
 walkable neighbours in a fixed order and uses a tail-recursive breadth-first search over immutable
 \texttt{Queue}, \texttt{Vector}, and \texttt{Set} values. The first discovered path is therefore a shortest path,
 and equal alternatives are resolved deterministically rather than by timing or randomness.
+
+\begin{lstlisting}
+private[ai] def orderedMoves(
+    from: Position, map: ValidatedMap, canUseTeleport: Boolean
+): Vector[Position] =
+  orthogonalNeighbors(from).filter(map.isWalkable) ++
+    Option.when(canUseTeleport)(teleportDestination(from, map)).flatten.toVector
+\end{lstlisting}
+
+The \texttt{Vector} order---up, down, left, right, then a permitted teleport---is also the tie-breaking order used by
+the breadth-first search. The conversion to a set occurs only in the public \texttt{validMoves} query, where ordering
+is not part of the result contract.
 
 \texttt{DirectPursuitStrategy} takes the first step of that shortest path towards the player's current cell.
 \texttt{PlayerAnticipationStrategy} derives a unit direction from the player's current and previous cells, projects
