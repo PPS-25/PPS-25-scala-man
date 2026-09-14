@@ -16,56 +16,64 @@ import scalafx.stage.FileChooser
 import java.io.IOException
 import java.nio.file.{Files, Path}
 
-/** The screen a game is started from: who is playing, on which maze, and how others did on it. */
+/** The screen a game is started from: who is playing, on which maze, and how others did on it.
+  *
+  * It emits [[Command]] values through `handleCommand`; it never accesses application state
+  * directly.
+  */
 final class MenuScreen(
-    offered: Seq[MapName],
-    bestOn: (MapName, LeaderboardMode) => Leaderboard,
-    playerName: Option[PlayerName],
+    availableMazes: Seq[MapName],
+    leaderboardFor: (MapName, LeaderboardMode) => Leaderboard,
+    initialPlayerName: Option[PlayerName],
     savesFolder: Path,
-    chosen: Command => Unit
+    handleCommand: Command => Unit
 ):
 
   import MenuScreen.*
 
-  private val player = new TextField:
+  private val playerNameField = new TextField:
     promptText = s"Your name (max $MaxNameLength)"
     maxWidth = FieldWidth
-    text = playerName.fold("")(_.value)
+    text = initialPlayerName.fold("")(_.value)
 
-  private val modes = new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
-    maxWidth = FieldWidth
-    prefWidth = FieldWidth
-    value = ModeChoice.Normal
+  private val gameModeSelector =
+    new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
+      maxWidth = FieldWidth
+      prefWidth = FieldWidth
+      value = ModeChoice.Normal
 
-  private val mazes = new ListView[String](ObservableBuffer.from(offered.map(_.value))):
-    maxWidth = FieldWidth
-    maxHeight = ListHeight
+  private val mazeSelector =
+    new ListView[String](ObservableBuffer.from(availableMazes.map(_.value))):
+      maxWidth = FieldWidth
+      maxHeight = ListHeight
 
-  private val standings = new Button("View leaderboard"):
+  private val leaderboardButton = new Button("View leaderboard"):
     style = Style.button
     onAction = _ => showStandings()
 
-  private val play = new Button("Play"):
+  private val playButton = new Button("Play"):
     onAction = _ =>
-      chosenMap.foreach(maze => chosen(Command.StartGame(maze, PlayerName(named), chosenMode)))
+      selectedMaze.foreach(maze =>
+        handleCommand(Command.StartGame(maze, PlayerName(playerName), selectedMode))
+      )
     style = Style.button
     defaultButton = true
 
-  private val loadMap = new Button("Load map..."):
+  private val loadMapButton = new Button("Load map..."):
     onAction = _ =>
-      picked("Open a maze").foreach(path =>
-        chosen(Command.LoadMap(path, PlayerName(named), chosenMode))
+      selectedFile("Open a maze").foreach(path =>
+        handleCommand(Command.LoadMap(path, PlayerName(playerName), selectedMode))
       )
     style = Style.button
 
-  private val loadSave = new Button("Load game..."):
+  private val loadSaveButton = new Button("Load game..."):
     onAction = _ =>
-      picked("Open a saved game", Some(savesFolder)).foreach(path =>
-        chosen(Command.LoadSave(path, PlayerName(named)))
+      selectedFile("Open a saved game", Some(savesFolder)).foreach(path =>
+        handleCommand(Command.LoadSave(path, PlayerName(playerName)))
       )
     style = Style.button
 
-  private val bonuses = new HBox:
+  private val bonusPreview = new HBox:
     alignment = Pos.Center
     spacing = SpacedBy
     children = BonusEffect.values.toSeq.map(effect =>
@@ -79,12 +87,12 @@ final class MenuScreen(
     fitWidth = LogoWidth
     preserveRatio = true
 
-  mazes.selectionModel().selectFirst()
-  player.text.onChange((_, _, entered) =>
+  mazeSelector.selectionModel().selectFirst()
+  playerNameField.text.onChange((_, _, entered) =>
     val limited = limitedName(entered)
-    if entered != limited then player.text = limited else refuseEmptyName()
+    if entered != limited then playerNameField.text = limited else updateButtonsForPlayerName()
   )
-  refuseEmptyName()
+  updateButtonsForPlayerName()
 
   /** What to put on a scene to choose a game. */
   val node: Parent = new VBox:
@@ -94,43 +102,45 @@ final class MenuScreen(
     style = Style.menu
     children = Seq(
       logo,
-      bonuses,
-      player,
-      modes,
-      mazes,
+      bonusPreview,
+      playerNameField,
+      gameModeSelector,
+      mazeSelector,
       new HBox:
         alignment = Pos.Center
         spacing = SpacedBy
-        children = Seq(play, standings, loadMap, loadSave)
+        children = Seq(playButton, leaderboardButton, loadMapButton, loadSaveButton)
     )
 
-  private def named: String = player.text().trim
+  private def playerName: String = playerNameField.text().trim
 
-  private def chosenMode: ModeChoice = modes.value()
+  private def selectedMode: ModeChoice = gameModeSelector.value()
 
-  private def chosenMap: Option[MapName] =
-    Option(mazes.selectionModel().getSelectedItem).map(MapName.apply)
+  private def selectedMaze: Option[MapName] =
+    Option(mazeSelector.selectionModel().getSelectedItem).map(MapName.apply)
 
-  private def refuseEmptyName(): Unit =
-    Seq(play, loadMap, loadSave).foreach(_.disable = named.isEmpty)
+  private def updateButtonsForPlayerName(): Unit =
+    Seq(playButton, loadMapButton, loadSaveButton).foreach(_.disable = playerName.isEmpty)
 
-  private def showStandings(): Unit = chosenMap.foreach(maze =>
-    val mode = LeaderboardMode.of(chosenMode)
+  private def showStandings(): Unit = selectedMaze.foreach(maze =>
+    val mode = LeaderboardMode.of(selectedMode)
     LeaderboardWindow.open(
-      offered,
+      availableMazes,
       LeaderboardSelection(maze, mode),
-      bestOn,
+      leaderboardFor,
       node.scene().window()
     )
   )
 
-  private def picked(asked: String, from: Option[Path] = None): Option[Path] =
+  private def selectedFile(dialogTitle: String, initialFolder: Option[Path] = None): Option[Path] =
     val chooser = new FileChooser:
-      title = asked
-    from.flatMap(readyFolder).foreach(folder => chooser.initialDirectory = folder.toFile)
+      title = dialogTitle
+    initialFolder
+      .flatMap(availableFolder)
+      .foreach(folder => chooser.initialDirectory = folder.toFile)
     Option(chooser.showOpenDialog(node.scene().window())).map(_.toPath)
 
-  private def readyFolder(folder: Path): Option[Path] =
+  private def availableFolder(folder: Path): Option[Path] =
     try Some(Files.createDirectories(folder))
     catch case _: IOException => None
 

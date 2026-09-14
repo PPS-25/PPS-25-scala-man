@@ -12,18 +12,18 @@ class GameBoard {
 <<view>>
 }
 class Application {
-<<controller>>
-- environment: GameEnvironment
-- playing: Option~Playing~
-+ commanded(command) Application
-+ advancedToFrame(now) Application
+  <<controller>>
+  - environment: GameEnvironment
+  - playing: Option~Playing~
+  + handleCommand(command) Application
+  + advancedToFrame(now) Application
 }
 class GameSession {
-<<controller>>
-- ticked: Ticked~LevelState, LevelView~
-- loop: GameLoop
-+ advancedToFrame(now) GameSession
-+ requestingDirection(direction) GameSession
+  <<controller>>
+  - stateWithRendering: Ticked~LevelState, LevelView~
+  - loop: GameLoop
+  + advancedToFrame(now) GameSession
+  + requestDirection(direction) GameSession
 }
 class GameEnvironment {
 <<interface>>
