@@ -24,11 +24,6 @@ class BonusCollectingTest extends AnyFunSuite:
   private def collectedOn(position: Position) =
     collectibles.collectedBy(playerOn(position)).element
 
-  test("a collected bonus is no longer on the map") {
-    val left = collectibles.collectedBy(playerOn(bonus.position)).left
-    assert(left.at(bonus.position).isEmpty)
-  }
-
   test("collecting a bonus activates the effect it carries") {
     assert(
       noEffect

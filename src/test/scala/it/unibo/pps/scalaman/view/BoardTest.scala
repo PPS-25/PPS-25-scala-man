@@ -9,22 +9,16 @@ import it.unibo.pps.scalaman.model.LevelTestSupport.{
 import it.unibo.pps.scalaman.model.Position
 import it.unibo.pps.scalaman.map.parser.MapParser
 import it.unibo.pps.scalaman.map.validation.MapValidator
-import it.unibo.pps.scalaman.model.map.ValidatedMap
+import it.unibo.pps.scalaman.model.map.{MapTestSupport, ValidatedMap}
 import org.scalatest.funsuite.AnyFunSuite
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
-
-class BoardTest extends AnyFunSuite:
+class BoardTest extends AnyFunSuite with MapTestSupport:
 
   private val board = Board.of(maze)
 
   /** The furthest teleport pair a map may hold, the last one to be given a look of its own. */
   private def furthestTeleports: ValidatedMap =
-    val text = Files.readString(
-      Paths.get(getClass.getResource("/maps/valid/teleport-pairs/4-9.txt").toURI),
-      StandardCharsets.UTF_8
-    )
+    val text = resourceText("valid/teleport-pairs/4-9.txt")
     MapParser.parse(text).flatMap(MapValidator.validate).toOption.get
 
   test("a wall is drawn where the maze has one") {
