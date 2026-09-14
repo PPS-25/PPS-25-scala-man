@@ -400,6 +400,8 @@ When storing a game result, the leaderboard that is to receive it is first read 
 the new game result, and finally saved to the storage once again, as a simple line append to the file would preserve
 neither the order nor the cap of the leaderboard.
 
-In case of a malformed leaderboard read, a failure is reported naming the first faulty line found. A missing
-leaderboard file is not treated as failure: no game has yet been recorded on that maze in that mode, so the answer
-is an empty leaderboard, which behaves as any other.
+At the storage boundary, a malformed leaderboard read is a failure naming the first faulty line found. The production
+environment presents an unreadable leaderboard requested from the menu as empty, so an optional ranking cannot prevent
+the game from being played; recording through that same storage still reports the failure. A missing leaderboard file
+is not a failure: no game has yet been recorded on that maze in that mode, so the answer is an empty leaderboard,
+which behaves as any other.

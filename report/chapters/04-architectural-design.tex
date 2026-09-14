@@ -77,7 +77,8 @@ game through a file dialog, which yields a path.
   window, installs the \textbf{key filter} and starts the \textbf{timer}, and holds the reference to the current
   state of the application. Keyboard input is mapped to directions or commands, while every screen control emits a
   command through the same entry point. On a frame, it hands the application that frame's timestamp, receives the
-  application as it then stands, and draws it. When a game ends, it shows the menu on screen.
+  application as it then stands, and draws it. When a game reaches a terminal outcome, it shows the corresponding
+  board overlay; the menu is restored only when the player chooses to return to it.
   \item \textbf{Application} is the state of the program as a whole: whether a menu is showing or a game is being played,
   and what the player was last told. It interprets \textbf{commands} that the interface raises, asks for the
   necessary resources, and decides when a game result is to be recorded in the leaderboard. It exchanges commands and
@@ -89,21 +90,25 @@ game through a file dialog, which yields a path.
   hands to the model's update pipeline, never negative and never more than fifty milliseconds, so that a frame
   the machine was slow over will not lead to a bonus expiring, a survival difficulty jump and consume a timed game's limit
   in one step.
-  Each advance notifies the interface of the level that resulted. A session that is paused is left untouched.
+  An advance notifies the interface only when the resulting level projection changes visibly. While paused, the level
+  and countdown are left unchanged, although the session refreshes its last-frame timestamp so the pause duration is
+  not advanced on resume.
   \item \textbf{Environment} is how the application reaches everything outside itself: the mazes it can offer, a maze read from
   a file of the player, the name last played under, games put away and taken up again, and the results recorded on a maze
-  in a mode. Every request names what is wanted rather than where it is kept, and what comes back is either that or a
-  sentence explaining why not. It is the one seam at which the entirety of the outside can be replaced during testing.
+  in a mode. Operations that may fail return either the requested value or a sentence explaining why not; read-only
+  queries that cannot fail return their value directly. It is the one seam at which the entirety of the outside can be
+  replaced during testing.
   \item \textbf{View} is the graphical interface: the \textbf{menu} for choosing a name, a maze and a mode, the \textbf{board}
   on which a game is drawn, the \textbf{overlay} shown when a game is paused or has ended, the \textbf{window}
   listing recorded results. It receives\textbf{ level views} and raises, from its buttons, the choices a player
   makes, that are starting, loading, pausing, restarting, saving and returning to the menu.
   \item \textbf{Level and update pipeline}. This is the heart of the core. A level is the whole state of a game at one instant.
   The pipeline is the fixed sequence of stages, each a function from one state to the next, run in a fixed order:
-  input, enemy decisions, movement, collisions and teleports, gathering, effects, and a final reconciliation. It
-  is generic in the state it carries, so the order is fixed once and says nothing about what level it is. A level
-  supplies the stages that give each step its meaning, with the duration to advance by already built into them,
-  leaving a tick a plain function from a level to the level that follows.
+  enemy decisions, movement, collisions and teleports, gathering, effects, and the next player step. Input is
+  recorded between ticks as a requested direction and is considered by that final stage. The pipeline is generic in
+  the state it carries, so the order is fixed once and says nothing about what level it is. A level supplies the
+  stages that give each step its meaning, with the duration to advance by already built into them, leaving a tick a
+  plain function from a level to the level that follows.
   \item \textbf{Entities and movement} The player and the enemies: where each stands, which way it faces, and how far through a
   crossing to the next cell it is. An entity knows only how to be moved, and nothing of lives, scores or modes. The movement
   stage of the pipeline hands it the duration to advance by, the collision stage reads the cell entities occupy and those they

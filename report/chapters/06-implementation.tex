@@ -169,10 +169,10 @@ map handling into three steps with different responsibilities:
   a list of semantic errors.
 \end{enumerate}
 
-The resulting types make an invalid intermediate state visible at the boundary. \texttt{RawMap} is deliberately not
-accepted by \texttt{LevelState}; only a \texttt{ValidatedMap}, containing the unique player spawn, enemy spawns,
-collectibles, and paired teleports, can start a level. The application composes the pure stages with \texttt{Either},
-turning domain errors into actionable messages only at the file-system boundary:
+The resulting types make an invalid intermediate state visible at the boundary. In the standard application flow,
+\texttt{LevelState.from} receives only a \texttt{ValidatedMap}, containing the unique player spawn, enemy spawns,
+collectibles, and paired teleports; the \texttt{RawMap} never reaches level creation. The application composes the
+pure stages with \texttt{Either}, turning domain errors into actionable messages only at the file-system boundary:
 
 \begin{lstlisting}
 private def read(text: String): Either[String, ValidatedMap] =
