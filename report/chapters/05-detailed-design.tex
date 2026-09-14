@@ -1,5 +1,5 @@
 % !TEX root = ../main.tex
-\chapter{Detailed design}
+\chapter{Detailed Design}
 
 This chapter details further the architecture described in the previous one, explaining the choices that shaped each
 part of the obtained design, the patterns those choices led to. The descriptions are divided by the layer they belong to.
@@ -41,9 +41,42 @@ frame allows.
 
 \subsection{Constructing valid values}
 
+The design distinguishes invalid data arriving from outside the game from an invalid state created by the game
+itself. The former is expected and is represented explicitly: parsing and validation return an \texttt{Either} whose
+left side contains domain errors, while absence that is normal, such as an unavailable next move, is represented by
+\texttt{Option}. This keeps malformed map files and save files out of the playing model without using exceptions for
+ordinary input failures.
+
+By contrast, values whose callers are exclusively program code protect their invariants at construction. A timed
+mode requires a positive duration, a survival mode constrains its speed multiplier, an active bonus requires time
+left, and a movement refuses a non-positive crossing time. This is the \textbf{smart constructor} principle applied
+at the smallest useful scope: once a value exists, its clients may rely on its invariant instead of checking it again.
+The leaderboard makes the same choice with a private constructor and a factory that orders and truncates entries.
+
 \subsection{Level State}
 
+\texttt{LevelState} is the aggregate at the centre of the model. It brings together a validated maze, the player and
+enemies, the remaining collectibles, active effects, lives, score, clock, selected mode, and the pending player turn.
+It is a case class, so every transition returns a new whole level rather than mutating one field in place. The value
+therefore gives the update pipeline one stable input and one stable output, and it is also the unit persisted in a save.
+
+The factory \texttt{LevelState.from} is deliberately the only normal way to begin a level. It derives the player,
+enemies, and collectibles from a \texttt{ValidatedMap}, starts the clock and score at their neutral values, and leaves
+no partially initialised level for callers to assemble. Respawning likewise rebuilds only the moving entities while
+retaining the map, score, remaining collectibles, clock, mode, and effects that the rules say survive a collision.
+
 \subsection{Effects}
+
+\texttt{ActiveEffects} models a temporary bonus as an effect mapped to its absolute expiration instant. Asking which
+effects apply, dropping expired effects, and obtaining the remaining duration all take the current game time as an
+argument; the abstraction never reads a clock. Re-granting an already active effect replaces its expiration with a
+full new duration, which states renewal as a simple map update rather than as special lifecycle state.
+
+This representation separates two concerns. The effect collection only knows which effects are active, while the
+consumers decide what an effect means: collision resolution asks whether invulnerability applies, and movement asks
+how much time enemies experience under slowdown. Multiple effects can therefore coexist without one effect knowing
+the rules of another. Persisting remaining durations rather than internal expiration instants also lets a save adapter
+restore the value without exposing its representation.
 
 \subsection{Entities and their movement}
 
@@ -74,14 +107,36 @@ entities standing where each other just was.
 
 \subsection{Enemy behavior}
 
+Enemy variation is isolated behind \texttt{EnemyMovementStrategy}. A strategy receives an immutable
+\texttt{EnemyMovementContext} and returns an optional next position; it neither changes an enemy nor reads the game
+state through a global reference. The context contains exactly the information a decision needs: enemy and player
+positions, previous player position, validated maze, teleport permission, and any strategy-specific remembered target.
+
+The AI stage is responsible for orchestration rather than decision logic. It selects a strategy from the enemy kind,
+builds the context only for idle enemies, records any target the strategy wants to retain, and turns a chosen position
+into an entity movement. Hunter, Anticipator, and Patroller thus vary independently while sharing the same scheduling
+rule. Common navigation lives in \texttt{EnemyMovement}: breadth-first search finds shortest paths through walkable
+cells and teleport links, and a fixed neighbour order makes equal paths deterministic. An enemy that has just left a
+teleport cannot immediately use it again, preventing a bounce between its two ends.
+
 \subsection{Game modes}
+
+\texttt{GameMode} is a domain policy rather than a flag checked throughout the level. Its operations decide the
+current outcome, the scoring rule, any terminal bonus, the time visible to the player, and the amount of time enemies
+experience during an update. \texttt{Normal}, \texttt{Timed}, and \texttt{Survival} therefore share movement,
+collisions, collectibles, and persistence while differing only where their rules differ.
+
+Timed mode adds a positive limit and gives precedence to its expiration over the normal completion rule. Survival
+never yields victory and increases the enemy time multiplier at regular intervals, capped so enemies cannot exceed the
+player's base speed. This arrangement keeps a future mode local: implementing one policy does not require adding
+mode checks to collision, movement, or rendering code.
 
 \subsection{Scoring rules}
 
 Scoring is split across three responsibilities that change for different reasons: what happened, what it is worth in
 points, and how many points have been accumulated so far.
 
-What happened is expressed as a \textbf{scoring event}: collecting a standard item, gathering a bonus item,
+What happened is expressed as a \textbf{scoring event}: collecting a standard collectible, gathering a bonus,
 defeating an enemy, finishing without losing all lives, finishing with time to spare, surviving a number of waves.
 Events are data that is carrying only what is needed to score them: a number of lives, a duration left, a count of
 waves. The model reports that something happened without knowing what it is worth.
@@ -149,6 +204,16 @@ This is a display of the \textbf{null object} pattern, that in this case coincid
 
 \subsection{Ordered updates stages}
 
+The mutable-looking phrase ``game tick'' is represented by \texttt{GameStateUpdatePipeline[S]}, a value holding an
+ordered sequence of functions \texttt{S => S}. Its \texttt{tick} method folds the initial state through AI, movement,
+collision and teleport resolution, collection, effect expiration, and final reconciliation. The order is declared in
+one place and can be tested separately from every individual rule.
+
+For a level, stages are guarded after terminal states, so later stages cannot accidentally revive a defeated game or
+collect an item after victory. Input is intentionally recorded between ticks as a requested direction; the final stage
+starts that movement only when the player is stationary and the requested cell is walkable. The result is a deterministic
+pipeline whose stages can be replaced in tests without introducing a second update mechanism.
+
 \subsection{Game loop and game clock}
 
 A game in progress is governed by two small values which between them decide whether time passes and how much of it has.
@@ -181,15 +246,57 @@ specifically, it is simply a game that is given no time.
 
 \subsection{Reading a maze}
 
+Reading a maze is a boundary pipeline with four deliberately distinct representations. \texttt{MapLoader} performs
+file I/O and returns a load error on unreadable input. \texttt{MapParser} converts supported ASCII symbols into a
+\texttt{RawMap}, reporting syntactic errors such as an empty file, ragged rows, or unsupported characters.
+\texttt{MapValidator} then checks gameplay invariants and returns a \texttt{ValidatedMap}, the only map accepted by
+the playing model.
+
+Validation inspects the raw grid once to collect spawns, collectibles, enemies, and teleport endpoints. Structural
+errors are accumulated, so a map author can correct all independent problems in one pass. When the structure is sound,
+\texttt{MapReachability} performs breadth-first traversal over walkable orthogonal neighbours and bidirectional
+teleport links. Keeping this traversal separate from validation gives the validator the policy decision---which cells
+must be reachable---while the traversal owns only graph exploration.
+
 \section{View}
 
 \subsection{Drawing from a projection}
 
+The view never receives \texttt{LevelState}. \texttt{LevelView.of} projects it to the immutable data needed for
+drawing: interpolable player and enemy movements, placed collectibles, lives, score, active effects, outcome, elapsed
+or remaining time, and selected leaderboard mode. This is a read model, not another game state: it cannot advance a
+clock, move an entity, or observe fields that the interface has no reason to know.
+
+Movement is projected as an origin, destination, progress fraction, and facing direction. The board can therefore
+interpolate a sprite between whole cells while the model continues to reason only about discrete positions. Time is
+rounded at the projection boundary to the precision shown by the status bar; this is also what makes change detection
+meaningful when a frame changes no visible information.
+
 \subsection{Screens and overlays}
+
+\texttt{Screen} is a small sum type derived from loop state, level outcome, and the pre-game countdown. It separates
+what the application is showing---menu, playing board, pause overlay, countdown, victory, or defeat---from both the
+game rules and JavaFX nodes. \texttt{Overlay} maps that screen to presentation text and permitted commands, such as
+resume, restart, save and quit, or return to the menu.
+
+This keeps the UI state declarative. A pause button cannot manufacture an arbitrary overlay: it raises a command, the
+application produces a new state, and the screen and overlay are derived again. The same values are covered by headless
+tests without creating a graphical node.
 
 \section{Controller}
 
 \subsection{The application as a value}
+
+\texttt{Application} is the immutable controller aggregate. It holds the environment port, mode tuning, optional
+playing session, and optional notice for the UI. \texttt{handleCommand} pattern matches a command and returns the
+application that follows: it may start or load a game, delegate an external operation to the environment, pause a
+session, or expose an error notice. The JavaFX shell owns the one mutable reference that replaces its application
+value after each event.
+
+The controller depends on \texttt{GameEnvironment}, an interface naming mazes, saves, player details, and
+leaderboards rather than their file representations. Tests supply an in-memory environment, while
+\texttt{GameFilesEnvironment} is the production adapter. The controller can consequently be exercised as command to
+value transitions, including external failures, with neither a window nor a user directory.
 
 \subsection{From frames to game time}
 
@@ -213,7 +320,26 @@ so if turning is asked just before a corner is taken at the first opening rather
 
 \subsection{Rendering with change detection}
 
+\texttt{Rendering[S, V]} combines a projection from state \texttt{S} to view value \texttt{V}, a sequence of
+listeners, and the last value shown. On notification it projects the current state and invokes listeners only when the
+new projection differs from the previous one. It returns an updated rendering value, so listener registration and the
+last visible snapshot remain explicit instead of hiding mutable observer state.
+
+\texttt{GameSession} owns this rendering together with the level. After a successful pipeline update it asks the
+renderer to notify the board, while an unchanged projection produces no redraw. Rendering is therefore an adapter
+between a pure level update and imperative drawing, not a dependency of the domain model.
+
 \subsection{Adapters design}
+
+The adapters are divided by the external format they understand. \texttt{GameFilesEnvironment} owns the user-data
+layout and coordinates maps, saves, remembered player names, and leaderboards. The save repository encodes a versioned
+properties file containing a copy of the ASCII maze and progress necessary to resume it. Leaderboard storage reads and
+writes text rows through small encoder and decoder abstractions, while map loading, parsing, and validation remain a
+separate pipeline.
+
+Each adapter translates operational failures into domain-facing errors at its boundary. A missing leaderboard is an
+empty value rather than a failure, whereas a malformed save or map returns an actionable explanation. This leaves file
+paths, encodings, and I/O exceptions outside both \texttt{Application} policy and the model.
 
 \subsubsection{Storing a leaderboard}
 
