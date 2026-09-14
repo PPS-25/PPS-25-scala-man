@@ -44,7 +44,7 @@ jobs:
         run: sbt -v compile test
 
       - name: Build fat JAR
-        run: sbt -v -Ddelivery.platform=${{ matrix.platform }} assembly
+        run: sbt -v "-Ddelivery.platform=${{ matrix.platform }}" assembly
 
       - name: Verify Linux fat JAR starts
         if: matrix.platform == 'linux'
