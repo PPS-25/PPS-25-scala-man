@@ -40,10 +40,81 @@ accepted, as the cost of a complete update is reported in the chapter on testing
 frame allows.
 
 \subsection{Constructing valid values}
+A value is either impossible to build wrong or not built at all. Two devices are employed, and the choice between them
+says what kind of failure is being described.
+
+Where a malformed value could only come from a mistake in the program, the constructor refuses it: a level cannot begin
+with a negative number of lives, an entity cannot cross a cell in no time, an effect cannot be granted for no duration.
+These are raised as errors, since no player can provoke one, and they hold at the only place such a value can be made.
+
+Where absence is a legitimate answer instead, the \textbf{smart constructor} is used, as it is for the leaderboard
+described further on: the constructor is private and the only way in is a factory returning an option. A patrol route
+exists only if the maze offers at least two distinct corners, so a maze with no walkable cell yields no route rather
+than an empty one.
+
+What follows is that the rules read as rules. None of them re-examines whether a duration is positive or a route long
+enough, because a value in hand has already answered.
 
 \subsection{Level State}
+A level is the whole state of a game at one instant, gathered into a single value, at the centre of
+Figure~\ref{fig:level}. Nothing about a game in progress is kept anywhere else.
+
+What follows is that saving a game is the writing of one value, and that a test can begin from any situation without
+playing its way there: a level with the player standing one cell from a bonus is built rather than reached.
+
+Two of the fields in that figure describe nothing of the present. A turn asked for is kept until it becomes possible,
+so a direction requested just before a corner is taken at the first opening rather than lost. The cell the player has
+just left serves two rules that would otherwise have nothing to go on: a teleport does not carry back whoever has just
+arrived through it, and the anticipating enemy reads from it which way the player is going.
+
+Every rule takes a level and returns the level that follows, and is named after the event it accounts for rather than
+after the field it touches, since one rule often touches several: dropping the effects that expired also ends the combo
+of defeated enemies. None of them knows what precedes it, so the order they run in is settled in one place, and a tick
+is their composition.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\textwidth]{../docs/uml/LevelDiagram.pdf}
+    \caption{A level: one value holding everything a game is made of at a single instant. The boxes it holds are opened in the subsections that follow.}
+    \label{fig:level}
+\end{figure}
+
+\subsection{Collectibles}
+What a maze still holds is kept indexed by the position it lies on, so asking what stands where the player has arrived
+is a lookup rather than a search. Collecting returns what remains together with what was taken, which is what the
+two fields of the result in Figure~\ref{fig:items} record, so that the stages which follow, the score and the effects,
+need not look at the maze a second time to learn what to award.
+
+The two kinds are told apart by what they mean rather than by a flag. Only a standard item counts among those
+remaining, while a bonus is worth points and grants an effect without ever bringing a level closer to its end. What
+follows is that a maze holding bonuses alone is complete from the start, which is a consequence of the rules rather
+than a case written into the code.
+
+Collecting is idempotent: a position already emptied yields nothing. Since a player occupies a cell only once the
+crossing towards it is complete, standing on a cell just emptied cannot gather it twice, and nothing has to remember
+what was taken a moment ago.
 
 \subsection{Effects}
+An effect in force is kept as the instant it ends rather than as a countdown to be decremented, which is the map of
+expirations in Figure~\ref{fig:items}. Asking which effects apply is asking which of those instants are still ahead.
+
+What follows is that no update walks through the effects to subtract from them, that nothing accumulates rounding, and
+that an effect behaves the same whether the frames were regular or not. Granting an effect already in force postpones
+its end by the full duration rather than adding to what was left, which is what a player expects of a bonus gathered
+twice in quick succession.
+
+What the rest of the program is shown is not those instants but how much of each effect remains, and an effect can be
+rebuilt from that figure alone. A saved game therefore carries durations rather than moments, and is taken up again
+correctly although the clock of the new session begins elsewhere. The storage learns nothing of how expiry is modelled,
+and the model stays free to change it.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../docs/uml/CollectiblesEffectsDiagram.pdf}
+    \caption{What is left to gather and which effects are in force. Collecting answers with what remains and what was taken together; an effect is recorded as the instant it ends. The two blocks marked as extensions are the operations written beside these types rather than inside them.}
+    \label{fig:items}
+\end{figure}
 
 \subsection{Entities and their movement}
 
@@ -73,6 +144,32 @@ entities standing where each other just was.
 
 
 \subsection{Enemy behavior}
+Where an enemy goes next is decided by a \textbf{strategy}, an operation from a description of the situation to the
+cell to make for, or to nothing when there is nowhere to go. The three of them stand side by side in
+Figure~\ref{fig:enemies}: a new behaviour is a new implementation written on its own, and the stage that hands a
+strategy to every idle enemy does not change. This is where the requirement that enemy behaviour be extensible is
+honoured.
+
+A strategy is not given the level but the context in the same figure, which is the whole of what a decision may look
+at: where it stands, where the player is and was, the maze, and whether the teleport under it may be used. What follows
+is that no strategy can reach for the score or the lives, and that each can be exercised against a situation assembled
+by hand.
+
+The last field of that context is how a behaviour remembers something between one decision and the next. Rather than
+let a strategy keep a state of its own, which would make it a thing with a history instead of a rule, the strategy
+answers what it should be told next time, and that single position travels with the enemy.
+
+The \textbf{patrolling} enemy is the one that needs it. It makes for one corner of the maze at a time, taken clockwise,
+and never consults the player. Added last of the three, it required no change to anything already written, which is the
+extensibility claimed above demonstrated rather than asserted.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../docs/uml/EnemyStrategyDiagram.pdf}
+    \caption{The three enemy behaviours as implementations of one abstraction, and the context that is the whole of what a decision may look at. Adding a fourth changes nothing here except the selection.}
+    \label{fig:enemies}
+\end{figure}
 
 \subsection{Game modes}
 
@@ -182,14 +279,85 @@ specifically, it is simply a game that is given no time.
 \subsection{Reading a maze}
 
 \section{View}
+The view draws and collects input, and holds no rule of its own. It is given a description of what there is to show and
+offers back the intentions of whoever is playing, and it is the only part of the program that knows which graphical
+library is in use.
+
+Its shape follows from a constraint that is not aesthetic: the machine that runs the tests has no graphical
+environment, so a test instantiating a graphical node breaks the build for everyone. The view is therefore split in
+two, a line that runs across Figure~\ref{fig:projection}. One half decides what is to be drawn and is made of pure functions over immutable
+descriptions; the other draws, is written against the library, and holds no decision. What follows is that everything
+worth asserting lies on the first side of that line, and that the second stays thin enough to be read rather than
+tested.
 
 \subsection{Drawing from a projection}
+What reaches the view is not the level but a projection of it, a flat description of what is to be shown: where
+whoever moves has got to, what is left on the ground, the lives, the score, the effects in force and the time. The view
+cannot reach into the game, and the model does not know what a pixel is.
+
+Only what is seen enters that description. The time it carries is reduced to whole seconds because whole seconds are
+what is displayed; carried in full it would differ at every frame, and the comparison described further on would have
+nothing to discard.
+
+The drawing is layered, which is why the board in Figure~\ref{fig:projection} is handed two different descriptions. The maze does
+not change for the whole level, so it becomes a grid of sprites once; whoever moves becomes a frame at every tick,
+drawn over it. A crossing is drawn by interpolating along the movement rather than by moving the position, so that a
+position stays whole in the model and only the picture is continuous.
+
+How wide a cell is drawn is computed from the shape of the maze and the size of the screen, never below what can still
+be seen. The exact fractions are a tuning choice rather than a derived one, chosen so that a maze of any proportion
+fills the window without a size being written anywhere.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\textwidth]{../docs/uml/ProjectionDiagram.pdf}
+    \caption{From a level to pixels. Everything marked pure is decided without a graphical library; the board is the only type that draws, and it is handed a maze once and a frame at every tick.}
+    \label{fig:projection}
+\end{figure}
 
 \subsection{Screens and overlays}
+What the application is showing is a value of its own, computed from two sources neither of which can answer alone: the
+loop knows whether a game is being played and whether it is on hold, the level knows whether it has been won or lost.
+Deriving it from both, in one place, keeps the interface from holding a notion of its own of where the player is.
+
+Over the board there may be a veil, carrying a title, what is read under it, and the choices offered. A game in
+progress is covered by nothing, and the menu is not a veil but a screen of its own, since nothing is being played
+behind it.
+
+The state of the level reaches the veil only if the veil asks for it, and a game in progress never does. The veil
+depends on the loop as well as on the level, as Figure~\ref{fig:screens} shows, and therefore cannot be part of the
+projection. What
+follows is that the score of a finished game survives on screen: the veil is computed again only when the screen
+changes, so the figures read on it are those of the moment the game ended.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{../docs/uml/ScreensDiagram.pdf}
+    \caption{What is shown and what covers it. A screen is derived from the loop and the level together, and the veil carries the choices the interface offers back.}
+    \label{fig:screens}
+\end{figure}
 
 \section{Controller}
+The controller sits between the model and the view, translating what the player does into changes of the game and what
+the game becomes into something the view can draw. It holds no rule and draws nothing, and it is the layer at which the
+program as a whole is a value.
 
 \subsection{The application as a value}
+The state of the program is one value: whether a menu is showing or a game is being played, the way the outside world
+is reached, the tuning the modes are played by, and whatever the player was last told. Every command produces the next
+application rather than modifying the present one. What follows is that a transition can be read as a single
+expression, and asserted in a test as an ordinary comparison.
+
+Commands are the only way in. The interface offers intentions and never performs them; the controller decides what each
+one means, asks the outside world for what it needs, and answers with the application as it then stands.
+
+A request the outside world refuses becomes a sentence rather than an exception, since whoever reads it is playing a
+game rather than debugging one, and it is shown once: the notice is consumed as it is displayed, so a message cannot
+repeat itself frame after frame.
+
+Deciding when a game ends is also the controller's. A result is handed over to be recorded once, however many frames
+follow, and only if the maze it was played on can be named, since a leaderboard belongs to a maze and a mode.
 
 \subsection{From frames to game time}
 
@@ -212,6 +380,27 @@ A direction is not applied to the player but asked for. The level keeps the requ
 so if turning is asked just before a corner is taken at the first opening rather than lost.
 
 \subsection{Rendering with change detection}
+Between the level and whoever draws it stands the value in Figure~\ref{fig:rendering}: the projection to apply, the
+listeners registered against it, and the last description shown. Given a level it computes the description
+that follows and passes it on only if it differs from the last.
+
+What follows is that a frame in which nothing visible changed does not reach the interface at all, and that how much
+detail the projection may carry is settled here rather than in the view: the coarser the description, the more this
+comparison can discard.
+
+It names neither levels nor views, and the comparison it performs is the ordinary equality the model already provides
+by being made of values. The same value serves the tests, which register a listener and therefore observe not only what
+was drawn but also what deliberately was not.
+
+Advancing the game and notifying whoever draws are joined in one operation, so that the level which results and the
+notice just given about it cannot fall out of step.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{../docs/uml/RenderingDiagram.pdf}
+    \caption{The projection, the listeners registered against it and the last description shown, with the operation that advances a game and notifies in one step.}
+    \label{fig:rendering}
+\end{figure}
 
 \subsection{Adapters design}
 
