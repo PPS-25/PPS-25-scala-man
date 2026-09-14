@@ -1,12 +1,11 @@
 package it.unibo.pps.scalaman.model.loop
 
-import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Running, Paused, Stopped}
+import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Running, Paused}
 
 enum LoopState:
   case NotStarted
   case Running
   case Paused
-  case Stopped
 
 /** A game loop.
   * @param state
@@ -49,15 +48,6 @@ final case class GameLoop(state: LoopState = NotStarted):
     */
   def pause(): GameLoop =
     transition(Running)(Paused)
-
-  /** Stops the game loop. A game loop that was stopped can never resume again.
-    * @throws IllegalArgumentException
-    *   if the game loop was neither running nor paused.
-    * @return
-    *   a stopped game loop.
-    */
-  def stop(): GameLoop =
-    transition(Running, Paused)(Stopped)
 
   /** Resumes a paused game loop.
     * @throws IllegalArgumentException

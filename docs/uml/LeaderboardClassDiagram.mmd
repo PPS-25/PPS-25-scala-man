@@ -1,0 +1,31 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class Monoid~A~ {
+    <<trait>>
+    +empty: A
+    +combine(a: A, b: A) A
+  }
+
+  class Leaderboard {
+    -entries: List~GameResult~
+    +recordEntry(result) Leaderboard
+    +combine(other) Leaderboard
+    +top(n) List~GameResult~
+  }
+
+  class GameResult {
+    +playerName: String
+    +score: Int
+    +achievedAt: Instant
+  }
+
+  class Ordering~GameResult~ {
+    <<given>>
+    score descending, then time, then name
+  }
+
+  Monoid~A~ <|.. Leaderboard : given instance
+  Leaderboard o-- "0..*" GameResult : entries
+  Leaderboard ..> Ordering~GameResult~ : sorts by

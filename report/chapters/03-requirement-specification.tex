@@ -24,8 +24,8 @@ planned once that core is available. This distinction guided the product backlog
     Mandatory & Bonuses and outcomes & Invulnerability and slowdown alter encounters; the game consistently
     manages three lives, victory, and defeat. \\
     \hline
-    Mandatory & Map generation and validation & Supplied and player-authored ASCII mazes can be loaded and
-    validated without a graphical editor; a generator can produce valid maps from a configuration. \\
+    Mandatory & Map loading and validation & Supplied and player-authored ASCII mazes can be loaded and
+    validated without a graphical editor; \\
     \hline
     Optional & Patrolling enemy & A third enemy strategy follows a predefined patrol route rather than the
     player. \\
@@ -88,11 +88,13 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   \textbf{Survival} has no gathering objective and admits no victory at all: enemy speed grows by 20\% every
   thirty seconds, but never beyond the player's base speed, and the game ends only when the player runs out of lives.
   \item \textbf{Scoring event}: an occurrence that can contribute to a score. The applicable events depend on the
-  selected mode: Classic scores collected items, defeated enemies, and lives left at the end; Timed scores the
-  seconds remaining when the game ends; Survival scores the difficulty waves survived.
+  selected mode: Classic scores collected standard items, collected bonus items, defeated enemies, and lives left at
+  the end; Timed scores the seconds remaining when the game ends; Survival scores the difficulty waves survived.
   \item \textbf{Scoring rule}: the mode-specific mapping from events to points. In Classic, a standard item is worth
   50 points, a bonus item 100 points, and each life left at the end 500 points. Defeating an enemy starts at
-  200 points and doubles for every consecutive defeat during one invulnerability effect.
+  200 points and doubles for every consecutive defeat during one invulnerability effect. In Timed, a point is awarded
+  for each second remaining when the maze is cleared, and nothing else is scored. In Survival, a point is awarded
+  for each difficulty wave survived.
   \item \textbf{Maze validity}: the conditions a maze must satisfy to be playable, such as rows of equal and non-zero
   length, exactly one player spawn, at least one standard collectible, at least one enemy, every standard collectible being reachable,
   teleports correctly paired, and every enemy reachable from the player's spawn. A maze that does not uphold
@@ -131,7 +133,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   update. If invulnerability is in force, the enemy is defeated, otherwise a life is lost.
   \item \textbf{Score}: the points gathered so far, together with the kill \textbf{combo}, which is the number
   of enemies defeated consecutively within a single invulnerability bonus.
-  \item \textbf{Game State}: what the match is doing, that is \textbf{running}, \textbf{paused}, \textbf{victory}
+  \item \textbf{Game State}: what the match is doing, that is \textbf{running}, \textbf{victory}
   or \textbf{defeat}. The last two are terminal states, and are thus final: no play is possible from them.
 \end{itemize}
 
@@ -162,7 +164,8 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   a new game with that configuration.
   \item \textbf{Move through the maze}: the player must be able to move their character using the arrow keys or
   \texttt{W}, \texttt{A}, \texttt{S}, and \texttt{D}.
-  A turn that cannot happen due to the presence of a wall must be remembered and taken at the first cell that allows it.
+  A turn that cannot happen due to the presence of a wall or because the character is still crossing from a cell to the next,
+  must be remembered and taken at the first cell that allows it.
   \item \textbf{Follow the game as it is played}: the player must be able to see their score, the lives they have
   left, the mode being played, how much time has passed or how much there is still left, as well as the number
   of the remaining items to collect and the effects that are in force.
@@ -214,11 +217,9 @@ The following qualities are expressed together with the evidence used to assess 
     \hline
     \textbf{Quality} & \textbf{Requirement and evidence} \\
     \hline
-    Responsiveness & The model update must fit within a 16-millisecond frame budget. The
-    \texttt{TickPerformanceIT} integration test, run through the dedicated \texttt{performance} sbt
-    configuration, measures the average of 1,000 updates, after warm-up, on every supplied maze and requires
-    it to remain below that threshold. It is kept outside the standard CI test suite because elapsed-time
-    measurements depend on the execution environment. \\
+    Responsiveness & A complete model update must fit within the 16 milliseconds a frame is allotted at 60 frames per
+    second, on every maze supplied with the game, so that the model is never the reason a frame is missed. The measurements
+    and its results are reported in the chapter on testing.\\
     \hline
     Robustness & Malformed maps and saves must be rejected with an actionable explanation rather than crashing the
     application. Parsing and storage operations report failures as values, and the corresponding parser,
