@@ -25,6 +25,17 @@ java -jar target/scala-3.3.5/scala-man-0.1.0-SNAPSHOT-fat.jar
 ```
 
 Published builds, when available, can be found under [Releases](../../releases).
+Each release provides a JavaFX FAT JAR for Linux, Windows, and macOS. Download the
+JAR whose platform suffix matches the operating system, then run it from a terminal
+with JDK 21 (rather than by double-clicking it), so that any startup error is visible:
+
+```bash
+java -version
+java -jar scala-man-0.1.0-SNAPSHOT-windows-fat.jar
+```
+
+An error such as `UnsupportedClassVersionError` means that the installed Java is
+too old; install and select JDK 21 before running the game.
 
 ### Controls
 

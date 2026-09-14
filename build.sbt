@@ -4,6 +4,8 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / organization := "it.unibo.pps"
 
+val deliveryPlatformSuffix = sys.props.get("delivery.platform").fold("")(platform => s"-$platform")
+
 lazy val Performance = config("performance") extend Test
 
 lazy val root = (project in file("."))
@@ -27,7 +29,7 @@ lazy val root = (project in file("."))
     fork := true,
     javaHome := Some(file(System.getProperty("java.home"))),
     assembly / mainClass := Some("it.unibo.pps.scalaman.Main"),
-    assembly / assemblyJarName := s"${name.value}-${version.value}-fat.jar",
+    assembly / assemblyJarName := s"${name.value}-${version.value}$deliveryPlatformSuffix-fat.jar",
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", _*) => MergeStrategy.discard
       case _                        => MergeStrategy.first
