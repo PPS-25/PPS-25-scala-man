@@ -2,7 +2,7 @@
 \chapter{Testing}
 
 The definition of done set out in Chapter 2 required every task to be covered by automated tests, so the suite grew
-with the code rather than after it. It counts \textbf{516 tests over 60 suites} and runs in under two seconds. Each
+with the code rather than after it. The standard suite currently counts \textbf{512 tests over 61 suites}. Each
 member wrote the tests of the epics or the tasks they were responsible for, so the ownership of an area covered its
 specification as well as its implementation.
 
@@ -38,7 +38,7 @@ running is not.
 
 \subsection{Maps}
 
-Map validation is the largest suite of the project: each rule listed under FR-S2 has a test that rejects a maze
+Map validation is one of the larger suites of the project: each rule listed under FR-S2 has a test that rejects a maze
 breaking it, and the errors are asserted to \textbf{accumulate} rather than stopping at the first, since a player
 rewriting a maze should be told everything that is wrong with it at once. The mazes under test are resources on file
 rather than strings in the code, which is what makes it practical to cover every documented teleport pairing.
