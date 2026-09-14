@@ -16,10 +16,10 @@ import scalafx.stage.FileChooser
 import java.io.IOException
 import java.nio.file.{Files, Path}
 
-/**
-  * The screen a game is started from: who is playing, on which maze, and how others did on it.
+/** The screen a game is started from: who is playing, on which maze, and how others did on it.
   *
-  * It emits [[Command]] values through `handleCommand`; it never accesses application state directly.
+  * It emits [[Command]] values through `handleCommand`; it never accesses application state
+  * directly.
   */
 final class MenuScreen(
     availableMazes: Seq[MapName],
@@ -36,14 +36,16 @@ final class MenuScreen(
     maxWidth = FieldWidth
     text = initialPlayerName.fold("")(_.value)
 
-  private val gameModeSelector = new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
-    maxWidth = FieldWidth
-    prefWidth = FieldWidth
-    value = ModeChoice.Normal
+  private val gameModeSelector =
+    new ComboBox[ModeChoice](ObservableBuffer.from(ModeChoice.values.toSeq)):
+      maxWidth = FieldWidth
+      prefWidth = FieldWidth
+      value = ModeChoice.Normal
 
-  private val mazeSelector = new ListView[String](ObservableBuffer.from(availableMazes.map(_.value))):
-    maxWidth = FieldWidth
-    maxHeight = ListHeight
+  private val mazeSelector =
+    new ListView[String](ObservableBuffer.from(availableMazes.map(_.value))):
+      maxWidth = FieldWidth
+      maxHeight = ListHeight
 
   private val leaderboardButton = new Button("View leaderboard"):
     style = Style.button
@@ -51,7 +53,9 @@ final class MenuScreen(
 
   private val playButton = new Button("Play"):
     onAction = _ =>
-      selectedMaze.foreach(maze => handleCommand(Command.StartGame(maze, PlayerName(playerName), selectedMode)))
+      selectedMaze.foreach(maze =>
+        handleCommand(Command.StartGame(maze, PlayerName(playerName), selectedMode))
+      )
     style = Style.button
     defaultButton = true
 
@@ -131,7 +135,9 @@ final class MenuScreen(
   private def selectedFile(dialogTitle: String, initialFolder: Option[Path] = None): Option[Path] =
     val chooser = new FileChooser:
       title = dialogTitle
-    initialFolder.flatMap(availableFolder).foreach(folder => chooser.initialDirectory = folder.toFile)
+    initialFolder
+      .flatMap(availableFolder)
+      .foreach(folder => chooser.initialDirectory = folder.toFile)
     Option(chooser.showOpenDialog(node.scene().window())).map(_.toPath)
 
   private def availableFolder(folder: Path): Option[Path] =

@@ -46,7 +46,9 @@ final case class GameSession(
     else updateGame(gameplayDelta(nanos))
 
   private def advanceCountdown(nanos: Long): GameSession =
-    copy(countdownRemaining = (countdownRemaining - nanos.nanos.max(Duration.Zero)).max(Duration.Zero))
+    copy(countdownRemaining =
+      (countdownRemaining - nanos.nanos.max(Duration.Zero)).max(Duration.Zero)
+    )
 
   /** Clamps a frame delta to prevent backward or excessively large updates. */
   private def gameplayDelta(nanos: Long): FiniteDuration =
@@ -54,7 +56,8 @@ final case class GameSession(
 
   private def updateGame(delta: FiniteDuration)(using BonusDuration, Slowdown): GameSession =
     copy(
-      stateWithRendering = LevelState.pipeline(delta)
+      stateWithRendering = LevelState
+        .pipeline(delta)
         .tickNotifying(level, stateWithRendering.rendering)
     )
 

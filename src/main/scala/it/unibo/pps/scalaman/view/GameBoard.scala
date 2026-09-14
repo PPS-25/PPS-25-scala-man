@@ -129,6 +129,10 @@ object GameBoard:
   /** A board drawn as large as the screen it is played on allows. */
   def fittingScreen(board: Board, handleCommand: Command => Unit): GameBoard =
     val bounds = Screen.primary.visualBounds
-    GameBoard(board, CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)), handleCommand)
+    GameBoard(
+      board,
+      CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)),
+      handleCommand
+    )
 
   private val SpacedBy = 10.0

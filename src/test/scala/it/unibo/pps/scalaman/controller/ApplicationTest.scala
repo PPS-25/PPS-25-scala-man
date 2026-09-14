@@ -148,7 +148,8 @@ class ApplicationTest extends AnyFunSuite:
 
   test("whoever draws is not shown again a level that a frame left untouched") {
     val (seen, showing) = watching()
-    val onHold = application(createRenderer = showing).handleCommand(start).handleCommand(Command.Pause)
+    val onHold =
+      application(createRenderer = showing).handleCommand(start).handleCommand(Command.Pause)
     played(onHold, 3)
     assert(seen.size == 1)
   }
