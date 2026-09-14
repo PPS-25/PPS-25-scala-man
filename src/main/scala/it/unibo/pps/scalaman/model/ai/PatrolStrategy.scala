@@ -9,11 +9,11 @@ object PatrolStrategy extends EnemyMovementStrategy:
 
   override def nextMove(context: EnemyMovementContext): Option[Position] =
     memoryAfter(context).flatMap: corner =>
-      EnemyMovement.nextMoveToward(
+      EnemyMovement.firstStepTowards(
         from = context.enemyPosition,
         target = corner,
         map = context.map,
-        teleportDisabled = context.teleportDisabled
+        canUseTeleport = context.canUseTeleport
       )
 
   override def memoryAfter(context: EnemyMovementContext): Option[Position] =

@@ -11,7 +11,7 @@ import scala.concurrent.duration.{FiniteDuration, Duration}
   * @param remaining
   *   the remaining time to complete the movement.
   */
-case class Movement(from: Position, to: Position, remaining: FiniteDuration):
+final case class Movement(from: Position, to: Position, remaining: FiniteDuration):
   require(remaining >= Duration.Zero, "movement time left cannot be negative")
 
   /** Advances the movement by a given amount of time.

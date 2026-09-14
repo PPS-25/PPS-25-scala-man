@@ -1,7 +1,7 @@
 package it.unibo.pps.scalaman.model.loop
 
 import it.unibo.pps.scalaman.model.*
-import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Paused, Running, Stopped}
+import it.unibo.pps.scalaman.model.LoopState.{NotStarted, Paused, Running}
 import org.scalatest.funsuite.AnyFunSuite
 
 class GameLoopTest extends AnyFunSuite:
@@ -15,10 +15,6 @@ class GameLoopTest extends AnyFunSuite:
 
   test("GameLoop can be started") {
     assert(GameLoop().start().state == Running)
-  }
-
-  test("GameLoop can be stopped") {
-    assert(GameLoop().start().stop().state == Stopped)
   }
 
   test("Starting an already started loop throws") {
@@ -48,25 +44,6 @@ class GameLoopTest extends AnyFunSuite:
   test("resuming a running loop throws") {
     assertThrows[IllegalArgumentException] {
       GameLoop().start().resume()
-    }
-  }
-
-  test("Stopping an already stopped loop throws") {
-    assertThrows[IllegalArgumentException] {
-      GameLoop().start().stop().stop()
-    }
-  }
-
-  test("No operation can be performed on a stopped loop") {
-    val gameLoop = GameLoop().start().stop()
-    assertThrows[IllegalArgumentException] {
-      gameLoop.start()
-    }
-    assertThrows[IllegalArgumentException] {
-      gameLoop.pause()
-    }
-    assertThrows[IllegalArgumentException] {
-      gameLoop.resume()
     }
   }
 

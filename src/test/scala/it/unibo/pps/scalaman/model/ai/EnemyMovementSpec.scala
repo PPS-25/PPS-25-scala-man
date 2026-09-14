@@ -113,7 +113,7 @@ class EnemyMovementSpec extends AnyFunSuite:
     val moves = EnemyMovement.validMoves(
       teleportDestination,
       map,
-      teleportDisabled = true
+      canUseTeleport = false
     )
 
     assert(moves == Set(Position(1, 2)))

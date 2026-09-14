@@ -8,30 +8,32 @@ import scala.collection.immutable.Queue
 
 object EnemyMovement:
   def validMoves(from: Position, map: ValidatedMap): Set[Position] =
-    validMoves(from, map, teleportDisabled = false)
+    validMoves(from, map, canUseTeleport = true)
 
   def validMoves(
       from: Position,
       map: ValidatedMap,
-      teleportDisabled: Boolean
+      canUseTeleport: Boolean
   ): Set[Position] =
-    validMovesInOrder(from, map, teleportDisabled).toSet
+    orderedMoves(from, map, canUseTeleport).toSet
 
-  private[ai] def nextMoveToward(
+  /** First position on a shortest path from `from` to `target`, when one exists. */
+  private[ai] def firstStepTowards(
       from: Position,
       target: Position,
       map: ValidatedMap,
-      teleportDisabled: Boolean
+      canUseTeleport: Boolean
   ): Option[Position] =
-    shortestPath(from, target, map, teleportDisabled).flatMap(_.lift(1))
+    shortestPathTo(from, target, map, canUseTeleport).flatMap(_.lift(1))
 
-  private[ai] def validMovesInOrder(
+  /** Walkable adjacent positions in the deterministic strategy tie-breaking order. */
+  private[ai] def orderedMoves(
       from: Position,
       map: ValidatedMap,
-      teleportDisabled: Boolean = false
+      canUseTeleport: Boolean = true
   ): Vector[Position] =
     orthogonalNeighbors(from).filter(map.isWalkable) ++
-      Option.when(!teleportDisabled)(teleportDestination(from, map)).flatten.toVector
+      Option.when(canUseTeleport)(teleportDestination(from, map)).flatten.toVector
 
   private def orthogonalNeighbors(position: Position): Vector[Position] =
     Vector(
@@ -47,14 +49,14 @@ object EnemyMovement:
       case (start, destination) if from == destination => start
     }
 
-  private[ai] def shortestPath(
+  private[ai] def shortestPathTo(
       from: Position,
       target: Position,
       map: ValidatedMap,
-      teleportDisabled: Boolean = false
+      canUseTeleport: Boolean = true
   ): Option[Vector[Position]] =
     if from == target then None
-    else explore(target, map, Queue(Vector(from)), Set(from), teleportDisabled)
+    else explore(target, map, Queue(Vector(from)), Set(from), canUseTeleport)
 
   @tailrec
   private def explore(
@@ -62,21 +64,22 @@ object EnemyMovement:
       map: ValidatedMap,
       frontier: Queue[Vector[Position]],
       visited: Set[Position],
-      teleportDisabled: Boolean
+      canUseTeleportAtOrigin: Boolean
   ): Option[Vector[Position]] =
     frontier.dequeueOption match
       case None                    => None
       case Some((path, remaining)) =>
         path.lastOption match
-          case None          => explore(target, map, remaining, visited, teleportDisabled)
+          case None          => explore(target, map, remaining, visited, canUseTeleportAtOrigin)
           case Some(current) =>
             if current == target then Some(path)
             else
               val nextPositions =
-                validMovesInOrder(
+                // An enemy that has just left a teleport must step away before using it again.
+                orderedMoves(
                   current,
                   map,
-                  teleportDisabled && path.size == 1
+                  canUseTeleportAtOrigin || path.size > 1
                 ).filterNot(visited.contains)
               val nextPaths = nextPositions.map(position => path :+ position)
               explore(
@@ -84,5 +87,5 @@ object EnemyMovement:
                 map,
                 remaining.enqueueAll(nextPaths),
                 visited ++ nextPositions,
-                teleportDisabled
+                canUseTeleportAtOrigin
               )

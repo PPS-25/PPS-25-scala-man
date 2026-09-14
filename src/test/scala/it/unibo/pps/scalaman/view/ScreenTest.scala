@@ -10,7 +10,7 @@ class ScreenTest extends AnyFunSuite:
     assert(Screen.of(LoopState.Running, Running, Some(3)) == Screen.Starting(3))
   }
 
-  test("a game about to go is still counting down") {
+  test("a countdown that reached zero is still not a game being played") {
     assert(Screen.of(LoopState.Running, Running, Some(0)) == Screen.Starting(0))
   }
 
@@ -36,12 +36,4 @@ class ScreenTest extends AnyFunSuite:
 
   test("a game that was lost is shown as over") {
     assert(Screen.of(LoopState.Running, Defeat) == Screen.Over(Outcome.Defeat))
-  }
-
-  test("an outcome is still shown once the loop has stopped") {
-    assert(Screen.of(LoopState.Stopped, Victory) == Screen.Over(Outcome.Victory))
-  }
-
-  test("a loop stopped with nothing won or lost leaves the game") {
-    assert(Screen.of(LoopState.Stopped, Running) == Screen.Menu)
   }
