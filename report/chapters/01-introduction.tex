@@ -2,7 +2,8 @@
 \chapter{Introduction}
 
 \textbf{Scala-Man} is a single-player arcade maze game inspired by Pac-Man. Players navigate a
-closed maze, collect standard items, and avoid enemies to complete the selected game mode. The game
+closed maze, collect standard collectibles, and avoid enemies to complete the selected game mode. It
+is implemented in Scala 3, with a functional domain core and a ScalaFX user interface. The game
 supports configurable maps, distinct enemy behaviours, and persistent results.
 
 Each game starts with \textbf{three lives}. The player moves orthogonally between walkable cells,
@@ -16,7 +17,7 @@ Teleports create shortcuts by carrying an entity to the paired endpoint.
 The same maze can be played in three modes, each with its own objective and ranking criterion:
 
 \begin{itemize}
-  \item \textbf{Classic} rewards items, bonuses, defeated enemies, and lives left at the end; an
+  \item \textbf{Classic} rewards standard collectibles, bonuses, defeated enemies, and lives left at the end; an
   invulnerability combo makes consecutive enemy defeats progressively more valuable.
   \item \textbf{Timed} applies the classic objective under a time limit and ranks runs by the seconds
   remaining at the end; reaching the limit yields no time bonus.
@@ -37,7 +38,7 @@ In addition to standard collectibles, mazes can contain any number of bonus item
   cost a life; instead, the enemy is defeated. Consecutive enemy defeats during the same effect also build
   the score combo in Classic mode.
   \item \textbf{Slowdown} lasts \textbf{five seconds}. It halves the speed of every enemy while leaving the
-  player at normal speed, creating time to escape, collect an item, or choose a safer route.
+  player at normal speed, creating time to escape, collect a standard collectible, or choose a safer route.
 \end{itemize}
 
 The player can use either effect defensively to survive a dangerous crossing or offensively to improve a score.
@@ -63,9 +64,13 @@ exactly one player spawn, at least one standard collectible and one enemy, corre
 standard collectible and enemy reachable from the spawn. Invalid maps are rejected with a clear explanation rather
 than causing the game to crash.
 
-A paused game can be saved from the in-game menu and resumed later with its maze, positions, remaining items,
+A paused game can be saved from the in-game menu and resumed later with its maze, positions, remaining collectibles,
 effects, score, clock, and mode restored. A result is recorded only when a game reaches a terminal outcome.
+
+Patrolling enemies, additional game modes, score leaderboards, and game persistence were planned as
+optional extensions in the project proposal; all were completed and integrated into the final application.
 
 Beyond the playable application, Scala-Man pursues three design goals developed in the following chapters:
 \textbf{extensible enemy behaviour}, \textbf{extensible game modes}, and a \textbf{testable domain model}
-that remains independent from the graphical interface.
+that remains independent from the graphical interface. The report then presents the development process,
+requirements, architecture, detailed design, implementation, testing, and retrospective.
