@@ -15,15 +15,15 @@ class Application {
   <<controller>>
   - environment: GameEnvironment
   - playing: Option~Playing~
-  + commanded(command) Application
+  + handleCommand(command) Application
   + advancedToFrame(now) Application
 }
 class GameSession {
   <<controller>>
-  - ticked: Ticked~LevelState, LevelView~
+  - stateWithRendering: Ticked~LevelState, LevelView~
   - loop: GameLoop
   + advancedToFrame(now) GameSession
-  + requestingDirection(direction) GameSession
+  + requestDirection(direction) GameSession
 }
 class GameEnvironment {
   <<interface>>

@@ -11,20 +11,20 @@ import scalafx.scene.layout.{BorderPane, StackPane, VBox}
 import scalafx.stage.Screen
 
 /** Draws a level on two layers: the maze once, because it stands still, and whoever moves over it
-  * at every frame.
+  * at every frame. Buttons emit [[Command]] values through `handleCommand`.
   */
-final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
+final class GameBoard(board: Board, cellSize: Double, handleCommand: Command => Unit):
 
   import GameBoard.*
 
-  private val maze = new Canvas(board.width * cellSize, board.height * cellSize)
-  private val entities = new Canvas(board.width * cellSize, board.height * cellSize)
-  private val lives = told()
-  private val progress = told()
-  private val hold = new Button("Pause"):
-    onAction = _ => chosen(Command.Pause)
+  private val mazeCanvas = new Canvas(board.width * cellSize, board.height * cellSize)
+  private val entityCanvas = new Canvas(board.width * cellSize, board.height * cellSize)
+  private val livesLabel = statusLabel()
+  private val progressLabel = statusLabel()
+  private val pauseButton = new Button("Pause"):
+    onAction = _ => handleCommand(Command.Pause)
     style = Style.button
-  private val veil = new VBox:
+  private val overlayPane = new VBox:
     alignment = scalafx.geometry.Pos.Center
     spacing = SpacedBy
     visible = false
@@ -35,34 +35,34 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
   /** What to put on a scene to see the level. */
   val node: Parent = new BorderPane:
     top = new BorderPane:
-      left = lives
-      center = hold
-      right = progress
+      left = livesLabel
+      center = pauseButton
+      right = progressLabel
       style = Style.background
       padding = Insets(SpacedBy / 2)
     center = new StackPane:
-      children = Seq(maze, entities, veil)
+      children = Seq(mazeCanvas, entityCanvas, overlayPane)
 
   /** Draws a frame over the maze, which is left untouched. */
   def draw(frame: Frame): Unit =
-    val gc = entities.graphicsContext2D
-    gc.clearRect(0, 0, entities.width.value, entities.height.value)
+    val gc = entityCanvas.graphicsContext2D
+    gc.clearRect(0, 0, entityCanvas.width.value, entityCanvas.height.value)
     frame.entities.foreach(drawn => paint(gc, drawn.at, drawn.sprite))
-    lives.text = frame.status.playerDescribed
-    progress.text = frame.status.levelDescribed
+    livesLabel.text = frame.status.playerDescribed
+    progressLabel.text = frame.status.levelDescribed
 
   // Rebuilding the veil at every frame would replace a button before its click is over.
-  private var covered: Option[Overlay] = None
+  private var displayedOverlay: Option[Overlay] = None
 
   /** Covers the board with what is read while the game is not being played, or uncovers it. */
   def cover(overlay: Option[Overlay]): Unit =
-    if overlay != covered then
-      covered = overlay
-      veil.visible = overlay.isDefined
-      hold.visible = overlay.isEmpty
-      veil.children = overlay.fold(Seq.empty)(written)
+    if overlay != displayedOverlay then
+      displayedOverlay = overlay
+      overlayPane.visible = overlay.isDefined
+      pauseButton.visible = overlay.isEmpty
+      overlayPane.children = overlay.fold(Seq.empty)(overlayNodes)
 
-  private def written(overlay: Overlay): Seq[scalafx.scene.Node] =
+  private def overlayNodes(overlay: Overlay): Seq[scalafx.scene.Node] =
     val title = new Label(overlay.title):
       style = Style.text(Style.Banner)
     val lines = overlay.lines.map(line =>
@@ -72,7 +72,7 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
     val choices = overlay.choices.map(command =>
       new Button(spelled(command)):
         style = Style.button
-        onAction = _ => chosen(command)
+        onAction = _ => handleCommand(command)
     )
     title +: (lines ++ choices)
 
@@ -83,13 +83,13 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
     case Command.BackToMenu  => "Back to menu"
     case _                   => "Play"
 
-  private def told(): Label = new Label(""):
+  private def statusLabel(): Label = new Label(""):
     padding = Insets(SpacedBy)
     style = Style.text(Style.Reading)
 
   // Walls and doors are transparent at the corners, so floor goes under every position.
   private def drawMaze(): Unit =
-    val gc = maze.graphicsContext2D
+    val gc = mazeCanvas.graphicsContext2D
     for
       (row, rowIndex) <- board.cells.zipWithIndex
       (sprite, colIndex) <- row.zipWithIndex
@@ -127,8 +127,8 @@ final class GameBoard(board: Board, cellSize: Double, chosen: Command => Unit):
 object GameBoard:
 
   /** A board drawn as large as the screen it is played on allows. */
-  def fittingScreen(board: Board, chosen: Command => Unit): GameBoard =
+  def fittingScreen(board: Board, handleCommand: Command => Unit): GameBoard =
     val bounds = Screen.primary.visualBounds
-    GameBoard(board, CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)), chosen)
+    GameBoard(board, CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)), handleCommand)
 
   private val SpacedBy = 10.0
