@@ -1,9 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{Detailed Design}
 
-This chapter details further the architecture described in the previous one, explaining the choices that shaped each
-part of the obtained design and the patterns those choices led to. The descriptions are divided by the layer they belong to.
-Diagrams are included where they clarify a relationship.
+This chapter refines the architecture described in Chapter~4. Rather than enumerating classes, it explains the
+\textbf{invariants}, \textbf{responsibilities}, and \textbf{extension points} that shaped the design. The discussion
+is organised by layer; diagrams are included only where they clarify a relationship.
 
 The key choice is a \textbf{functional core}: everything in the model is a value, and every operation upon one yields
 another value rather than altering what it was given.
@@ -69,7 +69,7 @@ left, and a movement refuses a non-positive crossing time. This is the \textbf{s
 at the smallest useful scope: once a value exists, its clients may rely on its invariant instead of checking it again.
 The leaderboard makes the same choice with a private constructor and a factory that orders and truncates entries.
 
-\subsection{Level State}
+\subsection{Level state}
 
 \texttt{LevelState} is the \textbf{aggregate at the centre of the model}. It brings together a validated maze, the player and
 enemies, the remaining collectibles, active effects, lives, score, clock, selected mode, and the pending player turn.
@@ -148,21 +148,26 @@ mode checks to collision, movement, or rendering code.
 
 \subsection{Scoring rules}
 
-Scoring is split across three responsibilities that change for different reasons: what happened, what it is worth in
-points, and how many points have been accumulated so far.
+Scoring is split across three responsibilities that change for different reasons:
+
+\begin{itemize}
+  \item a \textbf{scoring event} records what happened;
+  \item a \textbf{scoring rule} determines what that event is worth in a selected mode;
+  \item the \textbf{score tracker} records the resulting points and the current defeat combo.
+\end{itemize}
 
 What happened is expressed as a \textbf{scoring event}: collecting a standard collectible, gathering a bonus,
 defeating an enemy, finishing without losing all lives, finishing with time to spare, surviving a number of waves.
-Events are data that is carrying only what is needed to score them: a number of lives, a duration left, a count of
-waves. The model reports that something happened without knowing what it is worth.
+Events carry only the data needed to score them: a number of lives, a duration left, or a count of waves. The model
+can therefore report that something happened without knowing what it is worth.
 
-What it is worth is a \textbf{scoring rule}. These have been implemented through the \textbf{strategy pattern},
-A rule maps an event to an amount of points, and three rules exist, one for each game mode. The pattern is used
+What it is worth is a \textbf{scoring rule}, implemented through the \textbf{strategy pattern}. A rule maps an event
+to an amount of points, and three rules exist, one for each game mode. The pattern is used
 because the modes do not simply scale the same scoring differently, but they score different events entirely. Under
 the standard rule, points come from what is gathered and whom the player defeats; under the timed rule, points come
 from the time remaining at the end of the game, and under the survival rule, they come from the waves outlived by
 the player. An event that a rule has no interest in is worth nothing, and is not an error, so each rule stays total
-over the whole event type, and they do not know which events the other handle.
+over the whole event type, and rules do not need to know which events the others handle.
 
 The rule enforced is a property of the game mode, and reaches the scoring code as a context parameter, so no part of
 the model has to carry it from hand to hand, and none of it decides which rule applies.
@@ -189,7 +194,7 @@ A leaderboard holds the results achieved on one maze in one game mode, ordered f
 hundred deep. Results from different mazes or modes are never gathered together.
 
 Combining two leaderboards is the only operation that changes one: recording a result means combining the leaderboard
-read back from storage with a leaderboard holding the single new result. That operation was deliberately designed
+read from storage with a leaderboard holding the single new result. That operation was deliberately designed
 to form a \textbf{monoid}, an algebraic structure consisting of a set, an associative binary operation upon it, and an
 identity element for that operation. Leaderboards are the set, combining is the operation, and the empty leaderboard
 is the identity. Combining is associative, so it cannot matter how results are grouped, and combining with the empty
@@ -206,9 +211,9 @@ Every leaderboard is therefore already ordered and already within the cap, which
 takes them from the top with no need to sort again. The invariant is established once, where the value is made, instead
 of being checked wherever it is used.
 
-A maze nobody has played has an empty leaderboard rather than no leaderboard at all. The empty value is a leaderboard
-like any other, so it can be displayed, combined, asked for its best results, so no case for absence is ever carried.
-This is a display of the \textbf{null object} pattern, that in this case coincides with the identity element of the monoid.
+A maze nobody has played has an empty leaderboard rather than no leaderboard at all. The empty value can be displayed,
+combined, and queried for its best results, so no absence case is carried through the application. This is an instance
+of the \textbf{null object} pattern that, in this case, also coincides with the identity element of the monoid.
 
 \begin{figure}
     \centering
@@ -217,12 +222,23 @@ This is a display of the \textbf{null object} pattern, that in this case coincid
 \end{figure}
 
 
-\subsection{Ordered updates stages}
+\subsection{Ordered update stages}
 
 \textbf{Ordered updates} represent the mutable-looking phrase ``game tick''. \texttt{GameStateUpdatePipeline[S]} is a value holding an
 ordered sequence of functions \texttt{S => S}. Its \texttt{tick} method folds the initial state through AI, movement,
-collision and teleport resolution, collection, effect expiration, and final reconciliation. The order is declared in
+collision and teleport resolution, collection, effect expiration, and the next player step. The order is declared in
 one place and can be tested separately from every individual rule.
+
+\begin{lstlisting}
+def tick(initialState: S): S =
+  List(updateAi, updateMovement, resolveCollisions,
+       collectItems, applyBonuses, updateState)
+    .foldLeft(initialState)((state, stage) => stage(state))
+\end{lstlisting}
+
+This is the functional core in its most compact form: a stage has no access to a hidden current level and returns the
+level that follows from the one it receives. The shell can choose when to invoke a tick, but the model fixes what that
+tick means.
 
 \begin{center}
   \small
@@ -237,7 +253,8 @@ pipeline whose stages can be replaced in tests without introducing a second upda
 
 \subsection{Game loop and game clock}
 
-A game in progress is governed by two small values which between them decide whether time passes and how much of it has.
+A game in progress is governed by two small values: one decides \textbf{whether time passes}; the other records
+\textbf{how much time has passed}.
 
 The \textbf{game loop} is a \textbf{finite state machine} over three states: not yet started, running, or paused. What
 makes it a machine rather than a flag is that the legal transitions are declared rather than assumed. Every one of
@@ -260,10 +277,9 @@ stay reachable only from code.
         and no final state: a loop is discarded rather than ended.}
 \end{figure}
 
-The \textbf{game clock} records how long a game has been played for, and nothing else. Because time is handed to
-it an interval at a time rather than read from the system, how far a game has got is part of its state, so a game
-saved, left and later picked up again resumes at exactly the moment it was left, and a game paused needs no rule
-specifically, it is simply a game that is given no time.
+The \textbf{game clock} records how long a game has been played for, and nothing else. Time is handed to it one
+interval at a time rather than read from the system; elapsed time is therefore part of the state. A saved game resumes
+at exactly the recorded instant, while a paused game simply receives no interval to advance.
 
 \subsection{Reading a maze}
 
