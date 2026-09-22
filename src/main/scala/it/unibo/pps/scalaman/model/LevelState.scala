@@ -179,12 +179,12 @@ object LevelState:
   ): GameStateUpdatePipeline[LevelState] =
     GameStateUpdatePipeline(
       updateAi = whileRunning(updateAi),
-      updateMovement = whileRunning(_.ticking(delta).movingOn(delta)),
+      updateMovement = whileRunning(level => level.ticking(delta).movingOn(delta)),
       resolveCollisions =
-        whileRunning(_.afterMeetingEnemies.afterTeleporting.afterEnemiesTeleporting),
-      collectItems = whileRunning(_.collecting),
-      applyBonuses = whileRunning(_.withoutExpiredEffects),
-      updateState = whileRunning(_.playerStartingNextStep)
+        whileRunning(level => level.afterMeetingEnemies.afterTeleporting.afterEnemiesTeleporting),
+      collectItems = whileRunning(level => level.collecting),
+      applyBonuses = whileRunning(level => level.withoutExpiredEffects),
+      updateState = whileRunning(level => level.playerStartingNextStep)
     )
 
   /** Leaves terminal levels unchanged when reached by later pipeline stages. */
