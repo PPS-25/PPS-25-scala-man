@@ -13,6 +13,8 @@ class LevelScoreTest extends AnyFunSuite:
   private val won = startingLevel.copy(collectibles = Collectibles(Set.empty))
   private def timedAt(elapsed: Int) =
     startingLevel.copy(mode = GameMode.Timed(60.seconds), clock = GameClock(elapsed.seconds))
+  private def timedVictoryAt(elapsed: Int) =
+    timedAt(elapsed).copy(collectibles = Collectibles(Set.empty))
 
   test("a game being played is worth what it has scored so far") {
     assert(startingLevel.copy(score = ScoreTracker(300)).liveScore == 300)
@@ -43,8 +45,15 @@ class LevelScoreTest extends AnyFunSuite:
     assert(ended.result("PlayerName", Instant.EPOCH).map(_.score).contains(ended.liveScore))
   }
 
-  test("a timed game is worth the seconds it has left") {
-    assert(timedAt(20).liveScore == 40)
+  test("a timed victory is worth the seconds it has left") {
+    assert(timedVictoryAt(20).liveScore == 40)
+  }
+
+  test("a timed game lost with time left is worth nothing") {
+    val defeated = timedAt(20).copy(progress = LevelProgress(0))
+
+    assert(defeated.status == GameState.Defeat)
+    assert(defeated.liveScore == 0)
   }
 
   test("a timed game that ran out of time is worth nothing") {

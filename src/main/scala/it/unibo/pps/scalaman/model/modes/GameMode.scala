@@ -70,7 +70,9 @@ object GameMode:
         clock: GameClock,
         over: Boolean
     ): Option[ScoringEvent] =
-      Some(RemainingTime(timeLeft(clock).getOrElse(Duration.Zero)))
+      Option.when(over && !progress.isOver && clock.elapsed < limit)(
+        RemainingTime(timeLeft(clock).getOrElse(Duration.Zero))
+      )
 
   /** Mode with no collectible-completion objective and progressively faster enemies. */
   val MaximumSurvivalSpeedMultiplier: Double = 1.25
