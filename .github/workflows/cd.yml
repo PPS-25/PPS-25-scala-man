@@ -11,9 +11,72 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-fat-jar:
+    name: Build fat JAR (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+          - platform: windows
+            runner: windows-latest
+          - platform: macos
+            runner: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Compile and test
+        if: matrix.platform == 'linux'
+        run: sbt -v compile test
+
+      - name: Build fat JAR
+        run: sbt -v "-Ddelivery.platform=${{ matrix.platform }}" assembly
+
+      - name: Verify Linux fat JAR starts
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          jar=$(find target -path '*/scala-man-*-linux-fat.jar' -print -quit)
+          test -n "$jar"
+
+          # The JavaFX event loop is expected to keep running. `timeout` returning
+          # 124 is therefore the success condition; every other status exposes the
+          # JVM/JavaFX error in this job's log and stops publication.
+          set +e
+          timeout 15s xvfb-run -a java -jar "$jar"
+          status=$?
+          set -e
+
+          if [ "$status" -ne 124 ]; then
+            echo "Fat JAR stopped before the JavaFX application was running (exit $status)." >&2
+            exit "$status"
+          fi
+
+      - name: Upload platform fat JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: fat-jar-${{ matrix.platform }}
+          path: target/scala-3.3.5/scala-man-0.1.0-SNAPSHOT-${{ matrix.platform }}-fat.jar
+          if-no-files-found: error
+
   delivery:
     name: Project Delivery
     runs-on: ubuntu-latest
+    needs: build-fat-jar
     permissions:
       contents: write
 
@@ -31,11 +94,12 @@ jobs:
       - name: Set up sbt
         uses: sbt/setup-sbt@v1
 
-      - name: Compile and test
-        run: sbt -v compile test
-
-      - name: Build fat JAR
-        run: sbt -v assembly
+      - name: Download platform fat JARs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: fat-jar-*
+          path: fat-jars
+          merge-multiple: true
 
       - name: Build report PDF
         run: >
@@ -71,13 +135,15 @@ jobs:
           staging.mkdir()
           shutil.copytree("src", staging / "src")
 
-          jar = next(Path("target").glob("scala-*/scala-man-*-fat.jar"))
-          shutil.copy2(jar, staging / jar.name)
+          jars = sorted(Path("fat-jars").glob("scala-man-*-fat.jar"))
+          for jar in jars:
+              shutil.copy2(jar, staging / jar.name)
           shutil.copy2(report_pdf, staging / "report.pdf")
 
           with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
               zf.write(staging / "report.pdf", "report.pdf")
-              zf.write(staging / jar.name, jar.name)
+              for jar in jars:
+                  zf.write(staging / jar.name, jar.name)
               for path in (staging / "src").rglob("*"):
                   if path.is_file():
                       zf.write(path, path.relative_to(staging).as_posix())
@@ -94,8 +160,13 @@ jobs:
 
           if sorted({name.split("/", 1)[0] for name in names if "/" in name}) != ["src"]:
               errors.append("expected the only root directory to be src")
-          if len(jar_files) != 1:
-              errors.append(f"expected exactly one root fat jar, found {jar_files}")
+          expected_jars = [
+              "scala-man-0.1.0-SNAPSHOT-linux-fat.jar",
+              "scala-man-0.1.0-SNAPSHOT-macos-fat.jar",
+              "scala-man-0.1.0-SNAPSHOT-windows-fat.jar",
+          ]
+          if jar_files != expected_jars:
+              errors.append(f"expected platform fat jars {expected_jars}, found {jar_files}")
           if len(report_files) != 1:
               errors.append(f"expected exactly one root report pdf, found {report_files}")
           if other_root_files:

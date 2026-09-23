@@ -79,6 +79,13 @@ class LevelViewTest extends AnyFunSuite:
     assert(LevelView.of(startingLevel).score == startingLevel.score.currentScore)
   }
 
+  test("the view shows the time a timed game can still earn") {
+    val timed =
+      startingLevel.copy(mode = GameMode.Timed(60.seconds), clock = GameClock(20.seconds))
+
+    assert(LevelView.of(timed).score == 40)
+  }
+
   test("the view is shown the time in the whole seconds it is going to show") {
     val played = startingLevel.ticking(1500.millis)
     assert(LevelView.of(played).elapsed == 1.second)
