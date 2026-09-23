@@ -2,18 +2,19 @@
 \chapter{Architectural Design}
 
 The architecture follows mainly from two requirements: the non-functional requirement that asks for model updates not
-to depend on anything other than the state they are given and the time elapsed, in order to allow the game behavior
+to depend on anything other than the \textbf{state} they are given and the \textbf{time elapsed}, in order to allow the game behavior
 to be exercised without a window ever being opened, and the implementation requirement that asks that the rules do
 not depend on the chosen graphical library. The obtained architecture is one in which everything that determines what
 happens in a game, such as how far the player and the enemies advance in the time that has passed, which cell an enemy
 goes towards next, what a collected item is worth, is computed from the state of the game together with a duration,
-and yields the state that follows. These actions are pure: none of them opens a file, reads the system clock, or
+and yields the state that follows. These actions are \textbf{pure}: none of them opens a file, reads the system clock, or
 touches the screen.
 
-The three things that cannot be computed that way are kept out of that computation altogether: the window and the
+The \textbf{external interactions} that cannot be computed that way are kept out of that computation altogether: the window and the
 drawing done upon it, the timer that reports when a frame is due together with the keys the player has pressed, and
-the reading and writing of mazes, saved games and recorded results. They are confined to a layer that is around the
-computation: the entry point, that owns the window and the timer, and adapters that own the files.
+the reading and writing of mazes, saved games and recorded results. They also include the timestamps used to date
+results and name saves. They are confined to a layer that is around the computation: the entry point owns the window
+and the timer; the application and adapters receive clocks as injectable functions; and \textbf{adapters} own the files.
 
 \section{Architectural patterns}
 
@@ -24,7 +25,7 @@ every rule of the game: given the state of a game and the time that has passed, 
 returns it. It performs no input or output, reads no clock, and holds no mutable variable. The shell is the part
 that cannot be pure: the graphical library, the frame timer, the file system.
 
-The state of the application is held in a single mutable reference at the boundary, which the frame
+The state of the application is held in a \textbf{single mutable reference} at the boundary, which the frame
 timer replaces with the state the core has computed. The few other mutable variables in the program belong to the interface
 and hold what is being drawn rather than anything about the game. Everything below the boundary is immutable, which is
 what allows a game to be driven from a test at any speed, replayed, or set aside and taken up again.
@@ -40,7 +41,7 @@ what allows a game to be driven from a test at any speed, replayed, or set aside
 
 Within the division into core and shell, the MVC architecture pattern is applied. The \textbf{model} holds the domain
 and its rules, while not concerning itself with the rest. The \textbf{view} draws and collects input, and contains no
-rule of its own. The \textbf{controller} sits between them, translating what the player does into changes of state and
+\textbf{domain rule} of its own. The \textbf{controller} sits between them, translating what the player does into changes of state and
 what the model becomes into something the view can draw. Each update produces a \textbf{level view}, which is a flat
 description of what should appear on screen, that is positions, lives, score, remaining time, effects, and it is what
 the drawing receives. It is given no level, so it can neither read the state of a game in progress, nor can it advance
@@ -80,14 +81,14 @@ game through a file dialog, which yields a path.
   application as it then stands, and draws it. When a game reaches a terminal outcome, it shows the corresponding
   board overlay; the menu is restored only when the player chooses to return to it.
   \item \textbf{Application} is the state of the program as a whole: whether a menu is showing or a game is being played,
-  and what the player was last told. It interprets \textbf{commands} that the interface raises, asks for the
+  and any \textbf{user-facing notice awaiting display}. It interprets \textbf{commands} that the interface raises, asks for the
   necessary resources, and decides when a game result is to be recorded in the leaderboard. It exchanges commands and
   application states with the entry point, and levels with the game session.
   \item \textbf{Game session} is a game in progress, holding everything about it that changes from one frame to the next:
   the level as it now stands, the rendering through which the interface is notified of it, whether the loop
-  is running or paused, and the moment of the last frame it was advanced to.  Given the moment of a new frame
-  it yields the session as it stands at that moment, and the interval between the two becomes the duration it
-  hands to the model's update pipeline, never negative and never more than fifty milliseconds, so that a frame
+  is running or paused, the \textbf{pre-game countdown}, and the moment of the last frame it was advanced to. Given the moment of a new frame
+  it yields the session as it stands at that moment. Once the pre-game countdown is complete, the interval between the two becomes the duration it
+  hands to the model's update pipeline, never negative and never more than \textbf{fifty milliseconds}, so that a frame
   the machine was slow over will not lead to a bonus expiring, a survival difficulty jump and consume a timed game's limit
   in one step.
   An advance notifies the interface only when the resulting level projection changes visibly. While paused, the level
@@ -120,7 +121,7 @@ game through a file dialog, which yields a path.
   key filter and passes on whatever comes back. Keeping it apart is what lets the controls be changed in one place.
   \item \textbf{Rendering} turns a level into the flat description the interface draws, and tells whoever is listening when
   that description changes. It holds the projection, the listeners registered against it, and the last
-  description shown. Given a level it computes the new description and passes it on only if it differs from the
+  description shown. Given a level it computes the new \textbf{projection} and passes it on only if it differs from the
   last, so a frame in which nothing visible changed is not redrawn. It receives levels from the game session and
   hands \textbf{level views} to the view.
   \item \textbf{Collectibles and effects} is what a maze still has to gather and which temporary effects are in force. Gathering
@@ -137,7 +138,7 @@ game through a file dialog, which yields a path.
   a copy of their maze, and leaderboards written as text through an encoding defined for a result.
   \item \textbf{Map pipeline} Reading a maze from a file, parsing its text into a grid and validating that grid against the rules
   that make a maze playable. It receives text and returns either a validated maze or the reasons it was refused.
-  \item \textbf{Game loop and clock} determine whether a game can advance, and how far it has. The loop holds the state the game
+  \item \textbf{Game loop and clock} determine whether a game can advance, and how far it has \textbf{advanced}. The loop holds the state the game
   is in (not yet started, running or paused), the clock accumulates the time handed to it and reads no clock of its own.
   The session consults the first before advancing anything, and the rules read the second wherever they depend on elapsed
   time.
