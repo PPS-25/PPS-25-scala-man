@@ -1,8 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{Introduction}
 
-\textbf{Scala-Man} is a single-player arcade maze game inspired by Pac-Man. Players navigate a
-closed maze, collect standard collectibles, and avoid enemies to complete the selected game mode. It
+\textbf{scala-man} is a single-player arcade maze game inspired by Pac-Man. Players navigate a
+closed maze, collect collectibles, and avoid enemies to complete the selected game mode. It
 is implemented in Scala 3, with a functional domain core and a ScalaFX user interface. The game
 supports configurable maps, distinct enemy behaviours, and persistent results.
 
@@ -56,21 +56,21 @@ The maze contains three kinds of enemy:
 
 \section{Maps, persistence, and project goals}
 
-Players can choose a supplied maze or provide their own through the
-\href{https://github.com/PPS-25/PPS-25-scala-man/blob/dev/docs/map-format.md}{ASCII map-format document in the project repository}.
+Players can choose a \textbf{supplied maze} or provide their own through the
+\href{https://github.com/PPS-25/PPS-25-scala-man/blob/dev/docs/map-format.md}{\textbf{ASCII map-format document} in the project repository}.
 Before play, a map is
-parsed and validated: it must be non-empty and rectangular, use only supported symbols, have a closed border,
+\textbf{parsed and validated}: it must be non-empty and rectangular, use only supported symbols, have a closed border,
 exactly one player spawn, at least one standard collectible and one enemy, correctly paired teleports, and every
-standard collectible and enemy reachable from the spawn. Invalid maps are rejected with a clear explanation rather
+standard collectible and enemy reachable from the spawn. \textbf{Invalid maps} are rejected with a clear explanation rather
 than causing the game to crash.
 
-A paused game can be saved from the in-game menu and resumed later with its maze, positions, remaining collectibles,
-effects, score, clock, and mode restored. A result is recorded only when a game reaches a terminal outcome.
+A paused game can be \textbf{saved} from the in-game menu and \textbf{resumed} later with its maze, positions, remaining collectibles,
+effects, score, clock, and mode restored. A result is recorded only when a game reaches a \textbf{terminal outcome}.
 
 Patrolling enemies, additional game modes, score leaderboards, and game persistence were planned as
-optional extensions in the project proposal; all were completed and integrated into the final application.
+\textbf{optional extensions} in the project proposal; all were completed and integrated into the final application.
 
-Beyond the playable application, Scala-Man pursues three design goals developed in the following chapters:
+Beyond the playable application, scala-man pursues three design goals developed in the following chapters:
 \textbf{extensible enemy behaviour}, \textbf{extensible game modes}, and a \textbf{testable domain model}
 that remains independent from the graphical interface. The report then presents the development process,
 requirements, architecture, detailed design, implementation, testing, and retrospective.
