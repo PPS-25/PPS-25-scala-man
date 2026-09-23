@@ -1,0 +1,83 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class LevelView {
+    <<pure>>
+    +of(level)$ LevelView
+  }
+
+  class RenderedMovement {
+    <<pure>>
+    +from: Position
+    +to: Position
+    +progress: Double
+  }
+
+  class Board {
+    <<pure>>
+    +cells: Vector~Vector~Sprite~~
+    +of(maze)$ Board
+  }
+
+  class CellSizing {
+    <<pure>>
+    +fitting(board, screen) Double
+  }
+
+  class Frame {
+    <<pure>>
+    +entities: Vector~Drawn~
+    +of(view)$ Frame
+  }
+
+  class Drawn {
+    <<pure>>
+    +at: Spot
+    +sprite: Sprite
+  }
+
+  class Spot {
+    <<pure>>
+    +of(movement)$ Spot
+  }
+
+  class StatusBar {
+    <<pure>>
+    +of(view)$ StatusBar
+  }
+
+  class Sprite {
+    <<enum>>
+    Wall
+    Floor
+    Item
+    Teleport(pair)
+    Player(mouth, facing)
+    Bonus(effect)
+    Enemy(kind)
+  }
+
+  class GameBoard {
+    <<ScalaFX>>
+    +draw(frame) Unit
+  }
+
+  class SpriteImages {
+    <<ScalaFX>>
+  }
+
+  LevelView *-- RenderedMovement : player
+  Frame ..> LevelView : of
+  StatusBar ..> LevelView : of
+  Frame *-- "0..*" Drawn : entities
+  Frame *-- StatusBar : status
+  Drawn --> Spot : at
+  Drawn --> Sprite : sprite
+  Spot ..> RenderedMovement : interpolates
+  Board *-- "0..*" Sprite : cells
+  CellSizing ..> Board : fitting
+  GameBoard ..> Board : drawn once
+  GameBoard ..> Frame : drawn each tick
+  GameBoard ..> CellSizing : cell size
+  GameBoard ..> SpriteImages : pictures
