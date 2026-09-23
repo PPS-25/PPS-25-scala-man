@@ -3,17 +3,18 @@ flowchart LR
   idle{"Enemy idle?"}
   unchanged["Keep current movement"]
   selector["EnemyStrategySelector"]
-  context["EnemyMovementContext"]
+  context["EnemyMovementContext\npositions, map, teleport permission, heading"]
   strategy["EnemyMovementStrategy"]
   navigation["EnemyMovement\nordered moves and BFS"]
-  movement["Assign next movement"]
-  noMove["Keep current position"]
+  movement["EnemyAiStage\nassigns movement and retains memory"]
+  noMove["EnemyAiStage\nkeeps remembered enemy idle"]
 
   stage --> idle
   idle -->|"no"| unchanged
   idle -->|"yes"| selector
-  selector --> strategy
+  stage -->|"builds"| context
+  selector -->|"enemy kind"| strategy
   context -. immutable input .-> strategy
-  strategy --> navigation
-  navigation -->|"Some(next position)"| movement
-  navigation -->|"None"| noMove
+  strategy -. uses .-> navigation
+  strategy -->|"Some adjacent next position"| movement
+  strategy -->|"None or non-adjacent position"| noMove

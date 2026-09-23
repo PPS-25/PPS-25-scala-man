@@ -319,23 +319,22 @@ one doubles the awarded points.
 
 \section{Alex Santini}
 
-My main implementation work focused on two boundaries that are essential to a reliable maze game: transforming a
-textual maze into a \textbf{playable domain value}, and making enemies take \textbf{deterministic decisions} within
-that maze. I also implemented the Timed and Survival modes, save/load support, and the CI checks used by the team;
-the following sections concentrate on maps and AI because they contain the most substantial modelling and algorithmic
-work.
+My implementation work covered six connected areas: \textbf{maps}, the \textbf{state-update pipeline}, \textbf{enemy
+AI}, \textbf{game modes}, \textbf{save/load}, and \textbf{CI/CD}. The first two establish the deterministic domain
+boundary on which the others depend; the remaining sections show the concrete behaviours and delivery safeguards built
+upon it.
 
-\subsection{Maps as a validated input pipeline}
+\subsection{Maps: parsing, validation, and reachability}
 
-A map is authored as a UTF-8 ASCII file, but the game model must never depend on arbitrary text. I therefore split
-map handling into three steps with different responsibilities:
+A map is authored as a plain UTF-8 text file using ASCII map symbols, but the game model must never depend on arbitrary
+text. I therefore split map handling into three steps with different responsibilities:
 
 \begin{enumerate}
-  \item \texttt{MapLoader} is the only step that performs file I/O. It returns either the file text or a
+  \item \textbf{\texttt{MapLoader}} is the only step that performs file I/O. It returns either the file text or a
   \texttt{MapLoadError}.
-  \item \texttt{MapParser} is pure: it translates supported symbols into tiles and returns either a \texttt{RawMap}
+  \item \textbf{\texttt{MapParser}} is pure: it translates supported symbols into tiles and returns either a \texttt{RawMap}
   or a list of syntactic errors.
-  \item \texttt{MapValidator} is pure: it checks gameplay invariants and returns either a \texttt{ValidatedMap} or
+  \item \textbf{\texttt{MapValidator}} is pure: it checks gameplay invariants and returns either a \texttt{ValidatedMap} or
   a list of semantic errors.
 \end{enumerate}
 
@@ -356,15 +355,13 @@ This separation is useful both for robustness and for testing. A parser test nev
 construct a small \texttt{RawMap} directly, and an integration test can exercise the complete pipeline. It also keeps
 the domain independent from paths, encodings, and \texttt{IOException}.
 
-\subsection{Playability is a graph property}
-
-Parsing checks whether text is well formed; it cannot determine whether a game can actually be completed. The
+\textbf{Playability is a graph property.} Parsing checks whether text is well formed; it cannot determine whether a game can actually be completed. The
 validator therefore inspects the rectangular grid once to collect its structural elements and checks that it has a
 closed border, exactly one player spawn, at least one standard collectible, and at least one enemy. It pairs
 teleports according to their documented codes and accumulates independent structural errors, so a map author can
 correct several mistakes in a single attempt.
 
-Once the structure is sound, \texttt{MapReachability} performs breadth-first search from the player spawn over
+Once the structure is sound, \textbf{\texttt{MapReachability}} performs \textbf{breadth-first search} from the player spawn over
 walkable orthogonal neighbours. A valid teleport pair contributes two directed graph edges, one in each direction.
 The same traversal consequently proves that every required collectible and enemy can be reached even when the only
 route crosses a teleport. This is stronger than checking local tile placement: an isolated but syntactically valid
@@ -391,9 +388,27 @@ and reachability; \texttt{MapPipelineSpec} verifies their composition. In partic
 collectibles that are reachable only through a teleport, which protects the intended graph semantics rather than
 only the ordinary grid case.
 
-\subsection{Enemy AI as a deterministic strategy}
+\subsection{State update pipeline}
 
-Enemy AI is part of the domain model, not of rendering or the game loop. I introduced
+I introduced \textbf{\texttt{GameStateUpdatePipeline[S]}} as a small generic value that represents one complete update of a
+state \texttt{S}. It stores six functions of type \texttt{S => S} and applies them with \texttt{foldLeft}; the order is
+therefore explicit, deterministic, and testable without a timer or graphical interface. The abstraction separates the
+stable structure of a tick from the concrete rules that later work plugged into its stages.
+
+\textbf{\texttt{LevelState.pipeline}} supplies the game-specific stages in this order: enemy decisions, time and movement,
+collision and teleport resolution, collection, effect expiry, and the player's next requested move. This order is a
+rule in itself: movement must finish before collisions are observed, a teleport is resolved before the next decision,
+and a collected bonus must be active before the following tick. Each stage is wrapped so that a terminal level remains
+unchanged for the rest of the tick.
+
+The AI update is an \textbf{explicit parameter} of \texttt{LevelState.pipeline}, defaulting to
+\texttt{EnemyAiStage.stage}. Tests can consequently replace it with a small deterministic function and verify the
+pipeline independently of a particular enemy behaviour. Subsequent work filled and refined individual stages, while
+the pipeline remained the common, ordered integration boundary.
+
+\subsection{Enemy AI: strategies and pathfinding}
+
+Enemy AI is part of the \textbf{domain model}, not of rendering or the game loop. I introduced
 \texttt{EnemyMovementStrategy} as the narrow abstraction through which an enemy selects its next cell:
 
 \begin{lstlisting}
@@ -401,15 +416,15 @@ trait EnemyMovementStrategy:
   def nextMove(context: EnemyMovementContext): Option[Position]
 \end{lstlisting}
 
-The context is an immutable value containing the enemy position, current and previous player positions, the
+The context is an \textbf{immutable value} containing the enemy position, current and previous player positions, the
 \texttt{ValidatedMap}, whether a teleport may be used, and an optional remembered target. A strategy returns
 \texttt{None} when no movement is possible; it never mutates an enemy, reads global state, or accesses the UI. This
 keeps each decision reproducible from its input and lets strategies be tested with a hand-built map.
 
-\texttt{EnemyAiStage} owns orchestration. On each tick it leaves moving enemies unchanged, asks
+\textbf{\texttt{EnemyAiStage}} owns orchestration. On each tick it leaves moving enemies unchanged, asks
 \texttt{EnemyStrategySelector} for the strategy associated with an idle enemy kind, builds the context, retains any
-strategy memory, and converts the selected next position into a legal entity movement. The stage is itself injected
-into \texttt{LevelState.pipeline}, so tests may replace it without constructing a different game loop.
+strategy memory, and converts the selected next position into a legal entity movement. The AI update is an explicit
+parameter of \texttt{LevelState.pipeline}, so tests may replace it without constructing a different game loop.
 
 \begin{figure}
   \centering
@@ -418,9 +433,7 @@ into \texttt{LevelState.pipeline}, so tests may replace it without constructing 
   A strategy proposes a position; only the stage turns that proposal into entity movement.}
 \end{figure}
 
-\subsection{Path finding, anticipation, and teleport semantics}
-
-The common \texttt{EnemyMovement} module contains the navigation policy shared by every strategy. It enumerates
+\textbf{Path finding, anticipation, and teleport semantics.} The common \textbf{\texttt{EnemyMovement}} module contains the navigation policy shared by every strategy. It enumerates
 walkable neighbours in a fixed order and uses a tail-recursive breadth-first search over immutable
 \texttt{Queue}, \texttt{Vector}, and \texttt{Set} values. The first discovered path is therefore a shortest path,
 and equal alternatives are resolved deterministically rather than by timing or randomness.
@@ -433,7 +446,7 @@ private[ai] def orderedMoves(
     Option.when(canUseTeleport)(teleportDestination(from, map)).flatten.toVector
 \end{lstlisting}
 
-The \texttt{Vector} order---up, down, left, right, then a permitted teleport---is also the tie-breaking order used by
+The \texttt{Vector} order---up, down, left, right, then a permitted teleport---is also the \textbf{tie-breaking order} used by
 the breadth-first search. The conversion to a set occurs only in the public \texttt{validMoves} query, where ordering
 is not part of the result contract.
 
@@ -448,22 +461,51 @@ to the candidate moves and can shorten a BFS route. After an enemy uses a telepo
 teleport at the origin until it has stepped away; this prevents an enemy from bouncing forever between paired cells.
 The implementation and tests therefore share one semantics for ordinary movement, shortest paths, and teleports.
 
-\subsection{Extension and verification}
-
-The strategy boundary keeps an additional enemy behaviour local: implement \texttt{EnemyMovementStrategy}, reuse the
+\textbf{Extension and verification.} The \textbf{strategy boundary} keeps an additional enemy behaviour local: implement \texttt{EnemyMovementStrategy}, reuse the
 shared navigation primitives where appropriate, test the decision, and add a selector mapping only when the behaviour
-is chosen from \texttt{EnemyKind}. The independently developed \texttt{PatrolStrategy} follows precisely this route,
-which demonstrates that the original abstraction was sufficient without changing the update pipeline.
+is chosen from \texttt{EnemyKind}. \texttt{PatrolStrategy} was independently implemented by Matilde D'Antino and follows
+precisely this route, demonstrating that the existing strategy boundary supports a new behaviour without changes to
+the update pipeline.
 
 The AI tests cover valid moves, shortest paths, prediction, deterministic ties, teleport routing, the
 no-immediate-return rule, selector mapping, and stage integration. Together with the map tests, they exercise the two properties
 that matter most for these contributions: untrusted map data cannot enter play unchecked, and the same valid state
 always produces the same enemy decision.
 
-\subsection{Other contributions}
+\subsection{Game modes}
 
-Outside these two main areas, I implemented \texttt{Timed} and \texttt{Survival} game modes, including the cap that
-keeps Survival enemies no faster than the player's base speed. I implemented game saving and loading, where a saved
-maze is reconstructed through the same parser and validator rather than trusted as persisted state. Finally, I set up
-the project CI workflows for compilation, tests, scalafmt, report generation, and the delivery archive; this made the
-repository continuously buildable and gave pull requests an objective integration gate.
+I implemented the \textbf{\texttt{Timed}} and \textbf{\texttt{Survival}} policies of \texttt{GameMode}. Timed mode requires a positive
+limit, gives timeout precedence over ordinary completion, exposes the remaining time, and selects the timed scoring
+policy. Its displayed time is a potential score while the level is running; it becomes an award only on victory, so a
+defeat or timeout cannot be used to obtain a time bonus.
+
+Survival deliberately has \textbf{no victory state}. It turns elapsed time into difficulty waves and scales the time experienced
+by enemies by 20\% per wave. The policy validates both its positive wave interval and its maximum multiplier; the
+latter is capped at 1.25, which keeps an enemy with a 250 ms cell time no faster than the player's 200 ms base cell
+time. These rules remain local to the mode policy while shared movement, collision, persistence, and rendering stages
+remain unchanged.
+
+\subsection{Game save and load}
+
+I implemented the \textbf{\texttt{GameSaveRepository}} boundary and its \textbf{versioned} UTF-8 \texttt{Properties}-based format. A
+save contains a copy of the maze, the selected mode, moving entities, remaining collectibles and effects, lives, score,
+clock, and the positions needed to resume safely. The maze copy is Base64-encoded only for property-file transport;
+when read, it is decoded and passed through the same \texttt{MapParser} and \texttt{MapValidator} used for an imported
+maze. Persisted data is therefore never trusted merely because it came from a save file.
+
+The codec returns a \textbf{\texttt{SaveGameError}} rather than leaking I/O, format, or validation failures into the controller.
+It also checks that restored entities, movement endpoints, collectibles, and remembered positions are walkable before
+constructing the resumed \texttt{LevelState}. This makes a malformed or stale save a recoverable user-facing failure,
+not an invalid game value.
+
+\subsection{Continuous integration and delivery}
+
+I set up the two \textbf{GitHub Actions workflows} that make the repository continuously verifiable. The CI workflow runs on
+every push and pull request and executes compilation, the ScalaTest suite, and \texttt{scalafmtCheckAll} on JDK~21.
+It gives a pull request an objective gate before review or merge.
+
+The \textbf{delivery workflow} runs from \texttt{main}. It builds fat JARs for Linux, Windows, and macOS, checks that the Linux
+application starts under a virtual display, generates the report with \texttt{latexmk} in a TeX Live container, and
+packages the report, sources, and JARs into the release archive. Before publishing, it verifies the archive structure
+and the exact expected artifacts. Thus the delivery requirements are tested by automation rather than assumed from a
+developer machine.
