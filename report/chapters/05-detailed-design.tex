@@ -18,7 +18,8 @@ which the next is computed. Everything in the model must therefore compose into 
 state of its own.
 
 \textbf{Second}, the behaviour of modes and enemies must be extensible. Each is consequently expressed as an
-implementation point: a new mode or enemy behaviour is written on its own, leaving the rules already written untouched.
+implementation point: a new mode or enemy behaviour is implemented independently and registered at its relevant
+integration points, leaving existing behaviour unchanged.
 
 \begin{center}
   \small
@@ -30,7 +31,7 @@ implementation point: a new mode or enemy behaviour is written on its own, leavi
     \hline
     Deterministic updates & \texttt{LevelState} and update pipeline & A tick is an ordered transition from one immutable level to the next. \\
     \hline
-    Variable game rules & Strategies and mode policies & A new enemy behaviour or mode remains local to its implementation. \\
+    Variable game rules & Strategies and mode policies & A new enemy behaviour or mode remains isolated to its implementation and registration points. \\
     \hline
     Graphical rendering & \texttt{LevelView} projection and \texttt{Rendering} & The view receives drawing data, never the mutable game process. \\
     \hline
@@ -49,9 +50,8 @@ can keep state of its own.
 adjacent position. A movement advanced by a duration gives the movement further along, or reports that it has arrived.
 The arithmetic of the maze is therefore written in terms of positions and movements rather than rows and columns.
 
-What follows is that a whole game can be compared with ordinary equality, allowing, for example, saved games to be
-tested by asserting that what was read back equals what was written, with no need for the comparison to be written by
-hand.
+What follows is that a whole game can be compared with ordinary equality, allowing, for example, the persisted parts of
+a saved game to be tested by direct comparison with what was written, with no need for a comparison to be written by hand.
 
 The cost is that every update allocates rather than overwrites, creating a stream of short-lived values. This is
 accepted: the complete-update cost is covered in the testing chapter and remains well within a frame budget.
@@ -74,8 +74,9 @@ factory answers with a route only if the maze offers at least two distinct corne
 yields no route rather than an empty one.
 
 \subsection{Level state}
-A level is the whole state of a game at one instant, gathered into a single value, at the centre of
-Figure~\ref{fig:level}. Nothing about a game in progress is kept anywhere else.
+A level is the whole \textbf{domain gameplay state} at one instant, gathered into a single value, at the centre of
+Figure~\ref{fig:level}. Technical session state, such as the game loop, countdown, last frame, and rendering, is kept
+outside it.
 
 What follows is that saving a game is the writing of one value, and that a test can begin from any situation without
 playing its way there: a level with the player standing one cell from a bonus is built rather than reached.
@@ -177,11 +178,17 @@ Common navigation lives in \texttt{EnemyMovement}: breadth-first search finds sh
 and teleport links, and a fixed neighbour order makes equal paths deterministic. An enemy that has just left a
 teleport cannot immediately use it again, preventing a bounce between its two ends.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.82\textwidth]{../docs/uml/EnemyBehaviorDiagram.pdf}
+    \caption{Enemy behavior is selected from its kind, while every strategy receives the same immutable context. Shared navigation computes deterministic shortest-path steps, including teleport links.}
+    \label{fig:enemy-behavior}
+\end{figure}
 
 \subsection{Game modes}
 
 \texttt{GameMode} is a \textbf{domain policy}, rather than a flag checked throughout the level. Its operations decide the
-current outcome, the scoring rule, any terminal bonus, the time visible to the player, and the amount of time enemies
+current outcome, the scoring rule, any mode-specific bonus or potential score, the time visible to the player, and the amount of time enemies
 experience during an update. \texttt{Normal}, \texttt{Timed}, and \texttt{Survival} therefore share movement,
 collisions, collectibles, and persistence while differing only where their rules differ.
 
@@ -189,6 +196,13 @@ Timed mode adds a positive limit and gives precedence to its expiration over the
 never yields victory and increases the enemy time multiplier at regular intervals, capped so enemies cannot exceed the
 player's base speed. This arrangement keeps a future mode local: implementing one policy does not require adding
 mode checks to collision, movement, or rendering code.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.88\textwidth]{../docs/uml/GameModesDiagram.pdf}
+    \caption{Game modes are policies over the same level data. They determine the outcome, selected scoring rule, visible time, optional award, and enemy time progression without changing the shared gameplay stages.}
+    \label{fig:game-modes}
+\end{figure}
 
 \subsection{Scoring rules}
 
@@ -209,7 +223,7 @@ What it is worth is a \textbf{scoring rule}, implemented through the \textbf{str
 to an amount of points, and three rules exist, one for each game mode. The pattern is used
 because the modes do not simply scale the same scoring differently, but they score different events entirely. Under
 the standard rule, points come from what is gathered and whom the player defeats; under the timed rule, points come
-from the time remaining at the end of the game, and under the survival rule, they come from the waves outlived by
+from the time remaining on victory, and under the survival rule, they come from the waves outlived by
 the player. An event that a rule has no interest in is worth nothing, and is not an error, so each rule stays total
 over the whole event type, and rules do not need to know which events the others handle.
 
@@ -346,7 +360,7 @@ teleport links. Keeping this traversal separate from validation gives the valida
 must be reachable---while the traversal owns only graph exploration.
 
 \section{View}
-The view draws and collects input, and holds no rule of its own. It is given a description of what there is to show and
+The view draws and collects input, and holds no \textbf{domain rule} of its own. It is given a description of what there is to show and
 offers back the intentions of whoever is playing, and it is the only part of the program that knows which graphical
 library is in use.
 
@@ -407,31 +421,32 @@ the screen changes, so the figures read on it are those of the moment the game e
 
 \section{Controller}
 The controller sits between the model and the view, translating what the player does into changes of the game and what
-the game becomes into something the view can draw. It holds no rule and draws nothing, and it is the layer at which the
+the game becomes into something the view can draw. It holds no \textbf{domain rule} and draws nothing, and it is the layer at which the
 program as a whole is a value.
 
 \subsection{The application as a value}
 The state of the program is one value: whether a menu is showing or a game is being played, the way the outside world
-is reached, the tuning the modes are played by, and whatever the player was last told. Every command produces the next
+is reached, the tuning the modes are played by, and any transient application notice awaiting processing. Every command produces the next
 application rather than modifying the present one. What follows is that a transition can be read as a single
 expression, and asserted in a test as an ordinary comparison.
 
-Commands are the only way in. The interface offers intentions and never performs them; the controller decides what each
-one means, asks the outside world for what it needs, and answers with the application as it then stands. The shell that
+Commands are how the interface offers intentions and never performs them; the controller decides what each one means,
+asks the outside world for what it needs, and answers with the application as it then stands. Frame timestamps and
+requested directions arrive through their dedicated controller operations. The shell that
 owns the window keeps the current application in a mutable reference and replaces it after every event, which is where
 a program made of values meets a toolkit that is not.
 
 A request the outside world refuses becomes a sentence rather than an exception, since whoever reads it is playing a
-game rather than debugging one, and it is shown once: the notice is consumed as it is displayed, so a message cannot
-repeat itself frame after frame.
+game rather than debugging one. The notice is consumed after the interface processes it, so it cannot repeat itself frame after frame.
 
-Deciding when a game ends is also the controller's. A result is handed over to be recorded once, however many frames
-follow, and only if the maze it was played on can be named, since a leaderboard belongs to a maze and a mode.
+The model decides whether a game has ended; the controller detects the first terminal transition. A result is handed
+over to be recorded once, however many frames follow, and only if the maze it was played on can be named, since a leaderboard
+belongs to a maze and a mode.
 
 \subsection{From frames to game time}
 
-\textbf{The first frame yields no duration}, since there is nothing to measure from. Every frame after it
-produces the interval since the one before, and that interval is what the model is advanced by. Therefore, a session
+\textbf{The first frame yields no duration}, since there is nothing to measure from. Once the pre-game countdown is complete,
+every following frame produces the interval since the one before, and that interval is what the model is advanced by. Therefore, a session
 carries the moment of the last frame it saw, which is the only thing in it that has to do with real time.
 
 \textbf{Before entering the model, the interval is bounded}: it is never negative and never longer than fifty milliseconds.
