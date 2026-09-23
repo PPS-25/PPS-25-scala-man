@@ -93,8 +93,9 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   \item \textbf{Scoring rule}: the mode-specific mapping from events to points. In Classic, a standard collectible is worth
   50 points, a bonus 100 points, and each life left at the end 500 points. Defeating an enemy starts at
   200 points and doubles for every consecutive defeat during one invulnerability effect. In Timed, a point is awarded
-  for each second remaining when the maze is cleared, and nothing else is scored. In Survival, a point is awarded
-  for each difficulty wave survived.
+  for each second remaining when the maze is cleared, and nothing else is scored. While a Timed game is running,
+  its seconds remaining are shown as a potential score; they become the final result only on victory, while every
+  defeat yields zero points. In Survival, a point is awarded for each difficulty wave survived.
   \item \textbf{Maze validity}: the conditions a maze must satisfy to be playable, such as rows of equal and non-zero
   length, exactly one player spawn, at least one standard collectible, at least one enemy, every standard collectible being reachable,
   teleports correctly paired, and every enemy reachable from the player's spawn. A maze that does not uphold
