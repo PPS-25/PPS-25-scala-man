@@ -141,7 +141,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 \subsubsection{Persistence and results}
 
 \begin{itemize}
-  \item \textbf{Game in progress}: the entirety of a game at one instant: its maze, its player and enemies, what
+  \item \textbf{Game in progress}: the gameplay state required to resume a game: its maze, its player and enemies, what
   is left to gather, the effects in force, the clock, the progress, the score and the mode being played. It is
   the unit that is saved when a game is set aside and restored when it is taken up again.
   \item \textbf{Result}: what a finished game leaves behind: the score reached, the name of whoever played, and the
@@ -211,42 +211,33 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 
 \section{Non-functional requirements}
 
-The following qualities are expressed together with the evidence used to assess them:
-
-\begin{center}
-  \begin{tabular}{|p{1.4cm}|p{2.4cm}|p{8cm}|}
-    \hline
-    \textbf{ID} & \textbf{Quality} & \textbf{Requirement and evidence} \\
-    \hline
-    NFR-P1 & Responsiveness & The average duration of a complete model update must remain below the 16 milliseconds a
-    frame is allotted at 60 frames per second, on every maze supplied with the game, so that the model is never the reason
-    a frame is missed. The dedicated performance check is described in the testing chapter.\\
-    \hline
-    NFR-R1 & Robustness & Malformed maps and saves must be rejected with an actionable explanation rather than crashing the
-    application. Parsing and storage operations report failures as values, and the corresponding parser,
-    validator, and persistence tests cover invalid input. \\
-    \hline
-    NFR-D1 & Determinism & A model update must depend only on its input state and elapsed time. The game rules can therefore
-    be reproduced and tested independently of the graphical interface. \\
-    \hline
-    NFR-P2 & Portability & The application must run without source changes on systems providing JDK 21. The delivery workflow
-    packages it as a self-contained executable JAR. \\
-    \hline
-    NFR-U1 & Usability & A new player must be able to choose a name, maze, and mode and start a game from the menu without
-    consulting the map-format documentation. \\
-    \hline
-  \end{tabular}
-\end{center}
+\begin{enumerate}[label=\textbf{NFR-\arabic*}]
+  \item \textbf{Responsiveness}: the average duration of a complete model update must remain below the 16 milliseconds a
+  frame is allotted at 60 frames per second, on every maze supplied with the game, so that the model is never the reason
+  a frame is missed. The dedicated performance check is described in the testing chapter.
+  \item \textbf{Robustness}: malformed maps and saves must be rejected with an actionable explanation rather than crashing the
+  application. Parsing and storage operations report failures as values, and the corresponding parser,
+  validator, and persistence tests cover invalid input.
+  \item \textbf{Determinism}: a model update must depend only on its input state and elapsed time. The game rules can therefore
+  be reproduced and tested independently of the graphical interface.
+  \item \textbf{Portability}: the application must run without source changes on Linux, Windows, and macOS systems
+  providing JDK 21, using the matching platform archive. The delivery workflow packages a self-contained executable JAR
+  for each supported platform.
+  \item \textbf{Usability}: a new player must be able to choose a name, maze, and mode and start a game from the menu without
+  consulting the map-format documentation.
+\end{enumerate}
 
 \section{Technical and architectural constraints}
 
 \begin{enumerate}[label=\textbf{TC-\arabic*}]
   \item \textbf{Language and platform}: the game must be written in Scala 3 and run on the Java Virtual Machine
   version 21, with a graphical interface.
-  \item \textbf{A single artifact}: the build must produce one self-contained executable archive, so that the
-  game can be delivered and run without the recipient installing or resolving anything beyond a virtual machine.
+  \item \textbf{Self-contained artifacts}: the build must produce a self-contained executable archive for each
+  supported platform, so that the game can be delivered and run without the recipient resolving dependencies beyond
+  a virtual machine.
   \item \textbf{Extensibility}: it must be possible to add a game mode, an enemy behavior or a bonus effect by
-  writing the new behavior on its own, without altering the behavior of any existing one.
+  implementing the new behavior independently and registering it at the relevant integration points, without altering
+  the behavior of any existing one.
   \item  \textbf{Replaceable storage}: the location in which the game keeps saves and recorded results must be
   reachable through an interface describing what is stored rather than through the direct use of the file
   system, so that the storage can be exchanged without the rest of the game being aware of it.
