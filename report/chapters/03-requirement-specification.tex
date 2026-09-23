@@ -15,7 +15,7 @@ planned once that core is available. This distinction guided the product backlog
     \hline
     \textbf{Priority} & \textbf{Area} & \textbf{Outcome} \\
     \hline
-    Mandatory & Core gameplay & The player navigates a maze, collects standard items, avoids enemies, and wins
+    Mandatory & Core gameplay & The player navigates a maze, collects standard collectibles, avoids enemies, and wins
     or loses according to the game rules. \\
     \hline
     Mandatory & Enemy behaviours & Hunter and Anticipator enemies provide direct pursuit and route prediction
@@ -62,9 +62,9 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   is orthogonal only, so diagonal movement is not supported.
   \item \textbf{Spawn}: the cell an entity starts on. A maze has exactly one player spawn and can have multiple enemy
   spawns, each naming what kind of enemy spawns on them.
-  \item \textbf{Collectible}: an object placed on a walkable cell for the player to collect. A \textbf{standard item}
-  is worth points alone, a \textbf{bonus item} is worth points while also granting a special effect.
-  \item \textbf{Effect}: a temporary change to the rules, granted by a bonus item. \textbf{Invulnerability} lasts 8
+  \item \textbf{Collectible}: an object placed on a walkable cell for the player to collect. A \textbf{standard
+  collectible} is worth points alone, while a \textbf{bonus} is worth points and grants a special effect.
+  \item \textbf{Effect}: a temporary change to the rules, granted by a bonus. \textbf{Invulnerability} lasts 8
   seconds and makes contact with an enemy defeat the enemy rather than cost a life, while \textbf{slowdown}
   lasts 5 seconds and halves the speed of every enemy.
   \item \textbf{Teleport}: a pair of linked cells, that carry an entity stepping on them from one end of the teleport
@@ -83,18 +83,19 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   \item \textbf{Game mode}: the rules that decide, at any moment, whether a game is still running, won or lost,
   given the lives the player has left, what is left to gather, and the time elapsed. A mode also
   determines how the pace changes as a game goes on, whether a game runs against a limit, and what each scoring
-  event is worth. Three modes exist: \textbf{Classic} is won by gathering every standard item and lost on running
+  event is worth. Three modes exist: \textbf{Classic} is won by gathering every standard collectible and lost on running
   out of lives. \textbf{Timed} has the same objective, provided it is completed before its time limit.
   \textbf{Survival} has no gathering objective and admits no victory at all: enemy speed grows by 20\% every
   thirty seconds, but never beyond the player's base speed, and the game ends only when the player runs out of lives.
   \item \textbf{Scoring event}: an occurrence that can contribute to a score. The applicable events depend on the
-  selected mode: Classic scores collected standard items, collected bonus items, defeated enemies, and lives left at
-  the end; Timed scores the seconds remaining when the game ends; Survival scores the difficulty waves survived.
-  \item \textbf{Scoring rule}: the mode-specific mapping from events to points. In Classic, a standard item is worth
-  50 points, a bonus item 100 points, and each life left at the end 500 points. Defeating an enemy starts at
+  selected mode: Classic scores collected standard collectibles, collected bonuses, defeated enemies, and lives left at
+  the end; Timed scores the seconds remaining when the maze is cleared; Survival scores the difficulty waves survived.
+  \item \textbf{Scoring rule}: the mode-specific mapping from events to points. In Classic, a standard collectible is worth
+  50 points, a bonus 100 points, and each life left at the end 500 points. Defeating an enemy starts at
   200 points and doubles for every consecutive defeat during one invulnerability effect. In Timed, a point is awarded
-  for each second remaining when the maze is cleared, and nothing else is scored. In Survival, a point is awarded
-  for each difficulty wave survived.
+  for each second remaining when the maze is cleared, and nothing else is scored. While a Timed game is running,
+  its seconds remaining are shown as a potential score; they become the final result only on victory, while every
+  defeat yields zero points. In Survival, a point is awarded for each difficulty wave survived.
   \item \textbf{Maze validity}: the conditions a maze must satisfy to be playable, such as rows of equal and non-zero
   length, exactly one player spawn, at least one standard collectible, at least one enemy, every standard collectible being reachable,
   teleports correctly paired, and every enemy reachable from the player's spawn. A maze that does not uphold
@@ -125,8 +126,8 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 \begin{itemize}
   \item \textbf{Effects}: the effects in force at this moment, each with the instant it expires. An effect that has
   expired ceases to apply.
-  \item \textbf{Remaining collectibles}: what is still to be gathered. Classic and timed games are won when nothing
-  is left.
+  \item \textbf{Remaining collectibles}: the standard collectibles still to be gathered. Classic and timed games are
+  won when none remains; uncollected bonuses do not affect completion.
   \item \textbf{Lives}: How many lives the player has. At the start of the game, the player is given 3 lives. When
   caught by an enemy, a life is lost.
   \item \textbf{Meeting}: the player and an enemy occupying the same cell, or exchanging cells within a single
@@ -140,7 +141,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 \subsubsection{Persistence and results}
 
 \begin{itemize}
-  \item \textbf{Game in progress}: the entirety of a game at one instant: its maze, its player and enemies, what
+  \item \textbf{Game in progress}: the gameplay state required to resume a game: its maze, its player and enemies, what
   is left to gather, the effects in force, the clock, the progress, the score and the mode being played. It is
   the unit that is saved when a game is set aside and restored when it is taken up again.
   \item \textbf{Result}: what a finished game leaves behind: the score reached, the name of whoever played, and the
@@ -168,7 +169,7 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   must be remembered and taken at the first cell that allows it.
   \item \textbf{Follow the game as it is played}: the player must be able to see their score, the lives they have
   left, the mode being played, how much time has passed or how much there is still left, as well as the number
-  of the remaining items to collect and the effects that are in force.
+  of the remaining collectibles and the effects that are in force.
   \item \textbf{Pause, resume and load}: the player must be able to suspend a game and resume it where they have
   left it, and to load its persisted gameplay state in a later session. A leaderboard result is recorded only when
   a game reaches its end, so a game merely set aside does not add a result to the leaderboard.
@@ -194,14 +195,14 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
   active effects and by the selected game mode.
   \item \textbf{Decide where enemies go}: the system must choose each enemy's next cell using the corresponding
   strategy, and must pick a move only when the enemy is still.
-  \item \textbf{Carry entities through teleports}: an entity standing on one end of a teleport must be carried to
-  the other end.
+  \item \textbf{Carry entities through teleports}: an entity arriving on one end of a teleport must be carried to
+  the other end and must leave that destination before the same teleport can carry it back.
   \item \textbf{Resolve a meeting}: when a meeting occurs while the player is invulnerable, the enemy met is defeated,
   otherwise the player loses a life and every entity is brought back to its spawn point.
-  \item \textbf{Grant and expire effects}: gathering a bonus item must grant its effect for a fixed time. An effect
+  \item \textbf{Grant and expire effects}: gathering a bonus must grant its effect for a fixed time. An effect
   must cease to apply once its duration has expired.
-  \item \textbf{Award points}: the system must calculate the current and final score according to the selected
-  game mode and its scoring rule.
+  \item \textbf{Award points}: the system must calculate the current score according to the selected game mode and
+  its scoring rule. A final result must be produced only when that mode reaches a terminal state.
   \item \textbf{Judge game status}: the system must decide, on every update, whether the game is still running, has
   been won or has been lost.
   \item \textbf{Keep the best results only}: the system must record the result of every finished game against the
@@ -210,42 +211,33 @@ game. The \textbf{dynamic} view covers what constitutes the state of a game at a
 
 \section{Non-functional requirements}
 
-The following qualities are expressed together with the evidence used to assess them:
-
-\begin{center}
-  \begin{tabular}{|p{3cm}|p{8.8cm}|}
-    \hline
-    \textbf{Quality} & \textbf{Requirement and evidence} \\
-    \hline
-    Responsiveness & A complete model update must fit within the 16 milliseconds a frame is allotted at 60 frames per
-    second, on every maze supplied with the game, so that the model is never the reason a frame is missed. The measurements
-    and its results are reported in the chapter on testing.\\
-    \hline
-    Robustness & Malformed maps and saves must be rejected with an actionable explanation rather than crashing the
-    application. Parsing and storage operations report failures as values, and the corresponding parser,
-    validator, and persistence tests cover invalid input. \\
-    \hline
-    Determinism & A model update must depend only on its input state and elapsed time. The game rules can therefore
-    be reproduced and tested independently of the graphical interface. \\
-    \hline
-    Portability & The application must run without source changes on systems providing JDK 21. The delivery workflow
-    packages it as a self-contained executable JAR. \\
-    \hline
-    Usability & A new player must be able to choose a name, maze, and mode and start a game from the menu without
-    consulting the map-format documentation. \\
-    \hline
-  \end{tabular}
-\end{center}
+\begin{enumerate}[label=\textbf{NFR-\arabic*}]
+  \item \textbf{Responsiveness}: the average duration of a complete model update must remain below the 16 milliseconds a
+  frame is allotted at 60 frames per second, on every maze supplied with the game, so that the model is never the reason
+  a frame is missed. The dedicated performance check is described in the testing chapter.
+  \item \textbf{Robustness}: malformed maps and saves must be rejected with an actionable explanation rather than crashing the
+  application. Parsing and storage operations report failures as values, and the corresponding parser,
+  validator, and persistence tests cover invalid input.
+  \item \textbf{Determinism}: a model update must depend only on its input state and elapsed time. The game rules can therefore
+  be reproduced and tested independently of the graphical interface.
+  \item \textbf{Portability}: the application must run without source changes on Linux, Windows, and macOS systems
+  providing JDK 21, using the matching platform archive. The delivery workflow packages a self-contained executable JAR
+  for each supported platform.
+  \item \textbf{Usability}: a new player must be able to choose a name, maze, and mode and start a game from the menu without
+  consulting the map-format documentation.
+\end{enumerate}
 
 \section{Technical and architectural constraints}
 
-\begin{enumerate}
+\begin{enumerate}[label=\textbf{TC-\arabic*}]
   \item \textbf{Language and platform}: the game must be written in Scala 3 and run on the Java Virtual Machine
   version 21, with a graphical interface.
-  \item \textbf{A single artifact}: the build must produce one self-contained executable archive, so that the
-  game can be delivered and run without the recipient installing or resolving anything beyond a virtual machine.
+  \item \textbf{Self-contained artifacts}: the build must produce a self-contained executable archive for each
+  supported platform, so that the game can be delivered and run without the recipient resolving dependencies beyond
+  a virtual machine.
   \item \textbf{Extensibility}: it must be possible to add a game mode, an enemy behavior or a bonus effect by
-  writing the new behavior on its own, without altering the behavior of any existing one.
+  implementing the new behavior independently and registering it at the relevant integration points, without altering
+  the behavior of any existing one.
   \item  \textbf{Replaceable storage}: the location in which the game keeps saves and recorded results must be
   reachable through an interface describing what is stored rather than through the direct use of the file
   system, so that the storage can be exchanged without the rest of the game being aware of it.

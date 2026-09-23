@@ -151,7 +151,7 @@ object MenuScreen:
   private val LogoWidth = 620.0
   private val BonusSize = 72.0
   private val MaxNameLength = 24
-  private val Logo = "/logo.png"
+  private[view] val Logo = "/logo.png"
 
   private[view] def limitedName(name: String): String = name.take(MaxNameLength)
 

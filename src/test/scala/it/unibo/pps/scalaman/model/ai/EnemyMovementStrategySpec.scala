@@ -174,8 +174,8 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
       canUseTeleport = true,
-      playerPosition = Position(2, 2),
-      playerPreviousPosition = Some(Position(2, 1)),
+      playerPosition = Position(2, 3),
+      playerPreviousPosition = Some(Position(3, 3)),
       map = openMap
     )
 
@@ -262,8 +262,8 @@ class EnemyMovementStrategySpec extends AnyFunSuite:
     val context = EnemyMovementContext(
       enemyPosition = Position(1, 2),
       canUseTeleport = true,
-      playerPosition = Position(2, 2),
-      playerPreviousPosition = Some(Position(2, 1)),
+      playerPosition = Position(2, 3),
+      playerPreviousPosition = Some(Position(3, 3)),
       map = openMap
     )
 

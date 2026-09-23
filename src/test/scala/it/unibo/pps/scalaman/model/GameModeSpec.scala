@@ -142,12 +142,30 @@ class GameModeSpec extends AnyFunSuite:
     )
   }
 
-  test("a timed game awards the time it has left") {
+  test("a timed game exposes the time it has left as a bonus") {
     assert(
       GameMode
         .Timed(60.seconds)
         .bonus(LevelProgress(3), GameClock(20.seconds), false)
         .contains(ScoringEvent.RemainingTime(40.seconds))
+    )
+  }
+
+  test("a timed defeat awards no time bonus") {
+    assert(
+      GameMode
+        .Timed(60.seconds)
+        .bonus(LevelProgress(0), GameClock(20.seconds), true)
+        .isEmpty
+    )
+  }
+
+  test("a timed game that reaches its limit awards no time bonus") {
+    assert(
+      GameMode
+        .Timed(60.seconds)
+        .bonus(LevelProgress(3), GameClock(60.seconds), true)
+        .isEmpty
     )
   }
 

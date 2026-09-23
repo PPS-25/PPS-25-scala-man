@@ -1,0 +1,56 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class LevelState {
+    +maze: ValidatedMap
+    +player: MovingEntity
+    +enemies: Vector~Enemy~
+    +collectibles: Collectibles
+    +effects: ActiveEffects
+    +progress: LevelProgress
+    +mode: GameMode
+    +score: ScoreTracker
+    +clock: GameClock
+    +requestedDirection: Option~Direction~
+    +playerPreviousPos: Option~Position~
+  }
+
+  class LevelProgress {
+    +lives: Int
+    +lose() LevelProgress
+  }
+
+  class Colliding["extension on LevelProgress"] {
+    <<Colliding.scala>>
+    +afterCollision(effects, now) LevelProgress
+  }
+
+  class Collectibles {
+    <<trait>>
+  }
+
+  class ActiveEffects {
+    <<trait>>
+  }
+
+  class GameMode {
+    <<trait>>
+  }
+
+  class ScoreTracker
+  class GameClock
+  class MovingEntity
+  class Enemy
+  class ValidatedMap
+
+  LevelState *-- LevelProgress : progress
+  LevelState *-- Collectibles : collectibles
+  LevelState *-- ActiveEffects : effects
+  LevelState *-- MovingEntity : player
+  LevelState *-- "0..*" Enemy : enemies
+  LevelState --> GameMode : mode
+  LevelState --> ScoreTracker : score
+  LevelState --> GameClock : clock
+  LevelState --> ValidatedMap : maze
+  Colliding ..> ActiveEffects : asks
