@@ -3,6 +3,176 @@
 
 \section{Matilde D'Antino}
 
+My work covers what a maze still holds and what a bonus does once it is gathered, the view, and the shell in which a
+program made of values meets a toolkit that is not: the application value, the commands that reach it, and the
+\texttt{ScalaFX} object that owns the window and the keyboard. The sections below describe the language
+mechanisms those parts rest on, and the one place where the library dictated the design rather than the other way
+round.
+
+\subsection{Operations written beside the types they relate}
+
+Gathering a bonus concerns three types that have no reason to know one another: what is left on the ground, the
+effects in force, and the score. Writing that rule inside any one of them would give it a dependency on the other
+two, so the three operations are \textbf{extension methods}, collected in a file of their own rather than in the
+types they extend:
+
+\begin{lstlisting}
+extension (effects: ActiveEffects)
+  def grantedBy(collected: Option[Collectible], now: FiniteDuration)(using
+      duration: BonusDuration
+  ): ActiveEffects = collected match
+    case Some(Collectible.Bonus(_, effect)) =>
+      effects.activate(effect, now, duration.of(effect))
+    case _ => effects
+\end{lstlisting}
+
+\texttt{ActiveEffects} therefore never mentions a collectible, and the update stage reads as a sentence about the
+game rather than as a sequence of calls. The two companions of this one, \texttt{collectedBy} and
+\texttt{awardedFor}, extend in the same way what is left on the ground and the score. How long each effect lasts is a
+\texttt{given} that reaches this point without being carried, in the manner Gaia Mazzoni describes for scoring rules;
+the same holds for how much of the passing time a slowed enemy experiences.
+
+\subsection{A third enemy written against someone else's abstraction}
+
+The patrolling enemy makes for one corner of the maze at a time and ignores the player entirely. It is written
+against the strategy abstraction Alex Santini describes further on, and it added no case to the update pipeline: the
+behaviour arrived as two new files, and the code already written changed only to name it in the selector and to give
+the new kind a symbol a maze can be authored with. A strategy is an \textbf{object} rather than a class, since it holds
+no state of its own, and what it has to remember between one decision and the next travels out with the decision and
+comes back in the context.
+
+A route exists only if the maze offers at least two distinct corners to make for, which is a legitimate answer rather
+than a failure, so the factory returns an option and the type keeps the invariant:
+
+\begin{lstlisting}
+final case class PatrolRoute private (corners: Vector[Position]):
+  require(corners.sizeIs >= 2, "a patrol route needs at least two corners")
+
+def acrossCorners(map: ValidatedMap): Option[PatrolRoute] =
+  val stops = cornerCells(map).distinct
+  Option.when(stops.sizeIs >= 2)(PatrolRoute(stops))
+\end{lstlisting}
+
+The requirement and the option are a pair rather than two ways of doing the same thing: the first states what a route
+is, and applies where only the factory can reach it, while the second is what callers are given. The corners are the
+walkable cells nearest the four extremes, taken clockwise and with duplicates dropped, so a narrow maze makes a
+shorter round instead of no round at all. Asking which corner follows another wraps around with a remainder and
+answers with an option too, so a corner that is no longer on the route cannot silently become the first one.
+
+\subsection{Deciding a screen from two sources at once}
+
+What the application shows cannot be read from the loop alone, which knows only whether a game is being played and
+whether it is on hold, nor from the level alone, which knows only whether it has been won or lost. It is a total
+function over the pair:
+
+\begin{lstlisting}
+def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Screen =
+  (loop, state) match
+    case (LoopState.NotStarted, _) => Menu
+    case (_, GameState.Victory)    => Over(Outcome.Victory)
+    case (_, GameState.Defeat)     => Over(Outcome.Defeat)
+    case (LoopState.Paused, _)     => Paused
+    case (LoopState.Running, _)    => startingIn.fold(Playing)(Starting.apply)
+\end{lstlisting}
+
+Matching on the pair rather than on one value and then the other is what makes precedence explicit: a game already
+won is read as finished even while the loop still calls itself running, because that case comes first. The
+alternative, a condition in the interface for every question it needs answered, would have spread the same precedence
+over the places that ask.
+
+\subsection{A value read only if it is looked at}
+
+What covers the board is derived from the screen, and of the five screens only the one read at the end of a game
+looks at anything of it. The status to display is therefore taken \textbf{by name}:
+
+\begin{lstlisting}
+def of(screen: Screen, status: => StatusBar): Option[Overlay]
+\end{lstlisting}
+
+A game in progress is covered by nothing and evaluates no status, which is the whole of the cost the veil could add
+to a frame. The by-name parameter is what turns that into a property of the signature rather than a note asking the
+caller not to compute one.
+
+\subsection{Rendering that names neither a level nor a view}
+
+Change detection lives in one value, generic over two type parameters:
+
+\begin{lstlisting}
+type RenderListener[V] = V => Unit
+
+final case class Rendering[S, V](
+    project: S => V,
+    listeners: Seq[RenderListener[V]] = Seq.empty,
+    lastShown: Option[V] = None
+)
+\end{lstlisting}
+
+\texttt{S} and \texttt{V} become the level and its projection in a single line of \texttt{LevelView}, and nowhere
+else. A listener is a \textbf{type alias over a function}, so the board that draws is registered as a lambda and
+nothing has to implement an interface to receive a frame.
+
+The comparison that decides whether to notify is the equality case classes already provide: no \texttt{equals} is
+written anywhere in the view. What it discards is a projection identical to the one last shown, which is what happens
+when nothing drawn is moving, since a crossing carries how far it has got into the projection and therefore differs at
+every tick. The tests drive the same value with a listener that records what it receives, so they assert both what
+reached the interface and what deliberately did not.
+
+Notifying answers with an updated rendering rather than mutating one, so what has been shown last stays a field
+instead of hiding in the state of an observer.
+
+\subsection{Drawing a crossing without moving anything}
+
+What is drawn is two layers of plain values: the maze becomes a grid of sprites once, since it does not change for
+the whole level, and whoever moves becomes a frame at every tick. Neither type imports a graphical
+library; only the board that paints them does.
+
+A position in the model is whole and changes only on arrival, so an entity in the middle of a crossing would jump.
+Where something is drawn is therefore counted in cells but not in whole ones:
+
+\begin{lstlisting}
+def of(movement: RenderedMovement): Spot = Spot(
+  crossed(movement.from.row, movement.to.row, movement.progress),
+  crossed(movement.from.col, movement.to.col, movement.progress)
+)
+
+private def crossed(from: Int, to: Int, progress: Double): Double =
+  from + (to - from) * progress
+\end{lstlisting}
+
+A whole number sits on a cell and a fraction lies between two, so the continuity is entirely in the picture and the
+model keeps its discrete positions. The same function serves rows and columns, since a crossing is orthogonal and one
+of the two ends up returning what it was given.
+
+What covers what is the order things are drawn in, and the frame is built to be drawn in that order: what is left on
+the ground, then the enemies, then the player appended last. Sorting by position, which is how a static grid would be
+drawn, is of no use once things stop sharing a cell to be sorted by.
+
+The player's mouth opens and closes on the parity of the cell left behind rather than on a clock of its own, so it
+moves while the player moves and stops when the player stops, without an animation state being kept anywhere.
+
+\subsection{Where the library dictated the design}
+
+Three constraints of \texttt{JavaFX} decided part of the shape of this code. None of them reports an error: the
+symptom is a keyboard that does not respond, a window that does not open, or a status bar too small to read.
+
+Arrow keys never reach a handler on the scene, because every focused control installs its own focus traversal
+bindings and consumes the event on the way up. They are read with a \textbf{filter}, which runs on the way down from
+the scene towards whatever holds the focus, and the event is consumed only when it was actually used as a direction:
+consuming it always would stop the arrows from scrolling the list of mazes in the menu.
+
+A modal dialog cannot be opened while an animation frame is being processed: asking for one throws instead of
+waiting, so the notices the application produces are shown rather than waited upon.
+
+Text sizes are not derived from the cell. Cell width is computed from the shape of the maze and the size of the
+screen, so it is a different size on every maze. Text derived from it therefore had no stable size, and the status bar
+came out unreadable on the largest maze and oversized on the smallest. The sizes are a fixed scale in \texttt{Style}
+instead, and only the maze scales with the window.
+
+All of this lives in the shell, which keeps the current application in a mutable reference and replaces it after every
+event and every frame. \texttt{Application} is not pure, since it reaches files through its port and puts a board on the
+screen through the renderer it is given, but it is free of the frameworks that carry either, which is why it is
+tested without a window.
+
 \section{Gaia Mazzoni}
 
 My work concentrated on three areas: what moves through a maze and what happens when two things meet, the passage of
