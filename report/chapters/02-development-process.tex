@@ -6,18 +6,18 @@ All members contributed to the design, implementation, and review of the game. I
 \textbf{Product Owner}, maintaining and prioritising the product backlog, while Matilde D'Antino acted as
 \textbf{Client and Domain Expert}, checking completed increments against the expected game behaviour.
 
-Development was organised into \textbf{four non-consecutive one-week sprints} of roughly fifteen hours per member,
+Development was organised into \textbf{four non-consecutive one-week sprints}, each planned for roughly fifteen hours per member,
 preceded by an organisational phase that established the build, repository structure, and initial backlog. Each sprint
 was expected to end with a \textbf{tangible client-facing increment}, rather than an isolated technical layer.
 
 \section{Task breakdown over time}
 
-The product backlog was drawn up collectively in the first meeting. Work was expressed as \textbf{epics}, each covering one
+The \textbf{product backlog} was drawn up collectively in the first meeting. Work was expressed as \textbf{epics}, each covering one
 coherent area of the system, which were then decomposed into smaller \textbf{tasks}.
 Only the highest-priority epics were decomposed immediately, while the rest were refined during later
 sprint plannings.
 
-Fourteen epics were identified. The first ten formed the \textbf{core backlog}; the last four were marked
+Fourteen product epics were identified. The first ten formed the \textbf{core backlog}; the last four were marked
 \textbf{optional} from the outset and scheduled only once the core game was playable.
 
 The core epics were:
@@ -44,8 +44,8 @@ The optional epics were:
     \item Additional game modes
 \end{enumerate}
 
-The \href{https://github.com/PPS-25/PPS-25-scala-man/issues}{backlog is kept on GitHub}, with Issues representing epics
-and tasks and the GitHub Project board tracking their state. An item moves through the following workflow:
+The \href{https://github.com/PPS-25/PPS-25-scala-man/issues}{backlog is kept on GitHub}, with \textbf{Issues} representing epics
+and tasks and the \textbf{GitHub Project board} tracking their state. An item moves through the following workflow:
 
 \begin{center}
   \texttt{backlog} $\rightarrow$ \texttt{ready} $\rightarrow$ \texttt{in progress} $\rightarrow$
@@ -81,11 +81,19 @@ The planned sprint windows were:
     \end{tabular}
 \end{center}
 
+The following \textbf{increments} were concluded across the four sprints:
+
+\begin{enumerate}
+  \item \textbf{The project foundation}: build, automated checks, the core domain, and validated textual maps.
+  \item \textbf{The gameplay core}: movement, collisions, lives, effects, enemy strategies, and scoring foundations.
+  \item \textbf{A playable ScalaFX application}: rendering, menu, commands, saves, leaderboards, and game modes.
+  \item \textbf{The final delivery}: Patroller integration, refinements, documentation, regression checks, and packaging.
+\end{enumerate}
+
 \section{Task review over time}
 
-Work was reviewed continuously, through the branching model and the pull request process, rather than only at sprint
-boundaries.
-Four kinds of branch were used:
+Work was reviewed continuously, through the \textbf{branching model} and the \textbf{pull request process}, rather than only at sprint
+boundaries. The main development flow used four kinds of branch:
 
 \begin{center}
     \begin{tabular}{|l|p{9cm}|}
@@ -103,52 +111,62 @@ Four kinds of branch were used:
 Work flows in one direction:
 
 \begin{center}
-  \texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
+\texttt{task} $\rightarrow$ \texttt{epic} $\rightarrow$ \texttt{dev} $\rightarrow$ \texttt{main}
 \end{center}
 
-The team used pull requests to integrate work into \texttt{dev}, with reviews performed by another team member before
+Short-lived \texttt{docs/}, \texttt{refactor/}, \texttt{chore/}, and \texttt{integrate/} branches complemented this
+flow for documentation, maintenance, and conflict resolution during the final review phase.
+
+The team used \textbf{pull requests} to integrate work into \texttt{dev}, with reviews performed by another team member before
 merging. This provided an opportunity to discuss changes and identify potential integration issues before they reached
 the shared development branch.
 
-Commit messages follow the Conventional Commits format, \texttt{<type>(<scope>): description}, which keeps the history
+Commit messages follow the \textbf{Conventional Commits} format, \texttt{<type>(<scope>): description}, which keeps the history
 readable.
 
 \textbf{Definition of done.} A task is done when it:
 
 \begin{itemize}
-  \item fulfils its requirements;
-  \item is covered by automated tests;
-  \item passes continuous integration; and
-  \item has its documentation updated.
+  \item fulfils its \textbf{requirements};
+  \item is covered by \textbf{automated tests};
+  \item passes \textbf{continuous integration}; and
+  \item has its \textbf{documentation} updated.
 \end{itemize}
 
 An epic is done when all of its tasks are done and its work has been merged into \texttt{dev}.
 
 \section{Testing, build, and CI tools}
 
-The project is written in Scala 3.3.5 and is built and tested with JDK 21. The build is managed by sbt, which handles
+The project is written in \textbf{Scala 3.3.5} and is built and tested with \textbf{JDK 21}. The build is managed by \textbf{sbt}, which handles
 compilation, dependency resolution, test execution and packaging through a single build definition. Two library dependencies
-are declared: ScalaFX 21.0.0-R32 for the graphical interface, and ScalaTest 3.2.18, scoped to testing only.
+are declared: \textbf{ScalaFX 21.0.0-R32} for the graphical interface, and \textbf{ScalaTest 3.2.18}, scoped to testing only.
 
 \subsection{Code style}
 
-Formatting is delegated to scalafmt, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}.
+Formatting is delegated to \textbf{scalafmt}, driven by the sbt-scalafmt plugin and configured in \texttt{.scalafmt.conf}.
 Continuous integration runs \texttt{scalafmtCheckAll} and fails on formatting deviations, enforcing the agreed style
 mechanically and reducing formatting-related discussion during code review.
 
+\subsection{Static analysis}
+
+\textbf{WartRemover} complements formatting by checking production sources for selected unsafe constructs: partial
+\texttt{Option} and collection operations, \texttt{throw}, and \texttt{Any}. The checks are deliberately focused on
+production code, where they prevent avoidable failures from reaching the game, while test fixtures remain free to use
+the concise setup that makes each test readable.
+
 \subsection{Testing}
 
-Automated tests are written with ScalaTest and run under sbt. Contributors are asked to run the suite locally before
+\textbf{Automated tests} are written with \textbf{ScalaTest} and run under sbt. Contributors are asked to run the suite locally before
 pushing, following the documented pre-push checklist; continuous integration runs it again on every push and pull request.
 
 \subsection{Continuous integration}
 
-Continuous integration runs on GitHub Actions on every push and pull request. It uses Temurin JDK 21 and an sbt cache
+\textbf{Continuous integration} runs on \textbf{GitHub Actions} on every push and pull request. It uses Temurin JDK 21 and an sbt cache
 to compile the project, run the ScalaTest suite, and enforce formatting with scalafmt; a failing check is reported before
 the change is integrated.
 
 \subsection{Continuous Delivery}
 
 The \textbf{Project Delivery} workflow runs on every push to \texttt{main} and can also be triggered manually. It builds
-an executable fat JAR and compiles the report PDF in a TeX Live container. Both artifacts and the sources are packaged
-into a single archive, whose structure is checked before the archive is published as a GitHub release.
+an executable \textbf{fat JAR} and compiles the \textbf{report PDF} in a TeX Live container. Both artifacts and the sources are packaged
+into a single archive, whose structure is checked before the archive is published as a \textbf{GitHub release}.

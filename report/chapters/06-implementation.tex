@@ -3,6 +3,176 @@
 
 \section{Matilde D'Antino}
 
+My work covers what a maze still holds and what a bonus does once it is gathered, the view, and the shell in which a
+program made of values meets a toolkit that is not: the application value, the commands that reach it, and the
+\texttt{ScalaFX} object that owns the window and the keyboard. The sections below describe the language
+mechanisms those parts rest on, and the one place where the library dictated the design rather than the other way
+round.
+
+\subsection{Operations written beside the types they relate}
+
+Gathering a bonus concerns three types that have no reason to know one another: what is left on the ground, the
+effects in force, and the score. Writing that rule inside any one of them would give it a dependency on the other
+two, so the three operations are \textbf{extension methods}, collected in a file of their own rather than in the
+types they extend:
+
+\begin{lstlisting}
+extension (effects: ActiveEffects)
+  def grantedBy(collected: Option[Collectible], now: FiniteDuration)(using
+      duration: BonusDuration
+  ): ActiveEffects = collected match
+    case Some(Collectible.Bonus(_, effect)) =>
+      effects.activate(effect, now, duration.of(effect))
+    case _ => effects
+\end{lstlisting}
+
+\texttt{ActiveEffects} therefore never mentions a collectible, and the update stage reads as a sentence about the
+game rather than as a sequence of calls. The two companions of this one, \texttt{collectedBy} and
+\texttt{awardedFor}, extend in the same way what is left on the ground and the score. How long each effect lasts is a
+\texttt{given} that reaches this point without being carried, in the manner Gaia Mazzoni describes for scoring rules;
+the same holds for how much of the passing time a slowed enemy experiences.
+
+\subsection{A third enemy written against someone else's abstraction}
+
+The patrolling enemy makes for one corner of the maze at a time and ignores the player entirely. It is written
+against the strategy abstraction Alex Santini describes further on, and it added no case to the update pipeline: the
+behaviour arrived as two new files, and the code already written changed only to name it in the selector and to give
+the new kind a symbol a maze can be authored with. A strategy is an \textbf{object} rather than a class, since it holds
+no state of its own, and what it has to remember between one decision and the next travels out with the decision and
+comes back in the context.
+
+A route exists only if the maze offers at least two distinct corners to make for, which is a legitimate answer rather
+than a failure, so the factory returns an option and the type keeps the invariant:
+
+\begin{lstlisting}
+final case class PatrolRoute private (corners: Vector[Position]):
+  require(corners.sizeIs >= 2, "a patrol route needs at least two corners")
+
+def acrossCorners(map: ValidatedMap): Option[PatrolRoute] =
+  val stops = cornerCells(map).distinct
+  Option.when(stops.sizeIs >= 2)(PatrolRoute(stops))
+\end{lstlisting}
+
+The requirement and the option are a pair rather than two ways of doing the same thing: the first states what a route
+is, and applies where only the factory can reach it, while the second is what callers are given. The corners are the
+walkable cells nearest the four extremes, taken clockwise and with duplicates dropped, so a narrow maze makes a
+shorter round instead of no round at all. Asking which corner follows another wraps around with a remainder and
+answers with an option too, so a corner that is no longer on the route cannot silently become the first one.
+
+\subsection{Deciding a screen from two sources at once}
+
+What the application shows cannot be read from the loop alone, which knows only whether a game is being played and
+whether it is on hold, nor from the level alone, which knows only whether it has been won or lost. It is a total
+function over the pair:
+
+\begin{lstlisting}
+def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Screen =
+  (loop, state) match
+    case (LoopState.NotStarted, _) => Menu
+    case (_, GameState.Victory)    => Over(Outcome.Victory)
+    case (_, GameState.Defeat)     => Over(Outcome.Defeat)
+    case (LoopState.Paused, _)     => Paused
+    case (LoopState.Running, _)    => startingIn.fold(Playing)(Starting.apply)
+\end{lstlisting}
+
+Matching on the pair rather than on one value and then the other is what makes precedence explicit: a game already
+won is read as finished even while the loop still calls itself running, because that case comes first. The
+alternative, a condition in the interface for every question it needs answered, would have spread the same precedence
+over the places that ask.
+
+\subsection{A value read only if it is looked at}
+
+What covers the board is derived from the screen, and of the five screens only the one read at the end of a game
+looks at anything of it. The status to display is therefore taken \textbf{by name}:
+
+\begin{lstlisting}
+def of(screen: Screen, status: => StatusBar): Option[Overlay]
+\end{lstlisting}
+
+A game in progress is covered by nothing and evaluates no status, which is the whole of the cost the veil could add
+to a frame. The by-name parameter is what turns that into a property of the signature rather than a note asking the
+caller not to compute one.
+
+\subsection{Rendering that names neither a level nor a view}
+
+Change detection lives in one value, generic over two type parameters:
+
+\begin{lstlisting}
+type RenderListener[V] = V => Unit
+
+final case class Rendering[S, V](
+    project: S => V,
+    listeners: Seq[RenderListener[V]] = Seq.empty,
+    lastShown: Option[V] = None
+)
+\end{lstlisting}
+
+\texttt{S} and \texttt{V} become the level and its projection in a single line of \texttt{LevelView}, and nowhere
+else. A listener is a \textbf{type alias over a function}, so the board that draws is registered as a lambda and
+nothing has to implement an interface to receive a frame.
+
+The comparison that decides whether to notify is the equality case classes already provide: no \texttt{equals} is
+written anywhere in the view. What it discards is a projection identical to the one last shown, which is what happens
+when nothing drawn is moving, since a crossing carries how far it has got into the projection and therefore differs at
+every tick. The tests drive the same value with a listener that records what it receives, so they assert both what
+reached the interface and what deliberately did not.
+
+Notifying answers with an updated rendering rather than mutating one, so what has been shown last stays a field
+instead of hiding in the state of an observer.
+
+\subsection{Drawing a crossing without moving anything}
+
+What is drawn is two layers of plain values: the maze becomes a grid of sprites once, since it does not change for
+the whole level, and whoever moves becomes a frame at every tick. Neither type imports a graphical
+library; only the board that paints them does.
+
+A position in the model is whole and changes only on arrival, so an entity in the middle of a crossing would jump.
+Where something is drawn is therefore counted in cells but not in whole ones:
+
+\begin{lstlisting}
+def of(movement: RenderedMovement): Spot = Spot(
+  crossed(movement.from.row, movement.to.row, movement.progress),
+  crossed(movement.from.col, movement.to.col, movement.progress)
+)
+
+private def crossed(from: Int, to: Int, progress: Double): Double =
+  from + (to - from) * progress
+\end{lstlisting}
+
+A whole number sits on a cell and a fraction lies between two, so the continuity is entirely in the picture and the
+model keeps its discrete positions. The same function serves rows and columns, since a crossing is orthogonal and one
+of the two ends up returning what it was given.
+
+What covers what is the order things are drawn in, and the frame is built to be drawn in that order: what is left on
+the ground, then the enemies, then the player appended last. Sorting by position, which is how a static grid would be
+drawn, is of no use once things stop sharing a cell to be sorted by.
+
+The player's mouth opens and closes on the parity of the cell left behind rather than on a clock of its own, so it
+moves while the player moves and stops when the player stops, without an animation state being kept anywhere.
+
+\subsection{Where the library dictated the design}
+
+Three constraints of \texttt{JavaFX} decided part of the shape of this code. None of them reports an error: the
+symptom is a keyboard that does not respond, a window that does not open, or a status bar too small to read.
+
+Arrow keys never reach a handler on the scene, because every focused control installs its own focus traversal
+bindings and consumes the event on the way up. They are read with a \textbf{filter}, which runs on the way down from
+the scene towards whatever holds the focus, and the event is consumed only when it was actually used as a direction:
+consuming it always would stop the arrows from scrolling the list of mazes in the menu.
+
+A modal dialog cannot be opened while an animation frame is being processed: asking for one throws instead of
+waiting, so the notices the application produces are shown rather than waited upon.
+
+Text sizes are not derived from the cell. Cell width is computed from the shape of the maze and the size of the
+screen, so it is a different size on every maze. Text derived from it therefore had no stable size, and the status bar
+came out unreadable on the largest maze and oversized on the smallest. The sizes are a fixed scale in \texttt{Style}
+instead, and only the maze scales with the window.
+
+All of this lives in the shell, which keeps the current application in a mutable reference and replaces it after every
+event and every frame. \texttt{Application} is not pure, since it reaches files through its port and puts a board on the
+screen through the renderer it is given, but it is free of the frameworks that carry either, which is why it is
+tested without a window.
+
 \section{Gaia Mazzoni}
 
 My work concentrated on three areas: what moves through a maze and what happens when two things meet, the passage of
@@ -148,3 +318,194 @@ one doubles the awarded points.
 \end{figure}
 
 \section{Alex Santini}
+
+My implementation work covered six connected areas: \textbf{maps}, the \textbf{state-update pipeline}, \textbf{enemy
+AI}, \textbf{game modes}, \textbf{save/load}, and \textbf{CI/CD}. The first two establish the deterministic domain
+boundary on which the others depend; the remaining sections show the concrete behaviours and delivery safeguards built
+upon it.
+
+\subsection{Maps: parsing, validation, and reachability}
+
+A map is authored as a plain UTF-8 text file using ASCII map symbols, but the game model must never depend on arbitrary
+text. I therefore split map handling into three steps with different responsibilities:
+
+\begin{enumerate}
+  \item \textbf{\texttt{MapLoader}} is the only step that performs file I/O. It returns either the file text or a
+  \texttt{MapLoadError}.
+  \item \textbf{\texttt{MapParser}} is pure: it translates supported symbols into tiles and returns either a \texttt{RawMap}
+  or a list of syntactic errors.
+  \item \textbf{\texttt{MapValidator}} is pure: it checks gameplay invariants and returns either a \texttt{ValidatedMap} or
+  a list of semantic errors.
+\end{enumerate}
+
+The resulting types make an invalid intermediate state visible at the boundary. In the standard application flow,
+\texttt{LevelState.from} receives only a \texttt{ValidatedMap}, containing the unique player spawn, enemy spawns,
+collectibles, and paired teleports; the \texttt{RawMap} never reaches level creation. The application composes the
+pure stages with \texttt{Either}, turning domain errors into actionable messages only at the file-system boundary:
+
+\begin{lstlisting}
+private def read(text: String): Either[String, ValidatedMap] =
+  for
+    raw <- MapParser.parse(text).left.map(_.map(spelled).mkString("; "))
+    maze <- MapValidator.validate(raw).left.map(_.map(spelled).mkString("; "))
+  yield maze
+\end{lstlisting}
+
+This separation is useful both for robustness and for testing. A parser test never needs a file, a validation test can
+construct a small \texttt{RawMap} directly, and an integration test can exercise the complete pipeline. It also keeps
+the domain independent from paths, encodings, and \texttt{IOException}.
+
+\textbf{Playability is a graph property.} Parsing checks whether text is well formed; it cannot determine whether a game can actually be completed. The
+validator therefore inspects the rectangular grid once to collect its structural elements and checks that it has a
+closed border, exactly one player spawn, at least one standard collectible, and at least one enemy. It pairs
+teleports according to their documented codes and accumulates independent structural errors, so a map author can
+correct several mistakes in a single attempt.
+
+Once the structure is sound, \textbf{\texttt{MapReachability}} performs \textbf{breadth-first search} from the player spawn over
+walkable orthogonal neighbours. A valid teleport pair contributes two directed graph edges, one in each direction.
+The same traversal consequently proves that every required collectible and enemy can be reached even when the only
+route crosses a teleport. This is stronger than checking local tile placement: an isolated but syntactically valid
+collectible would otherwise make a level impossible to win.
+
+\begin{center}
+  \small
+  \begin{tabular}{|p{2.3cm}|p{3.1cm}|p{3.2cm}|p{3.2cm}|}
+    \hline
+    \textbf{Stage} & \textbf{Input} & \textbf{Success} & \textbf{Failure} \\
+    \hline
+    \texttt{MapLoader} & \texttt{Path} & UTF-8 text & \texttt{MapLoadError} \\
+    \hline
+    \texttt{MapParser} & text & \texttt{RawMap} & \texttt{List[MapParseError]} \\
+    \hline
+    \texttt{MapValidator} & \texttt{RawMap} & \texttt{ValidatedMap} & \texttt{List[MapValidationError]} \\
+    \hline
+  \end{tabular}
+\end{center}
+
+The map suite was developed test-first. \texttt{MapParserSpec}, \texttt{MapLoaderSpec}, and
+\texttt{MapValidationSpec} cover malformed rows, unsupported symbols, spawn cardinality, borders, teleport pairing,
+and reachability; \texttt{MapPipelineSpec} verifies their composition. In particular, tests cover entities and
+collectibles that are reachable only through a teleport, which protects the intended graph semantics rather than
+only the ordinary grid case.
+
+\subsection{State update pipeline}
+
+I introduced \textbf{\texttt{GameStateUpdatePipeline[S]}} as a small generic value that represents one complete update of a
+state \texttt{S}. It stores six functions of type \texttt{S => S} and applies them with \texttt{foldLeft}; the order is
+therefore explicit, deterministic, and testable without a timer or graphical interface. The abstraction separates the
+stable structure of a tick from the concrete rules that later work plugged into its stages.
+
+\textbf{\texttt{LevelState.pipeline}} supplies the game-specific stages in this order: enemy decisions, time and movement,
+collision and teleport resolution, collection, effect expiry, and the player's next requested move. This order is a
+rule in itself: movement must finish before collisions are observed, a teleport is resolved before the next decision,
+and a collected bonus must be active before the following tick. Each stage is wrapped so that a terminal level remains
+unchanged for the rest of the tick.
+
+The AI update is an \textbf{explicit parameter} of \texttt{LevelState.pipeline}, defaulting to
+\texttt{EnemyAiStage.stage}. Tests can consequently replace it with a small deterministic function and verify the
+pipeline independently of a particular enemy behaviour. Subsequent work filled and refined individual stages, while
+the pipeline remained the common, ordered integration boundary.
+
+\subsection{Enemy AI: strategies and pathfinding}
+
+Enemy AI is part of the \textbf{domain model}, not of rendering or the game loop. I introduced
+\texttt{EnemyMovementStrategy} as the narrow abstraction through which an enemy selects its next cell:
+
+\begin{lstlisting}
+trait EnemyMovementStrategy:
+  def nextMove(context: EnemyMovementContext): Option[Position]
+\end{lstlisting}
+
+The context is an \textbf{immutable value} containing the enemy position, current and previous player positions, the
+\texttt{ValidatedMap}, whether a teleport may be used, and an optional remembered target. A strategy returns
+\texttt{None} when no movement is possible; it never mutates an enemy, reads global state, or accesses the UI. This
+keeps each decision reproducible from its input and lets strategies be tested with a hand-built map.
+
+\textbf{\texttt{EnemyAiStage}} owns orchestration. On each tick it leaves moving enemies unchanged, asks
+\texttt{EnemyStrategySelector} for the strategy associated with an idle enemy kind, builds the context, retains any
+strategy memory, and converts the selected next position into a legal entity movement. The AI update is an explicit
+parameter of \texttt{LevelState.pipeline}, so tests may replace it without constructing a different game loop.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.96\textwidth]{../docs/uml/EnemyAiDecision.pdf}
+  \caption{Enemy AI separates orchestration, strategy selection, immutable decision context, and shared navigation.
+  A strategy proposes a position; only the stage turns that proposal into entity movement.}
+\end{figure}
+
+\textbf{Path finding, anticipation, and teleport semantics.} The common \textbf{\texttt{EnemyMovement}} module contains the navigation policy shared by every strategy. It enumerates
+walkable neighbours in a fixed order and uses a tail-recursive breadth-first search over immutable
+\texttt{Queue}, \texttt{Vector}, and \texttt{Set} values. The first discovered path is therefore a shortest path,
+and equal alternatives are resolved deterministically rather than by timing or randomness.
+
+\begin{lstlisting}
+private[ai] def orderedMoves(
+    from: Position, map: ValidatedMap, canUseTeleport: Boolean
+): Vector[Position] =
+  orthogonalNeighbors(from).filter(map.isWalkable) ++
+    Option.when(canUseTeleport)(teleportDestination(from, map)).flatten.toVector
+\end{lstlisting}
+
+The \texttt{Vector} order---up, down, left, right, then a permitted teleport---is also the \textbf{tie-breaking order} used by
+the breadth-first search. The conversion to a set occurs only in the public \texttt{validMoves} query, where ordering
+is not part of the result contract.
+
+\texttt{DirectPursuitStrategy} takes the first step of that shortest path towards the player's current cell.
+\texttt{PlayerAnticipationStrategy} derives a unit direction from the player's current and previous cells, projects
+the player up to two walkable cells ahead, then chooses the legal move with the smallest shortest-path distance to
+that prediction. If the player is stationary or the previous position is unavailable, it targets the current position;
+if the projection meets a wall, it stops at the last walkable cell instead of predicting an invalid target.
+
+Teleports are part of navigation rather than an exceptional afterthought. When allowed, the paired endpoint is added
+to the candidate moves and can shorten a BFS route. After an enemy uses a teleport, its context disallows another
+teleport at the origin until it has stepped away; this prevents an enemy from bouncing forever between paired cells.
+The implementation and tests therefore share one semantics for ordinary movement, shortest paths, and teleports.
+
+\textbf{Extension and verification.} The \textbf{strategy boundary} keeps an additional enemy behaviour local: implement \texttt{EnemyMovementStrategy}, reuse the
+shared navigation primitives where appropriate, test the decision, and add a selector mapping only when the behaviour
+is chosen from \texttt{EnemyKind}. \texttt{PatrolStrategy} was independently implemented by Matilde D'Antino and follows
+precisely this route, demonstrating that the existing strategy boundary supports a new behaviour without changes to
+the update pipeline.
+
+The AI tests cover valid moves, shortest paths, prediction, deterministic ties, teleport routing, the
+no-immediate-return rule, selector mapping, and stage integration. Together with the map tests, they exercise the two properties
+that matter most for these contributions: untrusted map data cannot enter play unchecked, and the same valid state
+always produces the same enemy decision.
+
+\subsection{Game modes}
+
+I implemented the \textbf{\texttt{Timed}} and \textbf{\texttt{Survival}} policies of \texttt{GameMode}. Timed mode requires a positive
+limit, gives timeout precedence over ordinary completion, exposes the remaining time, and selects the timed scoring
+policy. Its displayed time is a potential score while the level is running; it becomes an award only on victory, so a
+defeat or timeout cannot be used to obtain a time bonus.
+
+Survival deliberately has \textbf{no victory state}. It turns elapsed time into difficulty waves and scales the time experienced
+by enemies by 20\% per wave. The policy validates both its positive wave interval and its maximum multiplier; the
+latter is capped at 1.25, which keeps an enemy with a 250 ms cell time no faster than the player's 200 ms base cell
+time. These rules remain local to the mode policy while shared movement, collision, persistence, and rendering stages
+remain unchanged.
+
+\subsection{Game save and load}
+
+I implemented the \textbf{\texttt{GameSaveRepository}} boundary and its \textbf{versioned} UTF-8 \texttt{Properties}-based format. A
+save contains a copy of the maze, the selected mode, moving entities, remaining collectibles and effects, lives, score,
+clock, and the positions needed to resume safely. The maze copy is Base64-encoded only for property-file transport;
+when read, it is decoded and passed through the same \texttt{MapParser} and \texttt{MapValidator} used for an imported
+maze. Persisted data is therefore never trusted merely because it came from a save file.
+
+The codec returns a \textbf{\texttt{SaveGameError}} rather than leaking I/O, format, or validation failures into the controller.
+It also checks that restored entities, movement endpoints, collectibles, and remembered positions are walkable before
+constructing the resumed \texttt{LevelState}. This makes a malformed or stale save a recoverable user-facing failure,
+not an invalid game value.
+
+\subsection{Continuous integration and delivery}
+
+I set up the two \textbf{GitHub Actions workflows} that make the repository continuously verifiable. The CI workflow runs on
+every push and pull request and executes compilation, the ScalaTest suite, and \texttt{scalafmtCheckAll} on JDK~21.
+It gives a pull request an objective gate before review or merge.
+
+The \textbf{delivery workflow} runs from \texttt{main}. It builds fat JARs for Linux, Windows, and macOS, checks that the Linux
+application starts under a virtual display, generates the report with \texttt{latexmk} in a TeX Live container, and
+packages the report, sources, and JARs into the release archive. Before publishing, it verifies the archive structure
+and the exact expected artifacts. Thus the delivery requirements are tested by automation rather than assumed from a
+developer machine.
