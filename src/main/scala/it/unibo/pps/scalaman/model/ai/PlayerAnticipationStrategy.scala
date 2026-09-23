@@ -9,83 +9,38 @@ final case class PlayerAnticipationStrategy(stepsAhead: Int) extends EnemyMoveme
   require(stepsAhead >= 1, "stepsAhead must be positive")
 
   override def nextMove(context: EnemyMovementContext): Option[Position] =
-    val prediction = context.playerPreviousPosition.fold(Prediction(context.playerPosition, None)) {
+    val predictedPosition = context.playerPreviousPosition.fold(context.playerPosition) {
       previous =>
         val delta = Delta(
           row = context.playerPosition.row - previous.row,
           col = context.playerPosition.col - previous.col
         ).unit
 
-        if delta == Delta.Zero then Prediction(context.playerPosition, None)
+        if delta == Delta(0, 0) then context.playerPosition
         else predictPosition(context.playerPosition, delta, context.map)
     }
 
-    nextStepTowardsPrediction(
+    EnemyMovement.firstStepTowards(
       from = context.enemyPosition,
-      prediction = prediction,
+      target = predictedPosition,
       map = context.map,
       canUseTeleport = context.canUseTeleport
     )
-
-  private def nextStepTowardsPrediction(
-      from: Position,
-      prediction: Prediction,
-      map: ValidatedMap,
-      canUseTeleport: Boolean
-  ): Option[Position] =
-    EnemyMovement
-      .orderedMoves(from, map, canUseTeleport)
-      .flatMap(position =>
-        distanceToTarget(position, prediction.target, map).map(distance =>
-          (position, distance, preferencePenalty(position, from, prediction.preferredDelta))
-        )
-      )
-      .minByOption { case (_, distance, preferencePenalty) => (distance, preferencePenalty) }
-      .map { case (position, _, _) => position }
 
   private def predictPosition(
       position: Position,
       delta: Delta,
       map: ValidatedMap
-  ): Prediction =
+  ): Position =
     @tailrec
-    def advance(current: Position, remainingSteps: Int): Prediction =
-      if remainingSteps == 0 then Prediction(current, Some(delta))
+    def advance(current: Position, remainingSteps: Int): Position =
+      if remainingSteps == 0 then current
       else
         val next = Position(current.row + delta.row, current.col + delta.col)
         if map.isWalkable(next) then advance(next, remainingSteps - 1)
-        else Prediction(current, None)
+        else current
 
     advance(position, stepsAhead)
 
-  private def distanceToTarget(
-      position: Position,
-      target: Position,
-      map: ValidatedMap
-  ): Option[Int] =
-    if position == target then Some(0)
-    else EnemyMovement.shortestPathTo(position, target, map).map(_.size - 1)
-
-  private def preferencePenalty(
-      position: Position,
-      from: Position,
-      playerDelta: Option[Delta]
-  ): Int =
-    playerDelta.fold(0) { delta =>
-      val enemyDelta = Delta(
-        row = position.row - from.row,
-        col = position.col - from.col
-      )
-      if enemyDelta == delta then 0 else 1
-    }
-
-  private final case class Prediction(
-      target: Position,
-      preferredDelta: Option[Delta]
-  )
-
   private final case class Delta(row: Int, col: Int):
     def unit: Delta = Delta(row.sign, col.sign)
-
-  private object Delta:
-    val Zero: Delta = Delta(0, 0)
