@@ -49,11 +49,16 @@ class LevelScoreTest extends AnyFunSuite:
     assert(timedVictoryAt(20).liveScore == 40)
   }
 
+  test("a timed game shows the seconds it can still earn") {
+    assert(timedAt(20).liveScore == 40)
+  }
+
   test("a timed game lost with time left is worth nothing") {
     val defeated = timedAt(20).copy(progress = LevelProgress(0))
 
     assert(defeated.status == GameState.Defeat)
     assert(defeated.liveScore == 0)
+    assert(defeated.result("PlayerName", Instant.EPOCH).map(_.score).contains(0))
   }
 
   test("a timed game that ran out of time is worth nothing") {

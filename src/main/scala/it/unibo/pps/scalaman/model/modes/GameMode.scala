@@ -70,7 +70,7 @@ object GameMode:
         clock: GameClock,
         over: Boolean
     ): Option[ScoringEvent] =
-      Option.when(over && !progress.isOver && clock.elapsed < limit)(
+      Option.when(!progress.isOver && clock.elapsed < limit)(
         RemainingTime(timeLeft(clock).getOrElse(Duration.Zero))
       )
 
