@@ -3,9 +3,10 @@
 
 \section{Matilde D'Antino}
 
-My work covers what a maze still holds and what a bonus does once it is gathered, the view, and the shell in which a
-program made of values meets a toolkit that is not: the application value, the commands that reach it, and the
-\texttt{ScalaFX} object that owns the window and the keyboard. The sections below describe the language
+My work covers what a maze still holds and what a bonus does once it is gathered, the lives a player has and the
+victory or defeat they end in, the patrolling enemy, the view, and the shell in which a program made of values meets a
+toolkit that is not: the application value, the commands that reach it, and the \texttt{ScalaFX} object that owns the
+window and the keyboard. The sections below describe the language
 mechanisms those parts rest on, and the one place where the library dictated the design rather than the other way
 round.
 
@@ -29,17 +30,22 @@ extension (effects: ActiveEffects)
 \texttt{ActiveEffects} therefore never mentions a collectible, and the update stage reads as a sentence about the
 game rather than as a sequence of calls. The two companions of this one, \texttt{collectedBy} and
 \texttt{awardedFor}, extend in the same way what is left on the ground and the score. How long each effect lasts is a
-\texttt{given} that reaches this point without being carried, in the manner Gaia Mazzoni describes for scoring rules;
-the same holds for how much of the passing time a slowed enemy experiences.
+\texttt{given} defined in its own companion object, so no call site passes it explicitly although the context travels
+down with the update; the same holds for how much of the passing time a slowed enemy experiences.
 
 \subsection{A third enemy written against someone else's abstraction}
 
-The patrolling enemy makes for one corner of the maze at a time and ignores the player entirely. It is written
-against the strategy abstraction Alex Santini describes further on, and it added no case to the update pipeline: the
-behaviour arrived as two new files, and the code already written changed only to name it in the selector and to give
-the new kind a symbol a maze can be authored with. A strategy is an \textbf{object} rather than a class, since it holds
-no state of its own, and what it has to remember between one decision and the next travels out with the decision and
-comes back in the context.
+The patrolling enemy makes for one corner of the maze at a time and never reads where the player is: whoever arrives
+at the corner it was making for takes the next one clockwise, so its round closes and repeats for as long as a game
+lasts. It is written
+against the strategy abstraction Alex Santini describes further on, and it added no stage to the update pipeline: the
+behaviour itself arrived as two new files. The abstraction did have to grow, though. A strategy can now answer what
+the enemy is making for after a decision, and one that decides on the spot answers nothing, so neither strategy
+already written changed a line. Holding that answer is the business of the stage above, of the enemy that carries it
+and of the save that keeps it, while the rest of the code already there changed only to name the new kind in the
+selector and to give it a symbol a maze can be authored with. A strategy is an \textbf{object} rather than a class, since it holds
+no state of its own, and the single corner it has to remember between one decision and the next travels out with the
+decision and comes back in the context.
 
 A route exists only if the maze offers at least two distinct corners to make for, which is a legitimate answer rather
 than a failure, so the factory returns an option and the type keeps the invariant:
@@ -55,15 +61,19 @@ def acrossCorners(map: ValidatedMap): Option[PatrolRoute] =
 
 The requirement and the option are a pair rather than two ways of doing the same thing: the first states what a route
 is, and applies where only the factory can reach it, while the second is what callers are given. The corners are the
-walkable cells nearest the four extremes, taken clockwise and with duplicates dropped, so a narrow maze makes a
-shorter round instead of no round at all. Asking which corner follows another wraps around with a remainder and
+walkable cells nearest the four extremes, with duplicates dropped, so a narrow maze makes a shorter round instead of
+no round at all. Asking which corner follows another wraps around with a remainder and
 answers with an option too, so a corner that is no longer on the route cannot silently become the first one.
 
-\subsection{Deciding a screen from two sources at once}
+Reaching that corner is left to the navigation shared with the pursuing enemies, so a teleport shortens a patrol round
+exactly as it shortens a pursuit, this strategy deciding nothing about it beyond passing on the permission it was
+handed.
+
+\subsection{Deciding a screen from more than one source at once}
 
 What the application shows cannot be read from the loop alone, which knows only whether a game is being played and
-whether it is on hold, nor from the level alone, which knows only whether it has been won or lost. It is a total
-function over the pair:
+whether it is on hold, nor from the level alone, which knows only whether it has been won or lost, and a game about to
+begin has a countdown left to show. It is a total function over them:
 
 \begin{lstlisting}
 def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Screen =
@@ -114,11 +124,7 @@ nothing has to implement an interface to receive a frame.
 The comparison that decides whether to notify is the equality case classes already provide: no \texttt{equals} is
 written anywhere in the view. What it discards is a projection identical to the one last shown, which is what happens
 when nothing drawn is moving, since a crossing carries how far it has got into the projection and therefore differs at
-every tick. The tests drive the same value with a listener that records what it receives, so they assert both what
-reached the interface and what deliberately did not.
-
-Notifying answers with an updated rendering rather than mutating one, so what has been shown last stays a field
-instead of hiding in the state of an observer.
+every tick.
 
 \subsection{Drawing a crossing without moving anything}
 

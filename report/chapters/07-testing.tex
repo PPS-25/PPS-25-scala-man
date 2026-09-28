@@ -2,14 +2,15 @@
 \chapter{Testing}
 
 The definition of done set out in Chapter 2 required every task to be covered by automated tests, so the suite grew
-with the code rather than after it. The standard suite currently counts \textbf{515 tests over 61 suites}. Each
+with the code rather than after it. The standard suite currently counts \textbf{518 tests over 61 suites}. Each
 member wrote the tests of the epics or the tasks they were responsible for, so the ownership of an area covered its
 specification as well as its implementation.
 
 \section{Conventions}
 
-As a rule the tests of a task were written before its implementation, and the history of the commits keeps the trace of
-it.
+Tests were written alongside the code of a task, ahead of it where the behaviour was clear enough to state first. The
+team did not adopt test-driven development as a rule, and the definition of done asked for coverage rather than for a
+given order.
 
 Suites are written in the \texttt{AnyFunSuite} style, which lets the name of a test be a sentence rather than an
 identifier. The convention adopted is that a name describes \textbf{a behaviour of the domain} and not the method under
@@ -66,8 +67,8 @@ is moved elsewhere.
 \subsection{Rules and effects}
 
 Every rule depending on elapsed time receives it as an argument instead of reading a clock, which makes temporal
-behaviour testable \textbf{without waiting}: a bonus is asserted to be still applied one millisecond before its
-expiration and no longer applied at it, pinning the exact boundary. The same technique covers effects renewed while
+behaviour testable \textbf{without waiting}: a bonus is asserted to be still applied one second before its
+expiration and no longer applied at it, pinning the boundary from both sides. The same technique covers effects renewed while
 already active, effects expiring independently of one another, and the restoration of an effect at a different instant
 of the clock, which is what a saved game needs when it is taken up again.
 
@@ -95,7 +96,8 @@ with all its progress, down to the movement an enemy was making and the corner a
 are covered by \textbf{injecting them}: a real save is written, one property of the file is then corrupted, and the
 load is required to refuse it without throwing, for an unsupported format version, an invalid mode, an unsafe maze
 name, a negative number of lives and an entity outside the map. Recorded results are covered by the same round trip on
-their encoding, \texttt{decode(encode(r)) == r}, together with the malformed lines that must be rejected.
+their encoding, \texttt{decode(encode(r)).contains(r)}, the decoder answering with an option because not every line
+can be read back, together with the malformed lines that must be rejected.
 
 \section{Testing the interface without opening a window}
 
@@ -106,9 +108,10 @@ what the status bar reads, what the standings are.
 
 The state of the level is passed to the overlay by name, because a game in progress never needs it, and a test counts
 the evaluations of that argument to assert that a board covered by nothing does not even ask how the level is doing.
-Other tests assert that every sprite the game can name has a picture among the resources and that every teleport pair a
-maze may hold is one the board knows how to draw, catching at build time a kind of mismatch that usually appears only
-when the application is run.
+Another suite asserts that every sprite the game can name has a picture among the resources, teleport doors included:
+a maze may pair more of them than there are pictures, so a door is drawn with the picture its number reaches by
+wrapping, and no maze can hold one that cannot be drawn. This catches at build time a kind of mismatch that usually
+appears only when the application is run.
 
 \section{Testing the boundary}
 
@@ -126,7 +129,7 @@ so that the decision and the storage fail apart from each other.
 
 \begin{itemize}
   \item \textbf{Unit}: the large majority of the suite, each test covering one abstraction at a time.
-  \item \textbf{Integration}: a single test, marked \textbf{by convention} with the \texttt{IT} suffix, exercising
+  \item \textbf{Integration}: a single suite, marked \textbf{by convention} with the \texttt{IT} suffix, exercising
   movement over a validated maze rather than over a grid built for the occasion, so that two modules are put to the
   test together. It runs with all the others.
   \item \textbf{Performance}: the tick check described among the non-functional requirements, which lives on sources of
@@ -139,8 +142,8 @@ so that the decision and the storage fail apart from each other.
 
 \section{Design decisions the tests pin down}
 
-Two values of the implementation are written down in the tests alone: the code applies them without explaining them,
-and changing one turns a test red instead of silently changing how the game behaves.
+Two values of the implementation are held in place by the tests: changing one turns a test red instead of silently
+changing how the game behaves.
 
 Renderings notify their listeners only after a \textbf{visible} change, so that a frame in which nothing changed is not
 redrawn. For that comparison to be worth anything, the elapsed time the projection exposes is \textbf{truncated to whole
@@ -159,8 +162,11 @@ by more than one step for a frame arriving late.
 
 \section{Coverage of the requirements}
 
-Every functional requirement of Chapter 3 is answered by tests. The table names, for each one, the suites that establish
-it; the non-functional requirements name their own evidence where they are stated.
+Every functional requirement of Chapter 3 is answered by tests, and the table names, for each one, the suites that
+establish it. Of the non-functional requirements, NFR-1, NFR-2 and NFR-4 name their own evidence where they are stated.
+NFR-3 is established by the model holding no clock and no source of randomness, which is why every suite of this
+chapter drives the rules by handing them a duration. NFR-5 is answered by the acceptance testing described above,
+since it concerns what a new player manages unaided rather than a property a suite can assert.
 
 \begin{center}
   \small
@@ -178,7 +184,8 @@ it; the non-functional requirements name their own evidence where they are state
     \hline
     FR-U5 & Move through the maze & \texttt{LevelMovementTest}, \texttt{CommandMapperTest} \\
     \hline
-    FR-U6 & Follow the game as it is played & \texttt{StatusBarTest}, \texttt{LevelViewTest}, \texttt{FrameTest} \\
+    FR-U6 & Follow the game as it is played & \texttt{StatusBarTest}, \texttt{LevelViewTest}, \texttt{FrameTest},
+    \texttt{ScreenTest}, \texttt{OverlayTest} \\
     \hline
     FR-U7 & Pause, resume and load & \texttt{GameSessionTest}, \texttt{ApplicationTest},
     \texttt{PropertiesGameSaveRepositorySpec} \\
@@ -189,17 +196,20 @@ it; the non-functional requirements name their own evidence where they are state
     \hline
     FR-S1 & Read a maze & \texttt{MapParserSpec}, \texttt{MapLoaderSpec} \\
     \hline
-    FR-S2 & Judge whether a maze is playable & \texttt{MapValidationSpec}, \texttt{MapPipelineSpec} \\
+    FR-S2 & Judge whether a maze is playable & \texttt{MapValidationSpec}, \texttt{MapPipelineSpec},
+    \texttt{MapReachabilitySpec} \\
     \hline
-    FR-S3 & Explain a refusal & \texttt{MapValidationSpec}, \texttt{GameFilesEnvironmentTest} \\
+    FR-S3 & Explain a refusal & \texttt{MapValidationSpec}, \texttt{GameFilesEnvironmentTest},
+    \texttt{PropertiesGameSaveRepositorySpec} \\
     \hline
-    FR-S4 & Movement & \texttt{MovingEntityTest}, \texttt{LevelMovementTest} \\
+    FR-S4 & Movement & \texttt{MovingEntityTest}, \texttt{LevelMovementTest}, \texttt{MovingEntityMapIT},
+    \texttt{ActiveEffectsTest}, \texttt{GameModeSpec} \\
     \hline
     FR-S5 & Decide where enemies go & \texttt{EnemyMovementStrategySpec}, \texttt{EnemyMovementSpec},
     \texttt{PatrolStrategySpec}, \texttt{PatrolRouteSpec}, \texttt{EnemyAiStageSpec},
     \texttt{EnemyStrategySelectorSpec} \\
     \hline
-    FR-S6 & Carry entities through teleports & \texttt{LevelStateTest}, \texttt{MovingEntityMapIT} \\
+    FR-S6 & Carry entities through teleports & \texttt{LevelStateTest}, \texttt{CollisionResolverTest} \\
     \hline
     FR-S7 & Resolve a meeting & \texttt{LevelMeetingTest}, \texttt{CollidingTest}, \texttt{CollisionDetectorTest},
     \texttt{CollisionResolverTest} \\
@@ -208,7 +218,8 @@ it; the non-functional requirements name their own evidence where they are state
     \hline
     FR-S9 & Award points & \texttt{LevelScoreTest}, \texttt{ScoreTrackerTest}, \texttt{ScoringRuleTest} \\
     \hline
-    FR-S10 & Judge game status & \texttt{LevelOutcomeTest}, \texttt{GameModeSpec} \\
+    FR-S10 & Judge game status & \texttt{LevelOutcomeTest}, \texttt{GameModeSpec}, \texttt{GameStateTest},
+    \texttt{LevelProgressTest} \\
     \hline
     FR-S11 & Keep the best results only & \texttt{LeaderboardTest}, \texttt{FileLeaderboardStorageTest},
     \texttt{GameResultCodecTest}, \texttt{LeaderboardRecordingTest} \\

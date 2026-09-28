@@ -48,7 +48,7 @@ classDiagram
   }
 
   class StatusBar {
-    <<by name>>
+    <<case class>>
   }
 
   class GameBoard {
@@ -60,6 +60,6 @@ classDiagram
   Screen ..> GameState : reads
   Screen --> Outcome : Over
   Overlay ..> Screen : of
-  Overlay ..> StatusBar : only if asked
+  Overlay ..> StatusBar : by name, only if asked
   Overlay --> "0..*" Command : choices
   GameBoard ..> Overlay : covers with

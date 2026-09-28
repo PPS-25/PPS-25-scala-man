@@ -14,6 +14,11 @@ classDiagram
     +progress: Double
   }
 
+  class RenderedEnemyMovement {
+    <<pure>>
+    +kind: EnemyKind
+  }
+
   class Board {
     <<pure>>
     +cells: Vector~Vector~Sprite~~
@@ -22,7 +27,7 @@ classDiagram
 
   class CellSizing {
     <<pure>>
-    +fitting(board, screen) Double
+    +fitting(board, screen)$ Double
   }
 
   class Frame {
@@ -68,6 +73,8 @@ classDiagram
   }
 
   LevelView *-- RenderedMovement : player
+  LevelView *-- "0..*" RenderedEnemyMovement : enemies
+  RenderedEnemyMovement *-- RenderedMovement : at
   Frame ..> LevelView : of
   StatusBar ..> LevelView : of
   Frame *-- "0..*" Drawn : entities
