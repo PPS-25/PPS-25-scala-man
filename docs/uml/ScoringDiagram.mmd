@@ -29,12 +29,18 @@
     WavesSurvived(waves)
   }
 
-  class standardScoring
-  class timedScoring
-  class survivalScoring
+  class standardScoring {
+    <<value: ScoringRule>>
+  }
+  class timedScoring {
+    <<value: ScoringRule>>
+  }
+  class survivalScoring {
+    <<value: ScoringRule>>
+  }
 
   ScoreTracker ..> ScoringRule : uses
   ScoringRule ..> ScoringEvent : values
-  ScoringRule <|.. standardScoring
-  ScoringRule <|.. timedScoring
-  ScoringRule <|.. survivalScoring
+  standardScoring --> ScoringRule : value
+  timedScoring --> ScoringRule : value
+  survivalScoring --> ScoringRule : value

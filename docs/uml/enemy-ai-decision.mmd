@@ -1,0 +1,20 @@
+flowchart LR
+  stage["EnemyAiStage"]
+  idle{"Enemy idle?"}
+  unchanged["Keep current movement"]
+  selector["EnemyStrategySelector"]
+  context["EnemyMovementContext\npositions, map, teleport permission, heading"]
+  strategy["EnemyMovementStrategy"]
+  navigation["EnemyMovement\nordered moves and BFS"]
+  movement["EnemyAiStage\nassigns movement and retains memory"]
+  noMove["EnemyAiStage\nkeeps remembered enemy idle"]
+
+  stage --> idle
+  idle -->|"no"| unchanged
+  idle -->|"yes"| selector
+  stage -->|"builds"| context
+  selector -->|"enemy kind"| strategy
+  context -. immutable input .-> strategy
+  strategy -. uses .-> navigation
+  strategy -->|"Some adjacent next position"| movement
+  strategy -->|"None or non-adjacent position"| noMove

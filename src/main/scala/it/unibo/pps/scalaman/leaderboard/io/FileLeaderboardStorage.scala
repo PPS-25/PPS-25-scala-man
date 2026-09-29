@@ -18,7 +18,7 @@ case class FileLeaderboardStorage(path: Path) extends LeaderboardStorage:
   private val encoder = summon[Encoder[GameResult]]
   private val decoder = summon[Decoder[GameResult]]
 
-  /** Loads the content of the storage path. If empty, creates a new leaderboard.
+  /** Loads the content of the storage path. A missing file is an empty leaderboard.
     */
   override def load(): Either[LeaderboardError, Leaderboard] =
     if !Files.exists(path) then Right(Leaderboard.empty)
@@ -27,7 +27,7 @@ case class FileLeaderboardStorage(path: Path) extends LeaderboardStorage:
   override def save(leaderboard: Leaderboard): Either[LeaderboardError, Unit] =
     writeText(leaderboard.entries.map(encoder.encode).mkString("\n"))
 
-  /** Parses the file into a string containing the game results, or an error if the read failed.
+  /** Reads the whole file as text, or the error that made the read fail.
     */
   private def readText: Either[LeaderboardError, String] =
     try Right(Files.readString(path, StandardCharsets.UTF_8))
@@ -48,10 +48,9 @@ case class FileLeaderboardStorage(path: Path) extends LeaderboardStorage:
   /** Writes the leaderboard at the desired path. If the path is in one or multiple directories, and
     * those do not exist yet, they are created. If an error is encountered, returns the error.
     */
-  private def writeText(text: String): Either[LeaderboardError, Unit] = {
+  private def writeText(text: String): Either[LeaderboardError, Unit] =
     try
       Option(path.getParent).foreach(Files.createDirectories(_))
       Files.writeString(path, text)
       Right(())
     catch case err: IOException => Left(LeaderboardError.WriteFailed(path, err.getMessage))
-  }

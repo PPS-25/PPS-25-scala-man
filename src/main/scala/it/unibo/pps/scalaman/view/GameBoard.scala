@@ -8,7 +8,7 @@ import scalafx.scene.canvas.{Canvas, GraphicsContext}
 import scalafx.scene.control.Label
 import scalafx.scene.control.Button
 import scalafx.scene.layout.{BorderPane, StackPane, VBox}
-import scalafx.stage.Screen
+import scalafx.stage.Screen as FxScreen
 
 /** Draws a level on two layers: the maze once, because it stands still, and whoever moves over it
   * at every frame. Buttons emit [[Command]] values through `handleCommand`.
@@ -128,7 +128,7 @@ object GameBoard:
 
   /** A board drawn as large as the screen it is played on allows. */
   def fittingScreen(board: Board, handleCommand: Command => Unit): GameBoard =
-    val bounds = Screen.primary.visualBounds
+    val bounds = FxScreen.primary.visualBounds
     GameBoard(
       board,
       CellSizing.fitting(board, ScreenSize(bounds.width, bounds.height)),

@@ -1,0 +1,37 @@
+%%{init: {"theme": "neutral", "class": {"htmlLabels": false}}}%%
+classDiagram
+  direction TB
+
+  class GameMode {
+    <<trait>>
+    +status(progress, collectibles, clock) GameState
+    +scoringRule ScoringRule
+    +enemyDelta(delta, clock) FiniteDuration
+    +timeLeft(clock) Option~FiniteDuration~
+    +bonus(progress, clock, over) Option~ScoringEvent~
+  }
+
+  class Normal {
+    <<case object>>
+    +bonus(...) RemainingLives
+  }
+
+  class Timed {
+    <<case class>>
+    +limit: FiniteDuration
+    +timeLeft(clock) Option~FiniteDuration~
+    +bonus(...) RemainingTime
+  }
+
+  class Survival {
+    <<case class>>
+    +difficultyEvery: FiniteDuration
+    +maximumSpeedMultiplier: Double
+    +wavesSurvived(clock) Long
+    +speedMultiplier(clock) Double
+    +bonus(...) WavesSurvived
+  }
+
+  GameMode <|.. Normal
+  GameMode <|.. Timed
+  GameMode <|.. Survival

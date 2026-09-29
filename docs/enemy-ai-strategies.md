@@ -53,9 +53,8 @@ movement ordering.
 `PlayerAnticipationStrategy` targets a predicted player position.
 
 The prediction is derived from the difference between the player's current position and previous
-position. The strategy projects that movement by `stepsAhead` walkable cells, then chooses the valid
-move whose shortest path best approaches the predicted target. A move in the predicted player direction
-wins deterministic ties.
+position. The strategy projects that movement by `stepsAhead` walkable cells, then takes the first step
+of a shortest path to the predicted target, as direct pursuit does for the player's current position.
 
 If the previous player position is unavailable, anticipation falls back to targeting the current
 player position.

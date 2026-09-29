@@ -1,0 +1,71 @@
+%%{init: {"theme": "neutral", "class": {"htmlLabels": false}}}%%
+classDiagram
+  direction TB
+
+  class EnemyAiStage {
+    <<update stage>>
+    +stage(level, selection) LevelState
+  }
+
+  class EnemyStrategySelection {
+    <<trait>>
+    +strategyFor(kind) EnemyMovementStrategy
+  }
+
+  class EnemyStrategySelector {
+    <<default selection>>
+  }
+
+  class EnemyKind {
+    <<enumeration>>
+    Hunter
+    Anticipator
+    Patroller
+  }
+
+  class EnemyMovementStrategy {
+    <<trait>>
+    +nextMove(context) Option~Position~
+    +memoryAfter(context) Option~Position~
+  }
+
+  class DirectPursuitStrategy {
+    <<case object>>
+  }
+
+  class PlayerAnticipationStrategy {
+    <<case class>>
+    +stepsAhead: Int
+  }
+
+  class PatrolStrategy {
+    <<case object>>
+  }
+
+  class EnemyMovementContext {
+    <<immutable value>>
+    +enemyPosition: Position
+    +canUseTeleport: Boolean
+    +playerPosition: Position
+    +playerPreviousPosition: Option~Position~
+    +map: ValidatedMap
+    +enemyHeading: Option~Position~
+  }
+
+  class EnemyMovement {
+    <<navigation>>
+    +firstStepTowards(from, target, map, canUseTeleport) Option~Position~
+  }
+
+  EnemyStrategySelection <|.. EnemyStrategySelector
+  EnemyMovementStrategy <|.. DirectPursuitStrategy
+  EnemyMovementStrategy <|.. PlayerAnticipationStrategy
+  EnemyMovementStrategy <|.. PatrolStrategy
+  EnemyAiStage ..> EnemyStrategySelection : selects through
+  EnemyAiStage ..> EnemyMovementContext : builds for idle enemies
+  EnemyStrategySelection ..> EnemyKind : selects for
+  EnemyStrategySelection ..> EnemyMovementStrategy : returns
+  EnemyMovementStrategy ..> EnemyMovementContext : decides from
+  DirectPursuitStrategy ..> EnemyMovement : shortest path
+  PlayerAnticipationStrategy ..> EnemyMovement : shortest path
+  PatrolStrategy ..> EnemyMovement : shortest path

@@ -1,0 +1,24 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class Rendering~S, V~ {
+    +project: Function~S, V~
+    +listeners: Seq~RenderListener~
+    +lastShown: Option~V~
+    +notifying(current) Rendering
+  }
+
+  class Ticked~S, V~ {
+    +state: S
+    +rendering: Rendering~S, V~
+  }
+
+  class TickNotification["extension on the update pipeline"] {
+    <<TickNotification.scala>>
+    +tickNotifying(state, rendering) Ticked
+  }
+
+  TickNotification ..> Rendering~S, V~ : notifies through
+  TickNotification ..> Ticked~S, V~ : yields
+  Ticked~S, V~ *-- Rendering~S, V~ : rendering

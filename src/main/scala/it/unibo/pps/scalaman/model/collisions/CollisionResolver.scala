@@ -6,7 +6,7 @@ import it.unibo.pps.scalaman.model.map.ValidatedMap
 
 object CollisionResolver:
 
-  /** Teleports the player from one end of a teleport to the other.
+  /** Teleports a moving entity from one end of a teleport to the other.
     */
   def teleported(
       entity: MovingEntity,

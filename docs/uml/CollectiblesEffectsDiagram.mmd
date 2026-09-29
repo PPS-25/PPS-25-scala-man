@@ -1,0 +1,70 @@
+%%{init: {"theme": "neutral"}}%%
+classDiagram
+  direction TB
+
+  class Collectibles {
+    <<trait>>
+    +remaining: Int
+    +collect(position) Collected
+  }
+
+  class OnPositions {
+    <<private>>
+    +elements: Map~Position, Collectible~
+  }
+
+  class Collected {
+    +left: Collectibles
+    +element: Option~Collectible~
+  }
+
+  class Collectible {
+    <<sealed trait>>
+    +position: Position
+  }
+
+  class Basic
+  class Bonus {
+    +effect: BonusEffect
+  }
+
+  class ActiveEffects {
+    <<trait>>
+    +activate(effect, now, duration) ActiveEffects
+    +updated(now) ActiveEffects
+    +remaining(now) Map~BonusEffect, FiniteDuration~
+  }
+
+  class UntilExpiration {
+    <<private>>
+    +expirations: Map~BonusEffect, FiniteDuration~
+  }
+
+  class BonusEffect {
+    <<enum>>
+    SlowDown
+    Invulnerability
+  }
+
+  class BonusDuration {
+    <<given>>
+    +of(effect) FiniteDuration
+  }
+
+  class Collecting["extensions in model.collectibles"] {
+    <<Collecting.scala>>
+    +collectedBy(player) Collected
+    +grantedBy(collected, now) ActiveEffects
+    +awardedFor(collected) ScoreTracker
+  }
+
+  Collectibles <|.. OnPositions
+  Collectibles ..> Collected : collect
+  Collected o-- "0..1" Collectible : element
+  Collectible <|-- Basic
+  Collectible <|-- Bonus
+  Bonus --> BonusEffect : grants
+  ActiveEffects <|.. UntilExpiration
+  Collecting ..> Collectibles : collectedBy
+  Collecting ..> ActiveEffects : grantedBy
+  Collecting ..> BonusDuration : how long it lasts
