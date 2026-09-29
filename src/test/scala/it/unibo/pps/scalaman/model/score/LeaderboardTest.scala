@@ -32,8 +32,9 @@ class LeaderboardTest extends AnyFunSuite:
   }
 
   test("a board with a maximum of n scores, keeps the best n scores") {
-    val tooMany = (1 to Leaderboard.Cap + 5).map(i => result("A", 1 * 10, at = i))
-    assert(board(tooMany*).entries.size == Leaderboard.Cap)
+    val tooMany = (1 to Leaderboard.Cap + 5).map(i => result(s"p$i", i * 10, at = i))
+    val bestScores = tooMany.map(_.score).sorted.reverse.take(Leaderboard.Cap)
+    assert(board(tooMany*).entries.map(_.score) == bestScores)
   }
 
   test("a leaderboard is a monoid") {

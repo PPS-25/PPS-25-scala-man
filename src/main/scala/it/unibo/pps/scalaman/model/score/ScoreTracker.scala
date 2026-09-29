@@ -48,10 +48,9 @@ object ScoringRule:
         case ScoringEvent.WavesSurvived(waves) => waves * PointsPerWaveSurvived
         case _                                 => 0
 
-  private def comboMultiplier(combo: Int): Int = {
+  private def comboMultiplier(combo: Int): Int =
     require(combo >= 1, "combo has to be at least of 1")
     List.fill(combo - 1)(ComboFactor).product
-  }
 
 /** A tracker to store the score of the game.
   */
@@ -63,9 +62,8 @@ final case class ScoreTracker(currentScore: Int = 0, combo: Int = 0):
     val newCombo = increaseCombo(event, combo)
     ScoreTracker(currentScore + rule.awardedPoints(event, newCombo), newCombo)
 
-  private def increaseCombo(event: ScoringEvent, combo: Int): Int = event match {
+  private def increaseCombo(event: ScoringEvent, combo: Int): Int = event match
     case ScoringEvent.EnemyKill => combo + 1
     case _                      => combo
-  }
 
   def resetCombo: ScoreTracker = copy(combo = 0)

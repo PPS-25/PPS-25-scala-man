@@ -184,12 +184,6 @@ tested without a window.
 My work concentrated on three areas: what moves through a maze and what happens when two things meet, the passage of
 time through a game, and everything to do with scoring and the results a game leaves behind.
 
-\subsection{Shared beginnings}
-
-The first sprint was collaborative. With the rest of the team, I took part in defining the domain concepts, dividing
-responsibilities across model, view and controller, and deciding how those parts would address one another. The majority
-of the decisions described in the architecture chapters were agreed within that first sprint.
-
 \subsection{Movement and collisions}
 
 I wrote the moving entity shared by the player and the enemies, along with the constraints on how it may move: an
@@ -215,10 +209,10 @@ because an update advances every moving entity before collisions are resolved.
 \subsection{The passage of time}
 
 I wrote the game loop, as a small state machine with declared transitions, and the game clock, which accumulates the
-time handed to it rather than reading any clock of its own. I wrote most of the session that stands between them and
+time handed to it rather than reading any clock of its own. I wrote the part of the session that stands between them and
 the interface converting the moment a frame arrives into the duration the model is advanced by, and bounding that
 duration so that a frame the machine took too long over cannot push the game forward all at once. That file is shared
-with Matilde D'Antino.
+with Alex Santini and Matilde D'Antino.
 
 \subsection{Input}
 
@@ -235,7 +229,7 @@ and the codec that turns a result into a line and back.
 Two integrations followed: connecting scoring to the leaderboard meant deciding when a result is formed and by what
 route it reaches storage, while connecting scoring to the game modes was done with Alex Santini, who owns the modes.
 I added the hook by which a mode names the rule it scores by and the award it grants at the finish, while the modes
-themselves and their tuning remained his.
+themselves remained his.
 
 \subsection{Scala mechanisms}
 
@@ -277,10 +271,11 @@ each rule stays total over the whole event type and none needs to know which eve
 
 \subsubsection{Context parameters instead of passing by hand}
 
-The rule a game scores by is not carried from hand to hand through the model but supplied as a \texttt{context parameter},
-so no intermediate step accepts it merely to pass it on. This is useful in the case of rules that games score by,
-since they are a property of the game mode being played, but are only needed at the point of a score increase.
-The same holds for the durations of bonus effects and for the rate at which slowed enemies experience time.
+The rule a game scores by is a property of the game mode being played, but is only needed at the point of a score increase.
+It is therefore read from the mode where the level awards points and handed on as a \texttt{context parameter}, so the
+steps below it, down to the tracker, never name it at the call site. The duration of bonus effects and the rate at which
+slowed enemies experience time are supplied differently: they are \textbf{given} definitions in the companion objects of
+their own types, so no call passes them explicitly.
 
 \subsubsection{Enumerations whose cases carry data}
 
@@ -296,8 +291,8 @@ a \textbf{monoid}, with an identity and an associative operation, and a pair of 
 value as text and reading it back. Each is five to seven lines. Instances are supplied as \texttt{given} definitions
 and reached with \texttt{summon}, so the leaderboard obtains its monoid and the storage its codec without either
 being handed one. The benefit to writing them was that their laws became mine to state and test. The monoid's two
-laws are checked generically, by a property test that would verify any monoid, over generated leaderboards rather
-than examples chosen to pass.
+laws are checked by a generic test that would verify any monoid, run over leaderboards chosen to reach the cases where
+they could break: an empty one, a tie, and one beyond the cap.
 
 \subsubsection{Values that cannot be built wrong}
 
