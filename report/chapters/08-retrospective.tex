@@ -1,3 +1,4 @@
+% !TEX root = ../main.tex
 \chapter{Retrospective}
 
 This chapter reviews the project as it was carried out: what each sprint delivered, how the process behaved in
@@ -103,7 +104,7 @@ the following ones.
     \hline
     11 & Implement Scoring and Leaderboard & Epic completed & Gaia & 5 h \\
     \hline
-    12 & Implement Patrol Enemy Strategy & Epic carried out by a single member & Matilde & 5 h \\
+    12 & Implement Patrol Enemy Strategy & Epic started & Matilde & 5 h \\
     \hline
     13 & Implement Game Save and Load & Epic carried out by a single member & Alex & 5 h \\
     \hline
@@ -112,14 +113,14 @@ the following ones.
   \end{tabular}
 \end{center}
 
-Epic 11, started in the previous sprint, was closed here; epic 9 is the only one split between two team members and was
-completed in the following sprint.
+Epic 11, started in the previous sprint, was closed here; epics 9 and 12 were started here and closed in the
+following one, epic 9 being the only epic split between two team members.
 
 \subsection*{Sprint 4 (7--13 September)}
 
 The review of the previous sprint found that the game modes just implemented were not yet handled in the interface and
-in the leaderboard: three tasks were therefore added to epics already open. The remaining hours were devoted to the
-review of the whole codebase and to the documentation.
+in the leaderboard: three tasks were therefore added to epics already open. Epic 12, the patrolling enemy, was closed
+here, and the remaining hours were devoted to the review of the whole codebase and to the documentation.
 
 \begin{center}
   \small
@@ -127,7 +128,7 @@ review of the whole codebase and to the documentation.
     \hline
     \textbf{\#} & \textbf{Epic} & \textbf{Task} & \textbf{Assignee} & \textbf{Estimate} \\
     \hline
-    9 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Implement UI and System Integration}} & UI Game Mode Integration (\#115) & Matilde & 2 h \\
+    9 & \raisebox{0pt}[0pt][0pt]{\parbox[t]{3.5cm}{Implement UI and System Integration}} & UI Game Mode Integration (\#115) & Matilde & 1 h \\
     \cline{3-5}
       &  & UI New Leaderboard Integration (\#116) & Alex & 2 h \\
     \hline
@@ -135,10 +136,15 @@ review of the whole codebase and to the documentation.
     \hline
     11 & Implement Scoring and Leaderboard & Leaderboard Game Mode Integration (\#117) & Gaia & 2 h \\
     \hline
+    12 & Implement Patrol Enemy Strategy & Epic completed & Matilde & 1 h \\
+    \hline
     15 & Final Review & Review of the whole codebase & Whole team & 5 h each \\
     \hline
   \end{tabular}
 \end{center}
+
+The final review is numbered after the fourteen product epics of Chapter 2 without belonging to them: it delivers no
+feature, and was opened in the last sprint to hold the review of the whole codebase.
 
 \section{Analysis of the development process}
 
@@ -147,7 +153,7 @@ the team, and it proved a good fit for a project of this size.
 
 \subsection{What worked}
 
-The rhythm of the work rested on two weekly appointments: a mid-week backlog refinement and an end-of-sprint meeting,
+The rhythm of the work rested on two weekly appointments: a Friday backlog refinement and an end-of-sprint meeting,
 in which the review, the retrospective and the planning of the following sprint took place one after the other. Every
 planned appointment was held and, whenever a personal commitment required it, it was moved rather than skipped. Every
 sprint closed with its own content delivered, with the tasks planned during planning completed within the agreed time.

@@ -86,8 +86,9 @@ so a direction requested just before a corner is taken at the first opening rath
 just left serves two rules that would otherwise have nothing to go on: a teleport does not carry back whoever has just
 arrived through it, and the anticipating enemy reads from it which way the player is going.
 
-Every rule takes a level and returns the level that follows, and is named after the event it accounts for rather than
-after the field it touches, since one rule often touches several: dropping the effects that expired also ends the combo
+Every rule takes a level and returns the level that follows, which is how NFR-3 is met: an update depends on the
+state it is given and on the elapsed time, and on nothing else. A rule is named after the event it accounts for rather
+than after the field it touches, since one rule often touches several: dropping the effects that expired also ends the combo
 of defeated enemies. None of them knows what precedes it, so the order they run in is settled in one place, described
 further on, and a tick is their composition.
 
@@ -106,9 +107,9 @@ fields of the result in Figure~\ref{fig:items} record, so that the stages which 
 not look at the maze a second time to learn what to award.
 
 The two kinds are told apart by what they mean rather than by a flag. Only a standard collectible counts among those
-remaining, while a bonus is worth points and grants an effect without ever bringing a level closer to its end. What
-follows is that a maze holding bonuses alone is complete from the start, which is a consequence of the rules rather
-than a case written into the code.
+remaining, while a bonus is worth points and grants an effect without ever bringing a level closer to its end. A maze
+holding bonuses alone is therefore complete from the start, which is a consequence of the rules rather than a case
+written into the code.
 
 Collecting is idempotent: a position already emptied yields nothing. Since a player occupies a cell only once the
 crossing towards it is complete, standing on a cell just emptied cannot gather it twice, and nothing has to remember
@@ -118,8 +119,8 @@ what was taken a moment ago.
 An effect in force is kept as the instant it ends rather than as a countdown to be decremented, which is the map of
 expirations in Figure~\ref{fig:items}. Asking which effects apply is asking which of those instants are still ahead.
 
-What follows is that no update walks through the effects to subtract from them, that nothing accumulates rounding, and
-that an effect behaves the same whether the frames were regular or not. Granting an effect already in force postpones
+No update therefore walks through the effects to subtract from them, nothing accumulates rounding, and an effect
+behaves the same whether the frames were regular or not. Granting an effect already in force postpones
 its end by the full duration rather than adding to what was left, which is what a player expects of a bonus gathered
 twice in quick succession.
 
@@ -364,12 +365,12 @@ The view draws and collects input, and holds no \textbf{domain rule} of its own.
 offers back the intentions of whoever is playing, and it is the only part of the program that knows which graphical
 library is in use.
 
-Its shape follows from a constraint that is not aesthetic: the machine that runs the tests has no graphical
-environment, so a test instantiating a graphical node breaks the build for everyone. The view is therefore split in
+Its shape follows from a constraint that is not aesthetic: the machine that runs the tests in continuous integration
+has no graphical environment, so a test instantiating a graphical node breaks the build for everyone. The view is therefore split in
 two, a line that runs across Figure~\ref{fig:projection}. One half decides what is to be drawn and is made of pure
-functions over immutable descriptions; the other draws, is written against the library, and holds no decision. What
-follows is that everything worth asserting lies on the first side of that line, and that the second stays thin enough
-to be read rather than tested.
+functions over immutable descriptions; the other draws, is written against the library, and holds no decision.
+Everything worth asserting lies on the first side of that line, and the second stays thin enough to be read rather
+than tested.
 
 \subsection{Drawing from a projection}
 What reaches the view is not the level but a projection of it, a flat description of what is to be shown: where whoever
@@ -398,24 +399,25 @@ fills the window without a size being written anywhere.
 \end{figure}
 
 \subsection{Screens and overlays}
-What the application is showing is a value of its own, computed from two sources neither of which can answer alone: the
-loop knows whether a game is being played and whether it is on hold, the level knows whether it has been won or lost.
+What the application is showing is a value of its own, computed from three sources none of which can answer alone: the
+loop knows whether a game is being played and whether it is on hold, the level knows whether it has been won or lost,
+and what is left of the pre-game countdown tells a game about to begin from one under way.
 Deriving it from both, in one place, keeps the interface from holding a notion of its own of where the player is.
 
-Over the board there may be a veil, carrying a title, what is read under it, and the choices offered. A game in
-progress is covered by nothing, and the menu is not a veil but a screen of its own, since nothing is being played
-behind it. A button cannot produce a veil of its own: it raises a command, the application answers with the state that
-follows, and screen and veil are derived again from it.
+Over the board there may be an \textbf{overlay}, a veil carrying a title, what is read under it, and the choices
+offered. A game in progress is covered by nothing, and the menu is not an overlay but a screen of its own, since
+nothing is being played behind it. A button cannot produce an overlay of its own: it raises a command, the application
+answers with the state that follows, and screen and overlay are derived again from it.
 
-The state of the level reaches the veil only if the veil asks for it, and a game in progress never does. The veil
-depends on the loop as well as on the level, as Figure~\ref{fig:screens} shows, and therefore cannot be part of the
-projection. What follows is that the score of a finished game survives on screen: the veil is computed again only when
+The state of the level reaches the overlay only if the overlay asks for it, and a game in progress never does. The
+overlay depends on the loop as well as on the level, as Figure~\ref{fig:screens} shows, and therefore cannot be part
+of the projection. The score of a finished game therefore survives on screen: the overlay is computed again only when
 the screen changes, so the figures read on it are those of the moment the game ended.
 
 \begin{figure}
     \centering
     \includegraphics[width=0.7\textwidth]{../docs/uml/ScreensDiagram.pdf}
-    \caption{What is shown and what covers it. A screen is derived from the loop and the level together, and the veil carries the choices the interface offers back.}
+    \caption{What is shown and what covers it. A screen is derived from the loop and the level together, and the overlay carries the choices the interface offers back.}
     \label{fig:screens}
 \end{figure}
 
@@ -427,8 +429,8 @@ program as a whole is a value.
 \subsection{The application as a value}
 The state of the program is one value: whether a menu is showing or a game is being played, the way the outside world
 is reached, the tuning the modes are played by, and any transient application notice awaiting processing. Every command produces the next
-application rather than modifying the present one. What follows is that a transition can be read as a single
-expression, and asserted in a test as an ordinary comparison.
+application rather than modifying the present one. A transition can therefore be read as a single expression, and
+asserted in a test as an ordinary comparison.
 
 Commands are how the interface offers intentions and never performs them; the controller decides what each one means,
 asks the outside world for what it needs, and answers with the application as it then stands. Frame timestamps and
@@ -436,8 +438,8 @@ requested directions arrive through their dedicated controller operations. The s
 owns the window keeps the current application in a mutable reference and replaces it after every event, which is where
 a program made of values meets a toolkit that is not.
 
-A request the outside world refuses becomes a sentence rather than an exception, since whoever reads it is playing a
-game rather than debugging one. The notice is consumed after the interface processes it, so it cannot repeat itself frame after frame.
+A request the outside world refuses becomes a sentence rather than an exception, as NFR-2 requires, since whoever
+reads it is playing a game rather than debugging one. The notice is consumed after the interface processes it, so it cannot repeat itself frame after frame.
 
 The model decides whether a game has ended; the controller detects the first terminal transition. A result is handed
 over to be recorded once, however many frames follow, and only if the maze it was played on can be named, since a leaderboard
@@ -447,7 +449,8 @@ belongs to a maze and a mode.
 
 \textbf{The first frame yields no duration}, since there is nothing to measure from. Once the pre-game countdown is complete,
 every following frame produces the interval since the one before, and that interval is what the model is advanced by. Therefore, a session
-carries the moment of the last frame it saw, which is the only thing in it that has to do with real time.
+carries the moment of the last frame it saw, which together with what is left of the pre-game countdown is what
+ties it to real time.
 
 \textbf{Before entering the model, the interval is bounded}: it is never negative and never longer than fifty milliseconds.
 The lower bound guards against a clock that appears to go backwards, while the upper bound guards against a frame
@@ -461,7 +464,7 @@ toggling through the paused and running status of the game, and any other key is
 able to travel onward only to be ignored by the receiver.
 
 A direction is not applied to the player but asked for. The level keeps the request until turning becomes possible,
-so if turning is asked just before a corner is taken at the first opening rather than lost.
+so a turn asked for just before a corner is taken at the first opening rather than lost.
 
 \subsection{Rendering with change detection}
 Between the level and whoever draws it stands the value in Figure~\ref{fig:rendering}: the projection to apply, the
@@ -474,10 +477,8 @@ detail the projection may carry is settled here rather than in the view: the coa
 comparison can discard.
 
 Notifying answers with an updated rendering rather than changing one in place, so the listeners registered and the last
-description shown stay explicit instead of hiding in the state of an observer. It names neither levels nor views, and
-the comparison it performs is the ordinary equality the model already provides by being made of values. The same value
-serves the tests, which register a listener and therefore observe not only what was drawn but also what deliberately
-was not.
+description shown stay explicit instead of hiding in the state of an observer. The same value serves the tests, which
+register a listener and therefore observe not only what was drawn but also what deliberately was not.
 
 Advancing the game and notifying whoever draws are joined in one operation, so that the level which results and the
 notice just given about it cannot fall out of step.
