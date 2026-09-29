@@ -48,10 +48,9 @@ case class FileLeaderboardStorage(path: Path) extends LeaderboardStorage:
   /** Writes the leaderboard at the desired path. If the path is in one or multiple directories, and
     * those do not exist yet, they are created. If an error is encountered, returns the error.
     */
-  private def writeText(text: String): Either[LeaderboardError, Unit] = {
+  private def writeText(text: String): Either[LeaderboardError, Unit] =
     try
       Option(path.getParent).foreach(Files.createDirectories(_))
       Files.writeString(path, text)
       Right(())
     catch case err: IOException => Left(LeaderboardError.WriteFailed(path, err.getMessage))
-  }
