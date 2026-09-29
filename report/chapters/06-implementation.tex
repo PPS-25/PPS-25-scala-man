@@ -458,9 +458,9 @@ is not part of the result contract.
 
 \texttt{DirectPursuitStrategy} takes the first step of that shortest path towards the player's current cell.
 \texttt{PlayerAnticipationStrategy} derives a unit direction from the player's current and previous cells, projects
-the player up to two walkable cells ahead, then chooses the legal move with the smallest shortest-path distance to
-that prediction. If the player is stationary or the previous position is unavailable, it targets the current position;
-if the projection meets a wall, it stops at the last walkable cell instead of predicting an invalid target.
+the player up to two walkable cells ahead, then takes the first step of a shortest path to that prediction. If the
+player is stationary or the previous position is unavailable, it targets the current position; if the projection meets
+a wall, it stops at the last walkable cell instead of predicting an invalid target.
 
 Teleports are part of navigation rather than an exceptional afterthought. When allowed, the paired endpoint is added
 to the candidate moves and can shorten a BFS route. After an enemy uses a teleport, its context disallows another

@@ -65,9 +65,9 @@ malformed map and save files out of the playing model without using exceptions f
 
 By contrast, values whose callers are exclusively program code protect their invariants at construction. A timed
 mode requires a positive duration, a survival mode constrains its speed multiplier, an active bonus requires time
-left, and a movement refuses a non-positive crossing time. This is the \textbf{smart constructor} principle applied
-at the smallest useful scope: once a value exists, its clients may rely on its invariant instead of checking it again.
-The leaderboard makes the same choice with a private constructor and a factory that orders and truncates entries.
+left, and a movement refuses a non-positive crossing time. These checks carry the same intent as a smart constructor:
+once a value exists, its clients may rely on its invariant instead of checking it again. The leaderboard makes the
+stronger smart-constructor choice with a private constructor and a factory that orders and truncates entries.
 
 A patrol route is the same choice made where absence is a legitimate answer: its constructor is private, and the
 factory answers with a route only if the maze offers at least two distinct corners, so a maze with no walkable cell
