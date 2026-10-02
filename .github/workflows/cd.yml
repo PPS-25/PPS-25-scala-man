@@ -50,7 +50,7 @@ jobs:
         if: matrix.platform == 'linux'
         shell: bash
         run: |
-          jar=$(find target -path '*/scala-man-*-linux-fat.jar' -print -quit)
+          jar=$(find target -path '*/scala-man-linux-fat.jar' -print -quit)
           test -n "$jar"
 
           # The JavaFX event loop is expected to keep running. `timeout` returning
@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fat-jar-${{ matrix.platform }}
-          path: target/scala-3.3.5/scala-man-0.1.0-SNAPSHOT-${{ matrix.platform }}-fat.jar
+          path: target/scala-3.3.5/scala-man-${{ matrix.platform }}-fat.jar
           if-no-files-found: error
 
   delivery:
@@ -125,6 +125,7 @@ jobs:
 
           archive = Path("PPS-25-scala-man.zip")
           staging = Path("delivery-package")
+          delivery_readme = Path(".github/workflows/docs/delivery-readme.md")
           report_pdf = Path("build/report.pdf")
 
           if staging.exists():
@@ -134,6 +135,7 @@ jobs:
 
           staging.mkdir()
           shutil.copytree("src", staging / "src")
+          shutil.copy2(delivery_readme, staging / "README.md")
 
           jars = sorted(Path("fat-jars").glob("scala-man-*-fat.jar"))
           for jar in jars:
@@ -141,6 +143,7 @@ jobs:
           shutil.copy2(report_pdf, staging / "report.pdf")
 
           with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+              zf.write(staging / "README.md", "README.md")
               zf.write(staging / "report.pdf", "report.pdf")
               for jar in jars:
                   zf.write(staging / jar.name, jar.name)
@@ -156,17 +159,20 @@ jobs:
           errors = []
           jar_files = [name for name in root_files if name.endswith(".jar")]
           report_files = [name for name in root_files if name == "report.pdf"]
-          other_root_files = [name for name in root_files if name not in {"report.pdf"} and not name.endswith(".jar")]
+          readme_files = [name for name in root_files if name == "README.md"]
+          other_root_files = [name for name in root_files if name not in {"README.md", "report.pdf"} and not name.endswith(".jar")]
 
           if sorted({name.split("/", 1)[0] for name in names if "/" in name}) != ["src"]:
               errors.append("expected the only root directory to be src")
           expected_jars = [
-              "scala-man-0.1.0-SNAPSHOT-linux-fat.jar",
-              "scala-man-0.1.0-SNAPSHOT-macos-fat.jar",
-              "scala-man-0.1.0-SNAPSHOT-windows-fat.jar",
+              "scala-man-linux-fat.jar",
+              "scala-man-macos-fat.jar",
+              "scala-man-windows-fat.jar",
           ]
           if jar_files != expected_jars:
               errors.append(f"expected platform fat jars {expected_jars}, found {jar_files}")
+          if len(readme_files) != 1:
+              errors.append(f"expected exactly one root README, found {readme_files}")
           if len(report_files) != 1:
               errors.append(f"expected exactly one root report pdf, found {report_files}")
           if other_root_files:
