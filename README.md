@@ -21,7 +21,7 @@ To create a self-contained executable JAR:
 
 ```bash
 sbt assembly
-java -jar target/scala-3.3.5/scala-man-0.1.0-SNAPSHOT-fat.jar
+java -jar target/scala-3.3.5/scala-man-fat.jar
 ```
 
 Published builds, when available, can be found under [Releases](../../releases).
