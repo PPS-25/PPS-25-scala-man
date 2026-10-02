@@ -31,7 +31,7 @@ with JDK 21 (rather than by double-clicking it), so that any startup error is vi
 
 ```bash
 java -version
-java -jar scala-man-0.1.0-SNAPSHOT-windows-fat.jar
+java -jar scala-man-windows-fat.jar
 ```
 
 An error such as `UnsupportedClassVersionError` means that the installed Java is
