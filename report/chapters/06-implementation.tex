@@ -4,18 +4,16 @@
 \section{Matilde D'Antino}
 
 My work covers what a maze still holds and what a bonus does once it is gathered, the lives a player has and the
-victory or defeat they end in, the patrolling enemy, the view, and the shell in which a program made of values meets a
-toolkit that is not: the application value, the commands that reach it, and the \texttt{ScalaFX} object that owns the
-window and the keyboard. The sections below describe the language
-mechanisms those parts rest on, and the one place where the library dictated the design rather than the other way
-round.
+victory or defeat they end in, the patrolling enemy, the view, and the shell that connects the application to \texttt{ScalaFX}:
+\texttt{Application}, the commands it receives, and \texttt{Main}, which owns the window and the keyboard. The sections below describe the language
+mechanisms those parts rest on, and the one place where the graphics library imposed design choices.
 
-\subsection{Operations written beside the types they relate}
+\subsection{Collecting and bonuses as extension methods}
 
-Gathering a bonus concerns three types that have no reason to know one another: what is left on the ground, the
-effects in force, and the score. Writing that rule inside any one of them would give it a dependency on the other
-two, so the three operations are \textbf{extension methods}, collected in a file of their own rather than in the
-types they extend:
+Gathering a bonus concerns three types that have no reason to know one another: \texttt{Collectibles}, what is left in the
+maze, \texttt{ActiveEffects}, the effects in force, and the score. Writing that rule inside any one of them would give it a dependency on the other
+two, so the three operations are \textbf{extension methods}, collected in a file of their own rather than in
+the types they extend:
 
 \begin{lstlisting}
 extension (effects: ActiveEffects)
@@ -27,53 +25,52 @@ extension (effects: ActiveEffects)
     case _ => effects
 \end{lstlisting}
 
-\texttt{ActiveEffects} therefore never mentions a collectible, and the update stage reads as a sentence about the
-game rather than as a sequence of calls. The two companions of this one, \texttt{collectedBy} and
-\texttt{awardedFor}, extend in the same way what is left on the ground and the score. How long each effect lasts is a
-\texttt{given} defined in its own companion object, so no call site passes it explicitly although the context travels
-down with the update; the same holds for how much of the passing time a slowed enemy experiences.
+\texttt{ActiveEffects} therefore never mentions a collectible, and the update stage reads like a description of the game. The two companions of this one,
+\texttt{collectedBy} and \texttt{awardedFor}, extend in the same way \texttt{Collectibles} and the score. How long
+each effect lasts is a \texttt{given} defined in the companion object of \texttt{BonusDuration}, so no call site
+passes it explicitly although the context travels down with the update; the same holds for \texttt{Slowdown}, which
+says how much of the passing time a slowed enemy experiences.
 
 \subsection{A third enemy written against someone else's abstraction}
 
 The patrolling enemy makes for one corner of the maze at a time and never reads where the player is: whoever arrives
 at the corner it was making for takes the next one clockwise, so its round closes and repeats for as long as a game
-lasts. It is written
-against the strategy abstraction Alex Santini describes further on, and it added no stage to the update pipeline: the
-behaviour itself arrived as two new files. The abstraction did have to grow, though. A strategy can now answer what
-the enemy is making for after a decision, and one that decides on the spot answers nothing, so neither strategy
-already written changed a line. Holding that answer is the business of the stage above, of the enemy that carries it
-and of the save that keeps it, while the rest of the code already there changed only to name the new kind in the
-selector and to give it a symbol a maze can be authored with. A strategy is an \textbf{object} rather than a class, since it holds
-no state of its own, and the single corner it has to remember between one decision and the next travels out with the
-decision and comes back in the context.
+lasts. I wrote it as
+two new files, \texttt{PatrolStrategy} and \texttt{PatrolRoute}, against the \texttt{EnemyMovementStrategy} trait
+Alex Santini describes further on, and it added no stage to the update pipeline. The trait did have to grow, though. Through the new method
+\texttt{memoryAfter} a strategy can answer what the enemy is making for after a decision, and one that decides on the
+spot answers \texttt{None} by default, so neither strategy already written changed a line. Holding that answer is the
+business of \texttt{EnemyAiStage}, of the \texttt{heading} field of \texttt{Enemy} and of the save that keeps it, while the rest of the code already there only had to name the new kind where every enemy kind is listed, such as
+the selector, the map symbol \texttt{P} and the sprite. \texttt{PatrolStrategy} is an \textbf{object} rather than a class, since it holds
+no state of its own, and the single corner it has to remember between one decision and the next is returned with the decision and passed back in the next context.
 
-A route exists only if the maze offers at least two distinct corners to make for, which is a legitimate answer rather
-than a failure, so the factory returns an option and the type keeps the invariant:
+A route exists only if the maze offers at least two distinct corners to make for. A maze without them is not an error, so the factory returns an \texttt{Option} and the type keeps the invariant:
 
 \begin{lstlisting}
 final case class PatrolRoute private (corners: Vector[Position]):
   require(corners.sizeIs >= 2, "a patrol route needs at least two corners")
 
-def acrossCorners(map: ValidatedMap): Option[PatrolRoute] =
-  val stops = cornerCells(map).distinct
-  Option.when(stops.sizeIs >= 2)(PatrolRoute(stops))
+object PatrolRoute:
+  def acrossCorners(map: ValidatedMap): Option[PatrolRoute] =
+    val stops = cornerCells(map).distinct
+    Option.when(stops.sizeIs >= 2)(PatrolRoute(stops))
 \end{lstlisting}
 
-The requirement and the option are a pair rather than two ways of doing the same thing: the first states what a route
-is, and applies where only the factory can reach it, while the second is what callers are given. The corners are the
+The \texttt{require} and the \texttt{Option} have different roles: the first
+states what a route is and guards the private constructor, which only the factory reaches, while the second is what callers are given. The corners are the
 walkable cells nearest the four extremes, with duplicates dropped, so a narrow maze makes a shorter round instead of
-no round at all. Asking which corner follows another wraps around with a remainder and
-answers with an option too, so a corner that is no longer on the route cannot silently become the first one.
+no round at all. \texttt{nextAfter} gives the corner after a given one, wrapping around to the first with a
+remainder, and answers \texttt{None} for a cell that is not on the route; it is \texttt{PatrolStrategy} that, when an enemy reaches such a cell while heading for it, makes it head for the
+first corner.
 
 Reaching that corner is left to the navigation shared with the pursuing enemies, so a teleport shortens a patrol round
-exactly as it shortens a pursuit, this strategy deciding nothing about it beyond passing on the permission it was
-handed.
+exactly as it shortens a pursuit; the strategy only passes on whether a teleport may be used.
 
-\subsection{Deciding a screen from more than one source at once}
+\subsection{Deciding which screen to show}
 
 What the application shows cannot be read from the loop alone, which knows only whether a game is being played and
 whether it is on hold, nor from the level alone, which knows only whether it has been won or lost, and a game about to
-begin has a countdown left to show. It is a total function over them:
+begin has a countdown left to show. \texttt{Screen.of} is a total function over the three:
 
 \begin{lstlisting}
 def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Screen =
@@ -85,27 +82,25 @@ def of(loop: LoopState, state: GameState, startingIn: Option[Int] = None): Scree
     case (LoopState.Running, _)    => startingIn.fold(Playing)(Starting.apply)
 \end{lstlisting}
 
-Matching on the pair rather than on one value and then the other is what makes precedence explicit: a game already
-won is read as finished even while the loop still calls itself running, because that case comes first. The
-alternative, a condition in the interface for every question it needs answered, would have spread the same precedence
-over the places that ask.
+Matching on the pair, instead of on one value and then the other, makes the precedence explicit: a game already
+won is read as finished even if the loop is still in its running state, because that case comes first. The
+alternative, a condition in the interface for every question it needs answered, would have repeated the same precedence in every place that needs it.
 
-\subsection{A value read only if it is looked at}
+\subsection{A by-name parameter for the overlay}
 
-What covers the board is derived from the screen, and of the five screens only the one read at the end of a game
-looks at anything of it. The status to display is therefore taken \textbf{by name}:
+\texttt{Overlay.of} derives from the screen what covers the board, if anything. Of the five screens only the one
+shown at the end of a game displays the state reached, its score and time. The status to display is therefore taken \textbf{by name}:
 
 \begin{lstlisting}
 def of(screen: Screen, status: => StatusBar): Option[Overlay]
 \end{lstlisting}
 
-A game in progress is covered by nothing and evaluates no status, which is the whole of the cost the veil could add
-to a frame. The by-name parameter is what turns that into a property of the signature rather than a note asking the
-caller not to compute one.
+A game in progress is covered by nothing and evaluates no status, so the overlay adds no cost to a frame. The by-name parameter makes this guaranteed by the signature, instead of relying on the caller not to compute it.
 
-\subsection{Rendering that names neither a level nor a view}
+\subsection{A generic rendering}
 
-Change detection lives in one value, generic over two type parameters:
+\texttt{Rendering}, which decides whether a new frame reaches the board, is one value generic over two type
+parameters:
 
 \begin{lstlisting}
 type RenderListener[V] = V => Unit
@@ -117,20 +112,18 @@ final case class Rendering[S, V](
 )
 \end{lstlisting}
 
-\texttt{S} and \texttt{V} become the level and its projection in a single line of \texttt{LevelView}, and nowhere
-else. A listener is a \textbf{type alias over a function}, so the board that draws is registered as a lambda and
-nothing has to implement an interface to receive a frame.
+\texttt{S} and \texttt{V} become \texttt{LevelState} and \texttt{LevelView} in a single line of \texttt{LevelView}, where the rendering is created. A listener is a \textbf{type alias over a function}, so the board that draws is registered as a lambda and does not need to implement an interface to receive a frame.
 
 The comparison that decides whether to notify is the equality case classes already provide: no \texttt{equals} is
 written anywhere in the view. What it discards is a projection identical to the one last shown, which is what happens
 when nothing drawn is moving, since a crossing carries how far it has got into the projection and therefore differs at
 every tick.
 
-\subsection{Drawing a crossing without moving anything}
+\subsection{Drawing movement between cells}
 
-What is drawn is two layers of plain values: the maze becomes a grid of sprites once, since it does not change for
-the whole level, and whoever moves becomes a frame at every tick. Neither type imports a graphical
-library; only the board that paints them does.
+What is drawn is two layers of plain values: the maze becomes a \texttt{Board} of sprites once, since it does not
+change for the whole level, and everything else becomes a \texttt{Frame} at every tick.
+Neither type imports a graphical library; the drawing is done by \texttt{GameBoard}.
 
 A position in the model is whole and changes only on arrival, so an entity in the middle of a crossing would jump.
 Where something is drawn is therefore counted in cells but not in whole ones:
@@ -146,15 +139,13 @@ private def crossed(from: Int, to: Int, progress: Double): Double =
 \end{lstlisting}
 
 A whole number sits on a cell and a fraction lies between two, so the continuity is entirely in the picture and the
-model keeps its discrete positions. The same function serves rows and columns, since a crossing is orthogonal and one
-of the two ends up returning what it was given.
+model keeps its discrete positions. The same function serves rows and columns, since a movement is always horizontal or vertical, so one of the two coordinates does not change.
 
-What covers what is the order things are drawn in, and the frame is built to be drawn in that order: what is left on
-the ground, then the enemies, then the player appended last. Sorting by position, which is how a static grid would be
-drawn, is of no use once things stop sharing a cell to be sorted by.
+What is drawn later covers what is drawn earlier, and the frame is built to be drawn in that order: the collectibles left,
+then the enemies, then the player appended last. Sorting by position, which is how a static grid would be
+drawn, does not work when entities are between two cells.
 
-The player's mouth opens and closes on the parity of the cell left behind rather than on a clock of its own, so it
-moves while the player moves and stops when the player stops, without an animation state being kept anywhere.
+The player's mouth opens and closes on the parity of the cell left behind rather than on a clock of its own, so it moves while the player moves and stops when the player stops, without an animation state being kept anywhere.
 
 \subsection{Where the library dictated the design}
 
@@ -167,16 +158,16 @@ the scene towards whatever holds the focus, and the event is consumed only when 
 consuming it always would stop the arrows from scrolling the list of mazes in the menu.
 
 A modal dialog cannot be opened while an animation frame is being processed: asking for one throws instead of
-waiting, so the notices the application produces are shown rather than waited upon.
+waiting, so the error notices the application produces are shown rather than waited upon.
 
 Text sizes are not derived from the cell. Cell width is computed from the shape of the maze and the size of the
 screen, so it is a different size on every maze. Text derived from it therefore had no stable size, and the status bar
 came out unreadable on the largest maze and oversized on the smallest. The sizes are a fixed scale in \texttt{Style}
 instead, and only the maze scales with the window.
 
-All of this lives in the shell, which keeps the current application in a mutable reference and replaces it after every
+All of this lives in the shell, \texttt{Main}, which keeps the current application in a mutable reference and replaces it after every
 event and every frame. \texttt{Application} is not pure, since it reaches files through its port and puts a board on the
-screen through the renderer it is given, but it is free of the frameworks that carry either, which is why it is
+screen through the renderer it is given, but it does not import \texttt{ScalaFX} and does no file I/O itself, which is why it is
 tested without a window.
 
 \section{Gaia Mazzoni}
